@@ -1,0 +1,7 @@
+Three.js r170 — MIT. License: vendor/THREE-LICENSE.txt.
+Inter — SIL Open Font License. License: vendor/INTER-LICENSE.txt.
+Kloppenheim 06 Pure Sky HDRI — Greg Zaal / Jarod Guest, Poly Haven, CC0.
+Source: https://polyhaven.com/a/kloppenheim_06_puresky
+Download: https://dl.polyhaven.org/file/ph-assets/HDRIs/hdr/1k/kloppenheim_06_puresky_1k.hdr
+Cockpit, aircraft, airport geometry, map and procedural textures authored for this simulator.
+No airline affiliation or certified aircraft data. Representative scenery and fictional training routing.
