@@ -10,7 +10,7 @@ js = '\n'.join((root / f).read_text() for f in sorted(glob.glob(str(root / 'src'
 shell = (root / 'src' / 'shell.html').read_text()
 html = (shell
         + '\n<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>\n'
-        + '<script>\n' + js + '\n</script>\n')
+        + '<script>\n' + js + '\n</script>\n</body>\n</html>\n')
 # Written twice so GitHub Pages works whether it publishes from the repo root or from /docs
 (root / 'index.html').write_text(html)
 (root / 'docs').mkdir(exist_ok=True)

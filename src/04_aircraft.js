@@ -33,7 +33,7 @@ function newState() {
     // derived
     ias: 0, tas: 0, gs: 0, mach: 0, alt: 0, ra: 0, vs: 0, alpha: 0, gamma: 0, trk: 0, iasTrend: 0, nz: 1,
     loc: { dev: 0, valid: false, dist: 0, xte: 0 }, gs_: { dev: 0, valid: false, herr: 0 },
-    tailStrike: false, touchdown: null, crashed: false, hardLanding: false,
+    tailStrike: false, touchdown: null, crashed: false, hardLanding: false, toConfigTested: false,
     time: 0, airborneT: 0, warn: { master: false, caution: false, msgs: [] }, wind: new THREE.Vector3(), windDir: 250, windKt: 8,
     stats: { maxBank: 0, overspeed: 0, maxG: 1, tdFpm: 0, tdDist: 0, tdCl: 0, flown: 0 },
     pushback: null,
@@ -44,6 +44,17 @@ function newState() {
 function mkEng() { return { master: false, N1: 0, N2: 0, EGT: 25, FF: 0, run: false, starting: false, ign: false, startFail: '' }; }
 
 let S = newState();
+
+function takeoffConfigFaults() {
+  const faults = [];
+  if (S.flapLever < 1 || S.flapLever > 3 || Math.abs(S.flapPos - S.flapLever) > 0.05) faults.push('FLAPS');
+  if (!S.sbArmed || S.sbLever > 0.05 || S.spoiler > 0.05) faults.push('SPOILERS');
+  if (S.autobrake !== 3) faults.push('AUTO BRK MAX');
+  if (Math.abs(S.rudTrim) > 0.3) faults.push('RUDDER TRIM');
+  if (S.gearPos < 0.95) faults.push('LANDING GEAR');
+  return faults;
+}
+function takeoffConfigNormal() { return S.toConfigTested && takeoffConfigFaults().length === 0; }
 
 function placeAt(x, z, hdg) {
   S.pos.set(x, groundH(x, z), z); S.psi = hdg * D2R; S.theta = 0; S.phi = 0; S.vel.set(0, 0, 0); S.onGround = true;

@@ -41,7 +41,7 @@ function drawPB(g, x, y, w, h, top, bot) {
   const half = (lg, yy) => {
     if (!lg || !lg.t) return; const on = (lg.on && pw) || test; const fs = Math.max(9, Math.round(h * (lg.t.length > 5 ? 0.21 : 0.26)));
     const font = `bold ${fs}px Arial, sans-serif`;
-    if (!on) { g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(80,86,90,.9)'; g.fillText(lg.t, x + w / 2, yy); return; }
+    if (!on) { g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#9ba8af'; g.fillText(lg.t, x + w / 2, yy); return; }
     both(g, gg => { gg.font = font; gg.textAlign = 'center'; gg.textBaseline = 'middle'; gg.fillStyle = lg.c; gg.shadowColor = lg.c; gg.shadowBlur = 6;
       if (lg.box) { gg.strokeStyle = lg.c; gg.lineWidth = 2; gg.strokeRect(x + 5, yy - h * 0.17, w - 10, h * 0.34); }
       gg.fillText(lg.t, x + w / 2, yy); gg.shadowBlur = 0; });
@@ -59,7 +59,7 @@ function drawLight(g, x, y, w, h, t, col, on, size) {
   const lit = on && S.elec.dc || (S.annTest && S.elec.dc);
   const f = `bold ${size || Math.round(h * 0.42)}px Arial, sans-serif`;
   if (lit) both(g, gg => { gg.font = f; gg.textAlign = 'center'; gg.textBaseline = 'middle'; gg.fillStyle = col; gg.shadowColor = col; gg.shadowBlur = 8; t.split('\n').forEach((l, i, a) => gg.fillText(l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (h * 0.4))); gg.shadowBlur = 0; });
-  else { g.font = f; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(70,72,74,.9)'; t.split('\n').forEach((l, i, a) => g.fillText(l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (h * 0.4))); }
+  else { g.font = f; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#8f9da4'; t.split('\n').forEach((l, i, a) => g.fillText(l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (h * 0.4))); }
 }
 function drawToggle(g, x, y, idx, labels) {
   const n = labels.length, sp = 26;
@@ -746,8 +746,8 @@ function buildOverhead(p) {
   // ---- ELEC ----
   addScreen(p, 610, 668, 108, 48, 2.5, (g, W, H) => scrVolt(g, W, H, S.elec.bat1), () => `${S.elec.dc}|${S.elec.bat1}`);
   addScreen(p, 760, 668, 108, 48, 2.5, (g, W, H) => scrVolt(g, W, H, S.elec.bat2), () => `${S.elec.dc}|${S.elec.bat2}`);
-  pbHot(p, 'bat1', 640, 730, 'BAT 1', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat1 && (S.elec.bat2 || S.elec.ac)), () => { S.elec.bat1 = !S.elec.bat1; Audio2.click(); Tut.event('bat'); }, 'BAT 1: battery 1');
-  pbHot(p, 'bat2', 790, 730, 'BAT 2', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat2 && (S.elec.bat1 || S.elec.ac)), () => { S.elec.bat2 = !S.elec.bat2; Audio2.click(); Tut.event('bat'); }, 'BAT 2: battery 2');
+  pbHot(p, 'bat1', 640, 730, 'BAT 1', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat1 && (S.elec.bat2 || S.elec.ac)), () => { S.elec.bat1 = !S.elec.bat1; Audio2.click(); Tut.event('bat'); }, () => `BAT 1: ${S.elec.bat1 ? 'ON' : 'OFF'}`);
+  pbHot(p, 'bat2', 790, 730, 'BAT 2', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat2 && (S.elec.bat1 || S.elec.ac)), () => { S.elec.bat2 = !S.elec.bat2; Audio2.click(); Tut.event('bat'); }, () => `BAT 2: ${S.elec.bat2 ? 'ON' : 'OFF'}`);
   gpb(p, 'bustie', 1040, 730, 'BUS TIE', 'off', true, { abn: 'ELEC BUS TIE OFF', when: () => S.elec.ac });
   gpb(p, 'acess', 1180, 730, '', 'off', true, { bot: 'ALTN', tip: 'AC ESS FEED' });
   gpb(p, 'galley', 1320, 730, 'GALLEY', 'off', true, {});
@@ -855,8 +855,11 @@ function buildPedestal(p) {
   ebtn('emercanc', cols[0], 40, 'EMER\nCANC', () => false, () => { S.warn.silenced = true; S.warn.ack = [...(S.warn.cautions || [])]; }, 'EMER CANC: cancel the current warning or caution');
   ['ENG', 'BLEED', 'PRESS', 'ELEC', 'HYD', 'FUEL'].forEach((pg, i) => pageBtn(pg, cols[i + 1], 40));
   pbHot(p, 'toconfig', cols[0] - 24, 135, 'T.O CONFIG', () => null, () => ({ t: 'TEST', c: ANN.white, on: S.time - (S.toTestT ?? -99) < 1 }), () => {
-    Audio2.click(); S.toTestT = S.time; const ok = S.flapLever >= 1 && S.flapLever <= 3 && S.flapPos >= 0.95 && S.spoiler < 0.05;
-    if (ok) { S.toConfigOK = true; toast('T.O CONFIG NORMAL'); } else { S.toConfigOK = false; Audio2.chime(); toast('CONFIG: flaps not in take-off configuration'); } }, 'T.O CONFIG: test the take-off configuration');
+    Audio2.click(); S.toTestT = S.time; S.toConfigTested = true;
+    const faults = takeoffConfigFaults();
+    if (!faults.length) toast('T.O CONFIG NORMAL');
+    else { Audio2.chime(); toast('CONFIG: ' + faults.join(', '), 5000); }
+  }, 'T.O CONFIG: test flaps, spoilers, autobrake, rudder trim and gear');
   ['APU', 'COND', 'DOOR', 'WHEEL', 'F/CTL'].forEach((pg, i) => pageBtn(pg, cols[i + 1], 135));
   ebtn('sd_all', cols[6], 135, 'ALL', () => false, () => { const i = SD_PAGES.indexOf(S.sdPage); S.sdPage = SD_PAGES[(i + 1) % SD_PAGES.length]; }, 'ALL: step through every system page');
   ebtn('clr_l', cols[0], 240, 'CLR', () => S.warn.caution, () => { S.warn.ack = [...(S.warn.cautions || [])]; S.sdPage = null; }, 'CLR: clear the ECAM message');

@@ -3,6 +3,26 @@ let renderer, wScene, wCam, sky, clouds, ground, model, shadowBlob, taxiLights, 
 const VIEW = { mode: 'cockpit', yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
+let menuWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
+function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
+function openMenu() {
+  if (!$('menu').hidden) return;
+  closeControlDrawer(); menuWasPaused = paused; if (started) paused = true;
+  $('menuResumeRow').hidden = !started; $('menu').hidden = false; menuBackgroundInert(true);
+  (started ? $('btnResume') : $('menu').querySelector('[data-scn]')).focus();
+}
+function resumeMenu() { if (!started) return; $('menu').hidden = true; menuBackgroundInert(false); paused = menuWasPaused; $('btnMenu').focus(); }
+function openDialog(id) {
+  closeControlDrawer(); dialogPreviousFocus = document.activeElement; $(id).hidden = false;
+  for (const child of document.body.children) if (child !== $(id)) child.inert = true;
+  $(id).querySelector('button').focus();
+}
+function closeDialog(id) {
+  $(id).hidden = true; for (const child of document.body.children) child.inert = false;
+  if (!$('menu').hidden) menuBackgroundInert(true);
+  if (dialogPreviousFocus && dialogPreviousFocus.isConnected) dialogPreviousFocus.focus(); dialogPreviousFocus = null;
+}
+function activeDialog() { return ['help', 'voices', 'debrief'].find(id => !$(id).hidden); }
 
 function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, ms); }
 function showATC(who, msg, freq) { const a = $('radio'); a.querySelector('.who').textContent = who + (freq ? ' · ' + (freq / 1000).toFixed(3) : ''); a.querySelector('.msg').textContent = msg; a.hidden = false; a.classList.remove('flash'); void a.offsetWidth; a.classList.add('flash'); clearTimeout(a._h); a._h = setTimeout(() => a.hidden = true, Math.max(6000, msg.length * 90)); }
@@ -51,8 +71,8 @@ async function boot() {
   prog('Ready', 1); await nextFrame();
   onResize(); window.addEventListener('resize', onResize);
   setupInput(); setupUI();
-  $('loading').hidden = true; $('menu').hidden = false;
-  scenario('cold'); requestAnimationFrame(loop);
+  $('loading').hidden = true;
+  scenario('cold'); openMenu(); requestAnimationFrame(loop);
 }
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
@@ -68,7 +88,7 @@ function scenario(name, tutorialFrom, quiet) {
   else {
     // a prepared aircraft
     S.elec.bat1 = S.elec.bat2 = true; S.adirs = [1, 1, 1]; S.adirsT = [1, 1, 1]; S.aligned = true; engRun(S.eng[0]); engRun(S.eng[1]); S.elec.ac = true;
-    S.lt.nav = true; S.lt.beacon = true; S.lt.belts = true; fmsComplete(); S.cabinReady = true; S.toConfigOK = true; S.doorsClosed = true;
+    S.lt.nav = true; S.lt.beacon = true; S.lt.belts = true; fmsComplete(); S.cabinReady = true; S.toConfigTested = true; S.doorsClosed = true;
     S.dcOnT = -999; S.xpdr.code = '4521'; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.rmp.act = 118505; S.rmp.stby = 121905;
     S.baro.qnh = 1018; S.fcu.alt = 6000;
     Object.values(DU).forEach(d => d.boot = 5);
@@ -97,7 +117,7 @@ function prepAircraft() {
   S.elec.bat1 = S.elec.bat2 = true; S.adirs = [1, 1, 1]; S.adirsT = [1, 1, 1]; S.aligned = S.navAligned = true; S.dcOnT = -999;
   S.eng.forEach(e => { if (!e.run) engRun(e); }); S.elec.ac = true; S.engMode = 1;
   S.apu.master = false; S.apu.start = false; S.apu.avail = false; S.apu.N = 0; S.apu.bleed = false;
-  fmsComplete(); S.doorsClosed = true; S.cabinReady = true; S.toConfigOK = true; S.pushback = null; _autoTaxi = false;
+  fmsComplete(); S.doorsClosed = true; S.cabinReady = true; S.toConfigTested = true; S.pushback = null; _autoTaxi = false;
   S.lt.nav = S.lt.beacon = S.lt.belts = true; S.xpdr.code = '4521'; S.xpdr.entry = ''; S.baro.qnh = S.baro.qnh || 1018;
   Object.values(DU).forEach(d => d.boot = 5); timeComp = 1; accum = 0;
 }
@@ -169,7 +189,15 @@ let drag = null;
 function setupInput() {
   const cv = $('gl');
   window.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return; const k = e.key; KEYS[k.toLowerCase()] = true; KEYS[e.code] = true;
+    if (e.key === 'Escape') {
+      if (activeDialog()) { closeDialog(activeDialog()); e.preventDefault(); return; }
+      if (!$('menu').hidden && started) { resumeMenu(); e.preventDefault(); return; }
+      if (!$('controlDrawer').hidden) { closeControlDrawer(); e.preventDefault(); return; }
+    }
+    if (!$('menu').hidden || activeDialog()) return;
+    if (e.key === 'F2' && started) { $('controlDrawer').hidden ? openControlDrawer() : closeControlDrawer(); e.preventDefault(); return; }
+    if (e.target.closest('#controlDrawer') || e.target.tagName === 'INPUT') return;
+    const k = e.key; KEYS[k.toLowerCase()] = true; KEYS[e.code] = true;
     if (!started) return;
     if (CK.overPanel && CK.overPanel.name === 'mcdu' && VIEW.mode === 'cockpit' && !e.ctrlKey && !e.metaKey) {
       const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
@@ -261,7 +289,7 @@ function keyAction(e) {
     case lk === 'c': cycleView(); return true;
     case lk === 'p': paused = !paused; toast(paused ? 'Paused' : 'Resumed', 1000); return true;
     case lk === 't': timeComp = S.onGround ? 1 : timeComp >= 8 ? 1 : timeComp * 2; toast('Time ×' + timeComp, 1200); return true;
-    case lk === 'h': $('help').hidden = !$('help').hidden; return true;
+    case lk === 'h': openDialog('help'); return true;
     case k === 'Enter': if (Tut.active) { Tut.cont(); } return true;
     case k === 'PageUp' || k === '=' || k === '+': S.tl = S.tl.map(t => clamp(t < 0 ? 0 : t + 0.05, -1, 1)); return true;
     case k === 'PageDown' || k === '-': S.tl = S.tl.map(t => t <= 0 ? (S.onGround ? clamp(t - 0.15, -1, 0) : 0) : clamp(t - 0.05, 0, 1)); return true;
@@ -368,12 +396,58 @@ function render(dt) {
 }
 
 // ---------------- UI ----------------
+function controlLabel(h) { return typeof h.label === 'function' ? h.label() : h.label || h.id.replaceAll('_', ' '); }
+function openControlDrawer(id) {
+  if (!started || !$('menu').hidden || activeDialog()) return;
+  if ($('controlDrawer').hidden) { controlPreviousFocus = document.activeElement; controlPreviousFov = VIEW.fov; controlCaptainWasMin = $('captain').classList.contains('min'); $('captain').classList.add('min'); $('controlDrawer').hidden = false; }
+  if (id) { const h = hotById(id); if (h && (h.click || h.wheel)) { $('controlSearch').value = id; selectControl(h); } }
+  renderControlList(); $('controlSearch').focus();
+}
+function closeControlDrawer() {
+  if ($('controlDrawer').hidden) return;
+  $('controlDrawer').hidden = true; controlSelectedId = null; VIEW.fov = controlPreviousFov ?? VIEW.fov;
+  if (!controlCaptainWasMin) $('captain').classList.remove('min');
+  controlPreviousFov = null;
+  if (controlPreviousFocus && controlPreviousFocus.isConnected && !controlPreviousFocus.inert) controlPreviousFocus.focus();
+  controlPreviousFocus = null;
+}
+function selectControl(h) {
+  controlSelectedId = h.id; lookAtHot(h.id);
+  $('controlName').textContent = h.id.replaceAll('_', ' ').toUpperCase();
+  updateControlState(); renderControlList();
+}
+function updateControlState() {
+  const h = controlSelectedId && hotById(controlSelectedId);
+  let state = h ? controlLabel(h) : 'Search and select a cockpit control.';
+  if (h && h.get) { const v = h.get(); if (Array.isArray(v) && typeof v[0] === 'boolean') state += ` · Current setting: ${v[0] ? 'ON' : 'OFF'}`; }
+  $('controlState').textContent = state;
+  document.querySelectorAll('[data-control-action]').forEach(b => { const a = b.dataset.controlAction; b.disabled = !h || (a === 'press' || a === 'pull' ? !h.click : !h.wheel); });
+}
+function renderControlList() {
+  const q = $('controlSearch').value.trim().toLowerCase(); const list = $('controlList'); list.replaceChildren();
+  const matches = CK.hots.filter(h => (h.click || h.wheel) && (!q || (h.id + ' ' + controlLabel(h)).toLowerCase().includes(q)));
+  matches.slice(0, 40).forEach(h => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = h.id.replaceAll('_', ' ').toUpperCase(); b.setAttribute('aria-label', controlLabel(h)); if (h.id === controlSelectedId) b.setAttribute('aria-current', 'true'); b.onclick = () => selectControl(h); list.appendChild(b); });
+  if (!matches.length) { const p = document.createElement('p'); p.textContent = 'No matching control. Try a shorter name.'; list.appendChild(p); }
+  else if (matches.length > 40) { const p = document.createElement('p'); p.textContent = `${matches.length} matches. Refine the search to see more.`; list.appendChild(p); }
+}
+function operateControl(action) {
+  const h = controlSelectedId && hotById(controlSelectedId); if (!h) return;
+  if (action === 'increase' || action === 'decrease') { if (h.wheel) h.wheel(action === 'increase' ? 1 : -1); }
+  else if (h.click) h.click({ u: 0.5, v: action === 'pull' ? 0.25 : 0.75, right: action === 'pull', shift: false });
+  h.panel.sig = ''; updateScreens(); updateControlState();
+}
 function setupUI() {
-  document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; $('menu').hidden = true; VIEW.mode = 'cockpit'; }));
-  $('btnMenu').onclick = () => { $('menu').hidden = false; };
-  $('btnHelp').onclick = () => { $('help').hidden = !$('help').hidden; };
-  $('help').onclick = (e) => { if (e.target.id === 'help' || e.target.classList.contains('close')) $('help').hidden = true; };
+  document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
+  $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
+  $('btnHelp').onclick = () => openDialog('help');
+  $('help').onclick = (e) => { if (e.target.id === 'help' || e.target.classList.contains('close')) closeDialog('help'); };
   $('btnView').onclick = () => cycleView();
+  $('btnCockpit').onclick = () => $('controlDrawer').hidden ? openControlDrawer() : closeControlDrawer();
+  $('controlClose').onclick = closeControlDrawer;
+  $('controlCurrent').onclick = () => { const id = Tut.hlOf(Tut.cur()); if (id) { $('controlSearch').value = id; const h = hotById(id); if (h) selectControl(h); } };
+  $('controlSearch').oninput = renderControlList;
+  document.querySelectorAll('[data-control-action]').forEach(b => b.onclick = () => operateControl(b.dataset.controlAction));
+  updateControlState();
   const fillVoices = () => {
     const list = Audio2.voiceList(); const cur = Audio2.voices; const pref = Audio2.vpref;
     for (const [id, kind] of [['vCapt', 'capt'], ['vAtc', 'atc'], ['vGpws', 'gpws']]) {
@@ -385,27 +459,27 @@ function setupUI() {
     $('vRate').value = pref.rate || 1; $('vRateV').textContent = (+$('vRate').value).toFixed(2) + '×';
   };
   Audio2.onVoices = () => { if (!$('voices').hidden) fillVoices(); };
-  $('btnSound').onclick = () => { Audio2.init(); Audio2.pickVoices(); fillVoices(); $('vMute').value = Audio2.muteVoice ? 'off' : 'on'; $('voices').hidden = false; };
-  $('voicesClose').onclick = () => { $('voices').hidden = true; };
-  $('voices').onclick = (e) => { if (e.target.id === 'voices') $('voices').hidden = true; };
+  $('btnSound').onclick = () => { Audio2.init(); Audio2.pickVoices(); fillVoices(); $('vMute').value = Audio2.muteVoice ? 'off' : 'on'; openDialog('voices'); };
+  $('voicesClose').onclick = () => closeDialog('voices');
+  $('voices').onclick = (e) => { if (e.target.id === 'voices') closeDialog('voices'); };
   $('vRate').oninput = () => { Audio2.vpref.rate = +$('vRate').value; $('vRateV').textContent = (+$('vRate').value).toFixed(2) + '×'; Audio2.setVoice('rate', +$('vRate').value); };
   $('vMute').onchange = () => { Audio2.muteVoice = $('vMute').value === 'off'; if (Audio2.muteVoice && window.speechSynthesis) speechSynthesis.cancel(); };
   document.querySelectorAll('[data-test]').forEach(b => b.onclick = () => { const k = b.dataset.test; speechSynthesis && speechSynthesis.cancel(); Audio2.say(k === 'capt' ? "Good afternoon. I'm Captain Hughes, and I'll be flying with you to Paris today." : k === 'atc' ? 'Albion 324, Heathrow Ground, push and start approved, face east.' : 'Five hundred. Minimum. Retard.', k); });
   $('tContinue').onclick = () => Tut.cont();
-  $('tShow').onclick = () => lookAtHot(Tut.hlOf(Tut.cur()));
+  $('tShow').onclick = () => { const id = Tut.hlOf(Tut.cur()); if (id) { if (hotById(id)) openControlDrawer(id); else lookAtHot(id); } };
   $('tDo').onclick = () => Tut.doit();
   $('tRepeat').onclick = () => Tut.repeat();
   $('tNext').onclick = () => Tut.next(); $('tPrev').onclick = () => Tut.prev();
   $('tMin').onclick = () => $('captain').classList.toggle('min');
-  $('debriefClose').onclick = () => { $('debrief').hidden = true; };
-  $('debriefMenu').onclick = () => { $('debrief').hidden = true; $('menu').hidden = false; };
+  $('debriefClose').onclick = () => closeDialog('debrief');
+  $('debriefMenu').onclick = () => { closeDialog('debrief'); openMenu(); };
   Tut.onUI = renderTutUI;
-  document.querySelectorAll('.look').forEach(b => b.onclick = () => { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.lookTo = null; VIEW.tyaw = y; VIEW.tpitch = p; });
+  document.querySelectorAll('.look').forEach(b => b.onclick = () => { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.lookTo = null; VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.textContent === 'Forward' ? 62 : 46; });
 }
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
-  VIEW.lookTo = { yaw, pitch }; VIEW.fov = clamp(VIEW.fov, 40, 62);
+  VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }
 function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
@@ -457,6 +531,6 @@ function showDebrief(crash) {
   rows.push(['Fuel used', Math.round(7800 - S.fuel) + ' kg', 'ok']);
   rows.push(['Flight time', fmtTime(S.time), 'ok']);
   $('debriefRows').innerHTML = rows.map(([a, b, c]) => `<tr><th>${a}</th><td class="${c}">${b}</td></tr>`).join('');
-  d.hidden = false;
+  openDialog('debrief');
 }
 window.addEventListener('load', () => { boot().catch(err => { $('loadmsg').textContent = 'Could not start: ' + err.message; console.error(err); }); });
