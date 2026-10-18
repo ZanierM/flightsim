@@ -1,0 +1,218 @@
+<title>A320 Heathrow to Paris</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400&family=B612+Mono:wght@400;700&display=swap">
+<style>
+/* Layout: full-bleed WebGL flight deck with avionics-style overlay panels (single dark look, like a flight deck at work) */
+:root {
+  --bg: #07090b; --panel: rgba(14, 19, 23, 0.86); --panel-solid: #11171c; --line: rgba(160, 190, 205, 0.18);
+  --fg: #e6edf1; --dim: #93a4ae; --cyan: #2fd6ff; --green: #3df23d; --amber: #ffa21a; --red: #ff4a3d; --hl: #ffd600;
+  --ui: "B612", "Segoe UI", system-ui, sans-serif; --mono: "B612 Mono", ui-monospace, Menlo, Consolas, monospace;
+  color-scheme: dark;
+}
+[hidden] { display: none !important; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--fg); font-family: var(--ui); overflow: hidden; -webkit-font-smoothing: antialiased; }
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
+button { font-family: var(--ui); }
+:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+.btn { appearance: none; border: 1px solid var(--line); background: rgba(255,255,255,0.04); color: var(--fg); padding: 7px 12px; border-radius: 3px; font-size: 13px; cursor: pointer; letter-spacing: .02em; }
+.btn:hover { border-color: var(--cyan); color: #fff; }
+.btn.primary { background: var(--cyan); color: #04141a; border-color: var(--cyan); font-weight: 700; }
+.btn.primary:hover { background: #7ce6ff; }
+
+/* loading */
+#loading { position: fixed; inset: 0; display: grid; place-items: center; background: var(--bg); z-index: 50; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#loading .box { width: min(420px, 100%); }
+#loading .t { font-family: var(--mono); color: var(--green); font-size: 13px; letter-spacing: .08em; text-transform: uppercase; }
+#loading .bar { height: 3px; background: #1a2329; margin-top: 12px; }
+#loadbar { height: 100%; width: 0; background: var(--cyan); transition: width .3s; }
+#loadmsg { font-family: var(--mono); color: var(--dim); font-size: 13px; margin-top: 10px; }
+
+/* start menu */
+#menu { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: radial-gradient(ellipse at 30% 20%, rgba(10,30,45,.55), rgba(3,6,8,.92)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; overflow-y: auto; }
+#menu .card { width: min(760px, 100%); background: var(--panel-solid); border: 1px solid var(--line); padding: 28px; }
+#menu .flight { font-family: var(--mono); color: var(--green); font-size: 13px; letter-spacing: .1em; }
+#menu h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.08; margin: 6px 0 4px; font-weight: 700; text-wrap: balance; }
+#menu h1 .arrow { color: var(--cyan); }
+#menu .sub { color: var(--dim); max-width: 62ch; line-height: 1.5; font-size: 14px; margin: 0 0 20px; }
+.route { display: flex; flex-wrap: wrap; gap: 6px 4px; font-family: var(--mono); font-size: 12px; color: var(--dim); margin-bottom: 22px; }
+.route span { padding: 2px 6px; border: 1px solid var(--line); }
+.route span.ap { color: var(--fg); border-color: var(--cyan); }
+.scns { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
+.scn { text-align: left; background: rgba(255,255,255,.03); border: 1px solid var(--line); padding: 14px; color: var(--fg); cursor: pointer; border-radius: 2px; display: grid; gap: 4px; }
+.scn:hover { border-color: var(--cyan); background: rgba(47,214,255,.06); }
+.scn b { font-size: 15px; } .scn small { color: var(--dim); font-size: 12px; line-height: 1.4; }
+.scn .tag { font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: .08em; }
+.scn.main { border-color: rgba(47,214,255,.5); grid-column: 1 / -1; }
+#menu .note { margin-top: 16px; color: var(--dim); font-size: 12px; line-height: 1.5; }
+
+/* top bar */
+#top { position: fixed; top: calc(10px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); display: flex; gap: 6px; z-index: 20; flex-wrap: wrap; justify-content: flex-end; }
+#top .btn { background: var(--panel); backdrop-filter: blur(6px); }
+#hudTc { font-family: var(--mono); color: var(--amber); align-self: center; font-size: 14px; }
+#hudPause { font-family: var(--mono); color: var(--amber); align-self: center; font-size: 14px; }
+#looks { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(10px + env(safe-area-inset-top, 0px)); display: flex; gap: 4px; z-index: 20; flex-wrap: wrap; }
+#looks .btn { background: var(--panel); font-size: 12px; padding: 5px 9px; }
+
+/* captain panel */
+#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(400px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+#captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
+#captain .av { width: 34px; height: 34px; border-radius: 50%; background: #1d2a33; border: 1px solid var(--cyan); display: grid; place-items: center; font-weight: 700; color: var(--cyan); font-size: 13px; flex: none; }
+#captain .who { font-size: 12px; color: var(--dim); line-height: 1.2; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
+#captain .ph { margin-left: auto; text-align: right; font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: .06em; text-transform: uppercase; }
+#captain .ph span { display: block; color: var(--dim); }
+#captain .prog { height: 2px; background: #1a2329; } #tProg { height: 100%; background: var(--cyan); width: 0; transition: width .4s; }
+#captain .body { padding: 10px 12px 12px; display: grid; gap: 8px; }
+#tTitle { font-size: 16px; font-weight: 700; margin: 0; }
+#tText { margin: 0; font-size: 13.5px; line-height: 1.5; color: #d3dde3; max-height: 26vh; overflow-y: auto; }
+#tItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-family: var(--mono); font-size: 12.5px; }
+#tItems li { color: var(--cyan); padding-left: 18px; position: relative; }
+#tItems li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 9px; height: 9px; border: 1.5px solid var(--cyan); }
+#tItems li.ok { color: var(--green); } #tItems li.ok::before { border-color: var(--green); background: var(--green); }
+#captain .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+#captain .acts .sp { flex: 1; }
+#captain .acts .btn { padding: 6px 10px; font-size: 12px; }
+#captain.min .body { display: none; }
+#tMin { margin-left: 6px; background: none; border: none; color: var(--dim); cursor: pointer; font-size: 16px; padding: 4px; }
+
+/* radio */
+#radio { position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(50% + 120px); transform: translateX(-50%); width: min(520px, calc(100vw - 460px)); background: rgba(6, 12, 9, .9); border: 1px solid rgba(61,242,61,.35); padding: 10px 14px; z-index: 22; display: flex; gap: 12px; align-items: baseline; }
+#radio .who { font-family: var(--mono); color: var(--green); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; flex: none; }
+#radio .msg { font-family: var(--mono); font-size: 13.5px; line-height: 1.45; }
+#radio.flash { animation: rf .5s; } @keyframes rf { from { border-color: var(--green); } }
+
+#tip { position: fixed; z-index: 30; pointer-events: none; background: rgba(4,8,10,.94); border: 1px solid var(--line); color: var(--fg); font-size: 12.5px; padding: 6px 9px; width: max-content; max-width: min(320px, calc(100vw - 16px)); line-height: 1.4; }
+#toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); background: rgba(4,8,10,.92); border-left: 3px solid var(--amber); padding: 8px 14px; font-family: var(--mono); font-size: 13px; z-index: 25; max-width: calc(100vw - 32px); }
+#xhud { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 16px; font-family: var(--mono); font-size: 13px; color: var(--dim); background: rgba(4,8,10,.75); padding: 6px 14px; z-index: 18; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
+#xhud b { color: var(--green); font-weight: 400; }
+
+/* help & debrief */
+.modal { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.6); display: grid; place-items: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; overflow-y: auto; }
+.modal .card { background: var(--panel-solid); border: 1px solid var(--line); padding: 22px; width: min(720px, 100%); }
+.modal h2 { margin: 0 0 12px; font-size: 20px; }
+.keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 24px; font-size: 13px; }
+.keys div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.keys kbd { font-family: var(--mono); color: var(--cyan); font-size: 12px; white-space: nowrap; }
+.keys h3 { grid-column: 1 / -1; font-size: 11px; color: var(--green); font-family: var(--mono); letter-spacing: .1em; margin: 12px 0 2px; text-transform: uppercase; }
+#debrief table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
+#debrief th { text-align: left; font-weight: 400; color: var(--dim); padding: 7px 0; border-bottom: 1px solid var(--line); }
+#debrief td { text-align: right; font-family: var(--mono); padding: 7px 0; border-bottom: 1px solid var(--line); }
+#debrief td.good { color: var(--green); } #debrief td.ok { color: var(--fg); } #debrief td.bad { color: var(--amber); }
+.row { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+.vnote { color: var(--dim); font-size: 13px; line-height: 1.5; margin: 0 0 14px; max-width: 70ch; } .vnote b { color: var(--fg); font-weight: 700; }
+.vrow { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 7px 0; border-bottom: 1px solid var(--line); }
+.vrow label { color: var(--dim); font-size: 13px; }
+.vrow select, .vrow input[type=range] { width: 100%; min-width: 0; background: #0b1013; color: var(--fg); border: 1px solid var(--line); padding: 6px; font-family: var(--ui); font-size: 13px; }
+#vRateV { font-family: var(--mono); font-size: 13px; color: var(--cyan); min-width: 3em; }
+@media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { #looks { display: none; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
+@media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
+</style>
+<canvas id="gl"></canvas>
+<div id="loading"><div class="box"><div class="t">ALB324 · EGLL → LFPG</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
+
+<div id="menu" hidden>
+  <div class="card">
+    <div class="flight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
+    <h1>London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
+    <p class="sub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
+    <div class="route"><span class="ap">EGLL 27R</span><span>(1500)</span><span>EPM</span><span>DET</span><span>DVR</span><span>ABB</span><span>BVS</span><span>MOPAR</span><span>CF26R</span><span class="ap">LFPG 26R</span></div>
+    <div class="scns">
+      <button class="scn main" data-scn="cold"><span class="tag">FULL TUTORIAL · ABOUT 60 MIN</span><b>Cold and dark at the stand</b><small>Every check from batteries on to engines off in Paris. The captain explains each switch.</small></button>
+      <button class="scn" data-scn="runway"><span class="tag">FROM TAKE-OFF</span><b>Lined up on 27R</b><small>Engines running, checks done, cleared for take-off.</small></button>
+      <button class="scn" data-scn="cruise"><span class="tag">FROM CRUISE</span><b>Over the Channel</b><small>FL250 between Dover and Abbeville, autopilot on.</small></button>
+      <button class="scn" data-scn="approach"><span class="tag">FROM APPROACH</span><b>17 miles from 26R</b><small>4000 ft east of Charles de Gaulle, ready for the ILS.</small></button>
+      <button class="scn" data-scn="free"><span class="tag">NO CAPTAIN</span><b>Free flight</b><small>Lined up on 27R. You're on your own.</small></button>
+    </div>
+    <p class="note">Best with headphones and a keyboard. Press H at any time for the controls. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
+  </div>
+</div>
+
+<div id="looks">
+  <button class="btn look" data-look="0,-10">Forward</button>
+  <button class="btn look" data-look="-8,-34">Instruments</button>
+  <button class="btn look" data-look="-18,-60">Pedestal</button>
+  <button class="btn look" data-look="-22,58">Overhead</button>
+  <button class="btn look" data-look="70,-5">Left window</button>
+</div>
+<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+
+<div id="captain" hidden>
+  <div class="head"><div class="av">CH</div><div class="who"><b>Capt. Hughes</b>Training captain</div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><button id="tMin" title="Collapse">▾</button></div>
+  <div class="prog"><div id="tProg"></div></div>
+  <div class="body">
+    <h2 id="tTitle"></h2>
+    <p id="tText"></p>
+    <ul id="tItems"></ul>
+    <div class="acts">
+      <button class="btn primary" id="tContinue">Continue</button>
+      <button class="btn" id="tShow">Show me</button>
+      <button class="btn" id="tDo">Do it for me</button>
+      <button class="btn" id="tRepeat">Repeat</button>
+      <span class="sp"></span>
+      <button class="btn" id="tPrev" title="Previous step">‹</button>
+      <button class="btn" id="tNext" title="Skip step">›</button>
+    </div>
+  </div>
+</div>
+<div id="radio" hidden><span class="who">ATC</span><span class="msg"></span></div>
+<div id="tip" hidden></div>
+<div id="toast" hidden></div>
+<div id="xhud" hidden></div>
+
+<div id="help" class="modal" hidden>
+  <div class="card">
+    <h2>Controls</h2>
+    <div class="keys">
+      <h3>Flying</h3>
+      <div>Pitch / roll (sidestick)<kbd>↑ ↓ ← →  (W / S pitch)</kbd></div>
+      <div>Full deflection<kbd>hold Shift</kbd></div>
+      <div>Rudder<kbd>Z / X</kbd></div>
+      <div>Nosewheel tiller (ground)<kbd>, .  or ← → below 30 kt</kbd></div>
+      <div>Brakes / parking brake<kbd>B / Shift B</kbd></div>
+      <h3>Thrust</h3>
+      <div>Thrust up / down<kbd>PgUp PgDn or + −</kbd></div>
+      <div>Idle / CL / FLX / TOGA<kbd>I · Shift C · Shift F · Shift T</kbd></div>
+      <div>Reverse (on ground)<kbd>R or hold PgDn</kbd></div>
+      <h3>Configuration</h3>
+      <div>Gear<kbd>G</kbd></div>
+      <div>Flaps extend / retract<kbd>F / V</kbd></div>
+      <div>Arm ground spoilers<kbd>/</kbd></div>
+      <div>Speed brake<kbd>?</kbd></div>
+      <div>Engine masters<kbd>Ctrl 1 / Ctrl 2</kbd></div>
+      <h3>Automation</h3>
+      <div>AP1 / disconnect<kbd>A / Q</kbd></div>
+      <div>Autothrust<kbd>Shift R</kbd></div>
+      <div>Knobs (FCU, baro, radio)<kbd>scroll · click = push · right-click = pull</kbd></div>
+      <div>Rotary selectors<kbd>click / right-click · or scroll</kbd></div>
+      <div>Toggle switches<kbd>click upper / lower half</kbd></div>
+      <h3>Sim</h3>
+      <div>Change view<kbd>C</kbd></div>
+      <div>Look around / zoom<kbd>drag · scroll</kbd></div>
+      <div>Time acceleration<kbd>T</kbd></div>
+      <div>Pause<kbd>P</kbd></div>
+      <div>Captain: continue<kbd>Enter</kbd></div>
+      <div>Type into the MCDU<kbd>point at it, then use your keyboard</kbd></div>
+    </div>
+    <div class="row"><button class="btn primary close">Close</button></div>
+  </div>
+</div>
+<div id="voices" class="modal" hidden>
+  <div class="card">
+    <h2>Voices</h2>
+    <p class="vnote">These are the voices built into your browser and computer. Look for names with <b>Natural</b>, <b>Premium</b>, <b>Enhanced</b> or <b>Google</b>: they sound far more human. On a Mac you can download better ones in System Settings → Accessibility → Spoken Content → System voice → Manage Voices (try "Daniel (Premium)" or "Jamie (Premium)"), then reload this page.</p>
+    <div class="vrow"><label for="vCapt">Captain</label><select id="vCapt"></select><button class="btn" data-test="capt">Test</button></div>
+    <div class="vrow"><label for="vAtc">ATC and cabin</label><select id="vAtc"></select><button class="btn" data-test="atc">Test</button></div>
+    <div class="vrow"><label for="vGpws">Callouts (GPWS)</label><select id="vGpws"></select><button class="btn" data-test="gpws">Test</button></div>
+    <div class="vrow"><label for="vRate">Speaking speed</label><input id="vRate" type="range" min="0.8" max="1.25" step="0.05"><span id="vRateV"></span></div>
+    <div class="vrow"><label for="vMute">Voice</label><select id="vMute"><option value="on">On</option><option value="off">Off (text only)</option></select></div>
+    <div class="row"><button class="btn primary" id="voicesClose">Done</button></div>
+  </div>
+</div>
+<div id="debrief" class="modal" hidden>
+  <div class="card">
+    <h2>Flight debrief · ALB324</h2>
+    <table><tbody id="debriefRows"></tbody></table>
+    <div class="row"><button class="btn" id="debriefClose">Keep looking around</button><button class="btn primary" id="debriefMenu">Fly again</button></div>
+  </div>
+</div>
