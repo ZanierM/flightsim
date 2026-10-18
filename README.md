@@ -23,6 +23,8 @@ To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `m
 
 Press **H** in the simulator for the full list. Press **F2** to search cockpit controls, read their current settings, focus the camera on them, and operate them with keyboard buttons. Opening **Menu** pauses the flight; choose **Resume flight** to continue.
 
+The captain panel shows the next action and live checklist first. Expand **Captain’s explanation** for the full lesson, use **Dock left/right** to move the panel on desktop, or **Collapse** it while flying. On narrow screens it becomes a compact action strip automatically when airborne; **Expand** restores the checklist.
+
 Use **Retry approach** in the flight menu or landing debrief to return to the selected route's ILS setup at 17 nautical miles. This resets the aircraft and tutorial for another landing attempt.
 
 Choose **Full panel** in the view buttons to see both pilots' PFD/ND pairs, the upper and lower ECAM, and the standby instrument together. **Instruments** gives a closer captain-side view for reading and using the controls. The full-panel camera adjusts its field of view to fit the display arrangement when the window size changes.

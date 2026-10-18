@@ -74,29 +74,39 @@ button { font-family: var(--ui); }
 #looks .btn { background: var(--panel); font-size: 12px; padding: 5px 9px; }
 
 /* captain panel */
-#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(400px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(420px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+#captain.dock-right { left: auto; right: max(12px, env(safe-area-inset-right, 0px)); }
 @media (min-width: 601px) and (max-width: 1100px) { #looks { top: calc(52px + env(safe-area-inset-top, 0px)); } #captain { top: calc(92px + env(safe-area-inset-top, 0px)); } }
-#captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
-#captain .av { width: 34px; height: 34px; border-radius: 50%; background: #1d2a33; border: 1px solid var(--cyan); display: grid; place-items: center; font-weight: 700; color: var(--cyan); font-size: 13px; flex: none; }
-#captain .who { font-size: 12px; color: var(--dim); line-height: 1.2; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
-#captain .ph { margin-left: auto; text-align: right; font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: .06em; text-transform: uppercase; }
+#captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+#captain .who { flex: 1; min-width: 0; font-size: 12px; color: var(--dim); line-height: 1.25; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
+#tCompactTitle, #tCompactAction { display: none; }
+#captain.min .who b, #captain.min .who .role { display: none; }
+#captain.min #tCompactTitle { display: block; color: var(--cyan); font: 11px var(--mono); text-transform: uppercase; }
+#captain.min #tCompactAction { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-height: 2.6em; color: var(--fg); font-size: 12px; line-height: 1.3; margin-top: 3px; }
+#captain .ph { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: .04em; text-transform: uppercase; flex: none; }
 #captain .ph span { display: block; color: var(--dim); }
-#captain .prog { height: 2px; background: #1a2329; } #tProg { height: 100%; background: var(--cyan); width: 0; transition: width .4s; }
-#captain .body { padding: 10px 12px 12px; display: grid; gap: 8px; }
-#tTitle { font-size: 16px; font-weight: 700; margin: 0; }
-#tText { margin: 0; font-size: 13.5px; line-height: 1.5; color: #d3dde3; max-height: 26vh; overflow-y: auto; }
-#tItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; font-family: var(--mono); font-size: 12.5px; }
+#captain .head-actions { display: flex; gap: 4px; flex: none; }
+#captain .head-actions button { background: none; border: 1px solid var(--line); color: var(--fg); cursor: pointer; font: 11px var(--ui); padding: 8px; min-height: 40px; }
+#captain .head-actions button:hover { border-color: var(--cyan); }
+#captain .prog { height: 2px; background: #1a2329; } #tProg { height: 100%; background: var(--cyan); width: 100%; transform: scaleX(0); transform-origin: left; transition: transform .4s; }
+#captain .body { padding: 14px; display: grid; gap: 10px; max-height: min(72vh, 630px); overflow-y: auto; }
+#tTitle { font-size: 18px; line-height: 1.25; font-weight: 700; margin: 0; }
+#tAction { margin: 0; font-size: 14px; line-height: 1.45; color: var(--fg); }
+#tItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-family: var(--mono); font-size: 12.5px; max-height: 22vh; overflow-y: auto; }
 #tItems li { color: var(--cyan); padding-left: 18px; position: relative; }
 #tItems li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 9px; height: 9px; border: 1.5px solid var(--cyan); }
 #tItems li.ok { color: var(--green); } #tItems li.ok::before { border-color: var(--green); background: var(--green); }
 #captain .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-#captain .acts .sp { flex: 1; }
-#captain .acts .btn { padding: 6px 10px; font-size: 12px; }
+#captain .acts .btn { min-height: 36px; font-size: 12px; }
+#captain .step-nav { border-top: 1px solid var(--line); padding-top: 10px; }
+#tDetails { border-top: 1px solid var(--line); padding-top: 9px; font-size: 13px; }
+#tDetails summary { color: var(--cyan); cursor: pointer; width: fit-content; }
+#tText { margin: 10px 0; font-size: 13px; line-height: 1.55; color: #d3dde3; }
 #captain.min .body { display: none; }
-#tMin { margin-left: 6px; background: none; border: none; color: var(--dim); cursor: pointer; font-size: 16px; padding: 4px; }
 
 /* radio */
 #radio { position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(50% + 120px); transform: translateX(-50%); width: min(520px, calc(100vw - 460px)); background: rgba(6, 12, 9, .9); border: 1px solid rgba(61,242,61,.35); padding: 10px 14px; z-index: 19; pointer-events: none; display: flex; gap: 12px; align-items: baseline; }
+.captain-right #radio { left: calc(50% - 120px); }
 @media (min-width: 601px) and (max-width: 1100px) { #radio { top: calc(90px + env(safe-area-inset-top, 0px)); } }
 #radio .who { font-family: var(--mono); color: var(--green); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; flex: none; }
 #radio .msg { font-family: var(--mono); font-size: 13.5px; line-height: 1.45; }
@@ -144,7 +154,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .body { max-height: min(56vh, 460px); } #captain.min .ph, #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -197,21 +207,19 @@ button { font-family: var(--ui); }
 </aside>
 
 <div id="captain" hidden>
-  <div class="head"><div class="av">CH</div><div class="who"><b>Capt. Hughes</b>Training captain</div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><button id="tMin" title="Collapse">▾</button></div>
+  <div class="head"><div class="who"><b>Capt. Hughes</b><span class="role">Training captain</span><span id="tCompactTitle"></span><span id="tCompactAction"></span></div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><div class="head-actions"><button id="tDock" type="button">Dock right</button><button id="tMin" type="button" aria-expanded="true">Collapse</button></div></div>
   <div class="prog"><div id="tProg"></div></div>
   <div class="body">
     <h2 id="tTitle"></h2>
-    <p id="tText"></p>
-    <ul id="tItems"></ul>
+    <p id="tAction"></p>
+    <ul id="tItems" aria-label="Step checklist"></ul>
     <div class="acts">
       <button class="btn primary" id="tContinue">Continue</button>
-      <button class="btn" id="tShow">Show me</button>
+      <button class="btn primary" id="tShow">Show control</button>
       <button class="btn" id="tDo">Do it for me</button>
-      <button class="btn" id="tRepeat">Repeat</button>
-      <span class="sp"></span>
-      <button class="btn" id="tPrev" title="Previous step">‹</button>
-      <button class="btn" id="tNext" title="Skip step">›</button>
     </div>
+    <details id="tDetails"><summary>Captain’s explanation</summary><p id="tText"></p><button class="btn" id="tRepeat">Repeat voice</button></details>
+    <div class="acts step-nav"><button class="btn" id="tPrev">Previous step</button><button class="btn" id="tNext">Skip step</button></div>
   </div>
 </div>
 <div id="radio" hidden><span class="who">ATC</span><span class="msg"></span></div>
