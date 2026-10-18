@@ -726,6 +726,11 @@ function syncCaptainPanel() {
   $('tMin').textContent = compact ? 'Expand' : 'Collapse'; $('tMin').setAttribute('aria-expanded', String(!compact));
   $('tDock').textContent = captainDockRight ? 'Dock left' : 'Dock right';
 }
+function setChecklistItemState(li, done) {
+  if (li.classList.contains('ok') === done) return;
+  li.classList.toggle('ok', done);
+  li.querySelector('.check-status').textContent = done ? 'Complete' : 'Not complete';
+}
 function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
   if (!Tut.active || !st) { box.hidden = true; return; }
@@ -737,10 +742,19 @@ function renderTutUI() {
   $('tCompactTitle').textContent = st._waiting ? `Stand by · ${st.title}` : st.title;
   $('tCompactAction').textContent = captainAction(st);
   $('tAction').textContent = captainAction(st);
+  $('tSheetRoute').textContent = `${activeRoute.from.icao} → ${activeRoute.to.icao}`;
   $('tText').textContent = st._waiting ? waitingText(st) : st.text;
   $('tDetails').hidden = !!st._waiting;
   const items = $('tItems'); items.innerHTML = '';
-  if (!st._waiting && st.items) st.items.forEach(([t, f]) => { const li = document.createElement('li'); li.textContent = t; if (f()) li.className = 'ok'; items.appendChild(li); });
+  $('tListHead').hidden = st._waiting || !st.items?.length;
+  if (!st._waiting && st.items) st.items.forEach(([t, f]) => {
+    const li = document.createElement('li');
+    const label = document.createElement('span'); label.className = 'check-label'; label.textContent = t;
+    const leader = document.createElement('span'); leader.className = 'check-leader'; leader.setAttribute('aria-hidden', 'true');
+    const box = document.createElement('span'); box.className = 'check-box'; box.setAttribute('aria-hidden', 'true');
+    const status = document.createElement('span'); status.className = 'check-status sr-only'; status.setAttribute('aria-live', 'polite'); status.textContent = 'Not complete';
+    li.append(label, leader, box, status); setChecklistItemState(li, !!f()); items.appendChild(li);
+  });
   $('tContinue').hidden = !(st.manual && !st._waiting);
   $('tDo').hidden = !st.doit && !st._waiting; $('tDo').textContent = st._waiting ? 'Skip ahead' : 'Do it for me';
   $('tShow').hidden = !Tut.hlOf(st) || st._waiting;
@@ -759,7 +773,7 @@ function waitingText(st) {
 }
 function updateHUD() {
   if (!started) return;
-  const st = Tut.cur(); if (st && st.items && Tut.active && !st._waiting) { const lis = $('tItems').children; st.items.forEach(([t, f], i) => { if (lis[i]) lis[i].className = f() ? 'ok' : ''; }); }
+  const st = Tut.cur(); if (st && st.items && Tut.active && !st._waiting) { const lis = $('tItems').children; st.items.forEach(([, f], i) => { if (lis[i]) setChecklistItemState(lis[i], !!f()); }); }
   if (st && Tut.active) { $('tTitle').textContent = st._waiting ? 'Stand by…' : st.title; if (st._waiting) $('tText').textContent = waitingText(st); }
   $('hudTc').textContent = timeComp > 1 && !S.onGround ? '×' + timeComp : ''; $('hudPause').hidden = !paused;
   const x = $('xhud'); x.hidden = VIEW.mode === 'cockpit';

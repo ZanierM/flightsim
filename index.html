@@ -73,35 +73,45 @@ button { font-family: var(--ui); }
 #looks { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(10px + env(safe-area-inset-top, 0px)); display: flex; gap: 4px; z-index: 20; flex-wrap: wrap; }
 #looks .btn { background: var(--panel); font-size: 12px; padding: 5px 9px; }
 
-/* captain panel */
-#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(420px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+/* The captain's training sheet is translucent paper over the flight deck. */
+#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(420px, calc(100vw - 24px)); box-sizing: border-box; color: #26312e; color-scheme: light; background: rgba(242, 239, 222, .94); backdrop-filter: blur(10px); border: 1px solid rgba(255, 253, 240, .95); box-shadow: 0 16px 40px rgba(0, 0, 0, .38); z-index: 20; }
 #captain.dock-right { left: auto; right: max(12px, env(safe-area-inset-right, 0px)); }
 @media (min-width: 601px) and (max-width: 1100px) { #looks { top: calc(52px + env(safe-area-inset-top, 0px)); } #captain { top: calc(92px + env(safe-area-inset-top, 0px)); } }
-#captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
-#captain .who { flex: 1; min-width: 0; font-size: 12px; color: var(--dim); line-height: 1.25; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
+#captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: rgba(215, 217, 202, .62); border-bottom: 1px solid rgba(36, 52, 49, .25); }
+#captain .who { flex: 1; min-width: 0; font-size: 11px; color: #56615b; line-height: 1.25; white-space: nowrap; } #captain .who b { color: #26312e; font-size: 13px; display: block; }
 #tCompactTitle, #tCompactAction { display: none; }
 #captain.min .who b, #captain.min .who .role { display: none; }
-#captain.min #tCompactTitle { display: block; color: var(--cyan); font: 11px var(--mono); text-transform: uppercase; }
-#captain.min #tCompactAction { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-height: 2.6em; color: var(--fg); font-size: 12px; line-height: 1.3; margin-top: 3px; }
-#captain .ph { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: .04em; text-transform: uppercase; flex: none; }
-#captain .ph span { display: block; color: var(--dim); }
+#captain.min #tCompactTitle { display: block; color: #245347; font: 11px var(--mono); text-transform: uppercase; }
+#captain.min #tCompactAction { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-height: 2.6em; color: #26312e; font-size: 12px; line-height: 1.3; margin-top: 3px; }
+#captain .ph { text-align: right; font-family: var(--mono); font-size: 11px; color: #245347; letter-spacing: .04em; text-transform: uppercase; flex: none; }
+#captain .ph span { display: block; color: #59655d; }
 #captain .head-actions { display: flex; gap: 4px; flex: none; }
-#captain .head-actions button { background: none; border: 1px solid var(--line); color: var(--fg); cursor: pointer; font: 11px var(--ui); padding: 8px; min-height: 40px; }
-#captain .head-actions button:hover { border-color: var(--cyan); }
-#captain .prog { height: 2px; background: #1a2329; } #tProg { height: 100%; background: var(--cyan); width: 100%; transform: scaleX(0); transform-origin: left; transition: transform .4s; }
-#captain .body { padding: 14px; display: grid; gap: 10px; max-height: min(72vh, 630px); overflow-y: auto; }
-#tTitle { font-size: 18px; line-height: 1.25; font-weight: 700; margin: 0; }
-#tAction { margin: 0; font-size: 14px; line-height: 1.45; color: var(--fg); }
-#tItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-family: var(--mono); font-size: 12.5px; max-height: 22vh; overflow-y: auto; }
-#tItems li { color: var(--cyan); padding-left: 18px; position: relative; }
-#tItems li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 9px; height: 9px; border: 1.5px solid var(--cyan); }
-#tItems li.ok { color: var(--green); } #tItems li.ok::before { border-color: var(--green); background: var(--green); }
+#captain .head-actions button { background: rgba(255,255,255,.22); border: 1px solid rgba(37,54,49,.38); color: #26312e; cursor: pointer; font: 11px var(--ui); padding: 8px; min-height: 40px; }
+#captain .head-actions button:hover { border-color: #245347; background: rgba(255,255,255,.5); }
+#captain .prog { height: 3px; background: rgba(38, 57, 51, .17); } #tProg { height: 100%; background: #245347; width: 100%; transform: scaleX(0); transform-origin: left; transition: transform .4s; }
+#captain .body { padding: 14px 16px 16px; display: grid; gap: 10px; max-height: min(72vh, 630px); overflow-y: auto; }
+#captain .sheet-id { display: flex; justify-content: space-between; gap: 8px; padding-bottom: 6px; border-bottom: 2px solid #26312e; color: #33453e; font: 10px var(--mono); letter-spacing: .07em; text-transform: uppercase; }
+#tTitle { font-size: 18px; line-height: 1.25; font-weight: 700; margin: 0; color: #202c2a; }
+#tAction { margin: 0; font-size: 13px; line-height: 1.45; color: #34433e; }
+#tListHead { display: flex; justify-content: space-between; margin-top: 3px; padding: 5px 0; border-top: 1px solid rgba(38, 49, 46, .5); border-bottom: 1px solid rgba(38, 49, 46, .3); color: #526056; font: 10px var(--mono); letter-spacing: .06em; }
+#tItems { list-style: none; margin: -10px 0 0; padding: 0; display: grid; font: 12px/1.35 var(--mono); max-height: 24vh; overflow-y: auto; }
+#tItems li { display: flex; align-items: baseline; gap: 7px; min-height: 27px; padding: 5px 0 3px; color: #26312e; border-bottom: 1px solid rgba(38, 49, 46, .18); }
+#tItems .check-label { min-width: 0; overflow-wrap: anywhere; }
+#tItems .check-leader { flex: 1; min-width: 8px; align-self: center; border-bottom: 1px dotted rgba(38, 49, 46, .45); }
+#tItems .check-box { position: relative; flex: none; align-self: center; box-sizing: border-box; width: 17px; height: 17px; border: 1.5px solid #43544d; background: rgba(255,255,255,.34); }
+#tItems li.ok .check-box { border-color: #245347; }
+#tItems li.ok .check-box::after { content: ""; position: absolute; left: 4px; top: 0px; width: 5px; height: 10px; border: solid #245347; border-width: 0 2px 2px 0; transform: rotate(42deg); }
+#tItems li.ok .check-label { color: #245347; }
 #captain .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
-#captain .acts .btn { min-height: 36px; font-size: 12px; }
-#captain .step-nav { border-top: 1px solid var(--line); padding-top: 10px; }
-#tDetails { border-top: 1px solid var(--line); padding-top: 9px; font-size: 13px; }
-#tDetails summary { color: var(--cyan); cursor: pointer; width: fit-content; }
-#tText { margin: 10px 0; font-size: 13px; line-height: 1.55; color: #d3dde3; }
+#captain .acts .btn { min-height: 36px; font-size: 12px; color: #26312e; background: rgba(255,255,255,.3); border-color: rgba(37,54,49,.45); }
+#captain .acts .btn:hover { background: rgba(255,255,255,.66); border-color: #245347; }
+#captain .acts .btn.primary { color: #f6f3e7; background: #245347; border-color: #245347; }
+#captain .acts .btn.primary:hover { background: #336a59; }
+#captain .step-nav { border-top: 1px solid rgba(37,54,49,.25); padding-top: 10px; }
+#tDetails { border-top: 1px solid rgba(37,54,49,.25); padding-top: 9px; font-size: 13px; }
+#tDetails summary { color: #245347; cursor: pointer; width: fit-content; }
+#tText { margin: 10px 0; font-size: 13px; line-height: 1.55; color: #34433e; }
+#captain :focus-visible { outline-color: #245347; }
 #captain.min .body { display: none; }
 
 /* radio */
@@ -154,7 +164,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .body { max-height: min(56vh, 460px); } #captain.min .ph, #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .head { gap: 6px; padding: 8px; } #captain .who .role { display: none; } #captain .who b { font-size: 11px; } #captain .ph { font-size: 9px; } #captain .body { max-height: min(56vh, 460px); } #captain.min .ph, #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -210,8 +220,10 @@ button { font-family: var(--ui); }
   <div class="head"><div class="who"><b>Capt. Hughes</b><span class="role">Training captain</span><span id="tCompactTitle"></span><span id="tCompactAction"></span></div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><div class="head-actions"><button id="tDock" type="button">Dock right</button><button id="tMin" type="button" aria-expanded="true">Collapse</button></div></div>
   <div class="prog"><div id="tProg"></div></div>
   <div class="body">
+    <div class="sheet-id"><span>A320 · Captain's check sheet</span><span id="tSheetRoute"></span></div>
     <h2 id="tTitle"></h2>
     <p id="tAction"></p>
+    <div id="tListHead"><span>ITEM / REQUIRED STATE</span><span>CHECK</span></div>
     <ul id="tItems" aria-label="Step checklist"></ul>
     <div class="acts">
       <button class="btn primary" id="tContinue">Continue</button>
@@ -4844,6 +4856,11 @@ function syncCaptainPanel() {
   $('tMin').textContent = compact ? 'Expand' : 'Collapse'; $('tMin').setAttribute('aria-expanded', String(!compact));
   $('tDock').textContent = captainDockRight ? 'Dock left' : 'Dock right';
 }
+function setChecklistItemState(li, done) {
+  if (li.classList.contains('ok') === done) return;
+  li.classList.toggle('ok', done);
+  li.querySelector('.check-status').textContent = done ? 'Complete' : 'Not complete';
+}
 function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
   if (!Tut.active || !st) { box.hidden = true; return; }
@@ -4855,10 +4872,19 @@ function renderTutUI() {
   $('tCompactTitle').textContent = st._waiting ? `Stand by · ${st.title}` : st.title;
   $('tCompactAction').textContent = captainAction(st);
   $('tAction').textContent = captainAction(st);
+  $('tSheetRoute').textContent = `${activeRoute.from.icao} → ${activeRoute.to.icao}`;
   $('tText').textContent = st._waiting ? waitingText(st) : st.text;
   $('tDetails').hidden = !!st._waiting;
   const items = $('tItems'); items.innerHTML = '';
-  if (!st._waiting && st.items) st.items.forEach(([t, f]) => { const li = document.createElement('li'); li.textContent = t; if (f()) li.className = 'ok'; items.appendChild(li); });
+  $('tListHead').hidden = st._waiting || !st.items?.length;
+  if (!st._waiting && st.items) st.items.forEach(([t, f]) => {
+    const li = document.createElement('li');
+    const label = document.createElement('span'); label.className = 'check-label'; label.textContent = t;
+    const leader = document.createElement('span'); leader.className = 'check-leader'; leader.setAttribute('aria-hidden', 'true');
+    const box = document.createElement('span'); box.className = 'check-box'; box.setAttribute('aria-hidden', 'true');
+    const status = document.createElement('span'); status.className = 'check-status sr-only'; status.setAttribute('aria-live', 'polite'); status.textContent = 'Not complete';
+    li.append(label, leader, box, status); setChecklistItemState(li, !!f()); items.appendChild(li);
+  });
   $('tContinue').hidden = !(st.manual && !st._waiting);
   $('tDo').hidden = !st.doit && !st._waiting; $('tDo').textContent = st._waiting ? 'Skip ahead' : 'Do it for me';
   $('tShow').hidden = !Tut.hlOf(st) || st._waiting;
@@ -4877,7 +4903,7 @@ function waitingText(st) {
 }
 function updateHUD() {
   if (!started) return;
-  const st = Tut.cur(); if (st && st.items && Tut.active && !st._waiting) { const lis = $('tItems').children; st.items.forEach(([t, f], i) => { if (lis[i]) lis[i].className = f() ? 'ok' : ''; }); }
+  const st = Tut.cur(); if (st && st.items && Tut.active && !st._waiting) { const lis = $('tItems').children; st.items.forEach(([, f], i) => { if (lis[i]) setChecklistItemState(lis[i], !!f()); }); }
   if (st && Tut.active) { $('tTitle').textContent = st._waiting ? 'Stand by…' : st.title; if (st._waiting) $('tText').textContent = waitingText(st); }
   $('hudTc').textContent = timeComp > 1 && !S.onGround ? '×' + timeComp : ''; $('hudPause').hidden = !paused;
   const x = $('xhud'); x.hidden = VIEW.mode === 'cockpit';
