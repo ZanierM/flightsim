@@ -83,7 +83,8 @@ button { font-family: var(--ui); }
 #tMin { margin-left: 6px; background: none; border: none; color: var(--dim); cursor: pointer; font-size: 16px; padding: 4px; }
 
 /* radio */
-#radio { position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(50% + 120px); transform: translateX(-50%); width: min(520px, calc(100vw - 460px)); background: rgba(6, 12, 9, .9); border: 1px solid rgba(61,242,61,.35); padding: 10px 14px; z-index: 22; display: flex; gap: 12px; align-items: baseline; }
+#radio { position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(50% + 120px); transform: translateX(-50%); width: min(520px, calc(100vw - 460px)); background: rgba(6, 12, 9, .9); border: 1px solid rgba(61,242,61,.35); padding: 10px 14px; z-index: 19; pointer-events: none; display: flex; gap: 12px; align-items: baseline; }
+@media (min-width: 601px) and (max-width: 1100px) { #radio { top: calc(90px + env(safe-area-inset-top, 0px)); } }
 #radio .who { font-family: var(--mono); color: var(--green); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; flex: none; }
 #radio .msg { font-family: var(--mono); font-size: 13.5px; line-height: 1.45; }
 #radio.flash { animation: rf .5s; } @keyframes rf { from { border-color: var(--green); } }
@@ -130,7 +131,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -1415,13 +1416,14 @@ function newState() {
     time: 0, airborneT: 0, warn: { master: false, caution: false, msgs: [] }, wind: new THREE.Vector3(), windDir: 250, windKt: 8,
     stats: { maxBank: 0, overspeed: 0, maxG: 1, tdFpm: 0, tdDist: 0, tdCl: 0, flown: 0 },
     pushback: null,
-    sw: {}, momT: {}, guard: {}, fireTest: {}, efis: { mode: 3, cstr: false, wpt: false, vord: false, ndb: false, arpt: false }, duBrt: { pfd: 1, nd: 1, ewd: 1, sd: 1 },
+    sw: { landPos: 2 }, momT: {}, guard: {}, fireTest: {}, efis: { mode: 3, cstr: false, wpt: false, vord: false, ndb: false, arpt: false }, duBrt: { pfd: 1, nd: 1, ewd: 1, sd: 1 },
     rmp: { act: 121905, stby: 118505, sel: 0 }, xpdr: { code: '2000', entry: '', mode: 0, tcas: 0 }, chrono: { run: false, t: 0 }, et: { run: false, t: 0 }, rudTrim: 0, sdPage: null, vol: 0.8, annTest: false, dcOnT: null, altLaw: false,
   };
 }
 function mkEng() { return { master: false, N1: 0, N2: 0, EGT: 25, FF: 0, run: false, starting: false, ign: false, startFail: '' }; }
 
 let S = newState();
+function setLandingLights(position) { S.sw.landPos = clamp(position, 0, 2); S.lt.land = S.sw.landPos === 0; }
 
 function takeoffConfigFaults() {
   const faults = [];
@@ -2706,7 +2708,7 @@ function pbHot(panel, id, x, y, label, top, bot, onClick, tip, pressed) {
     draw: (g, h) => { drawPB(g, h.x, h.y, h.w, h.h, top ? top() : null, bot ? bot() : null); legendMulti(g, label, h.x + h.w / 2, h.y + h.h + 14, 11); } });
 }
 function togHot(p, id, x, y, labels, get, set, title, o = {}) {
-  return p.hot({ id, x: x - 22, y: y - 44, w: 44, h: 88, label: o.tip || (() => `${title.replace('\n', ' ')}: ${labels[get()]} · click upper / lower half to move`), get: () => [get()],
+  return p.hot({ id, kind: 'toggle', x: x - 22, y: y - 44, w: 44, h: 88, label: o.tip || (() => `${title.replace('\n', ' ')}: ${labels[get()]} · click upper / lower half to move`), get: () => [get()],
     click: (e) => { const n = labels.length; let v = get(); if (e && e.v != null) v = e.v < 0.5 ? v - 1 : v + 1; else v = (v + 1) % n; set(clamp(v, 0, n - 1)); Audio2.toggle(); Tut.event(id); },
     draw: (g, h) => { drawToggleBase(g, x, y, labels); legendMulti(g, title, x, y - 50, 12); }, init3d: () => tog3D(p, x, y, labels.length, get) });
 }
@@ -3326,7 +3328,7 @@ function buildOverhead(p) {
   togHot(p, 'wing', 330, 1352, ['ON', 'OFF'], () => S.lt.wing ? 0 : 1, v => { S.lt.wing = v === 0; }, 'WING');
   togHot(p, 'navlt', 460, 1352, ['1', '2', 'OFF'], () => S.lt.nav ? (S.sw.navpos || 0) : 2, v => { S.lt.nav = v !== 2; if (v !== 2) S.sw.navpos = v; Tut.event('nav'); }, 'NAV & LOGO');
   togHot(p, 'rwyto', 600, 1352, ['ON', 'OFF'], () => S.lt.rwyto ? 0 : 1, v => { S.lt.rwyto = v === 0; }, 'RWY TURN OFF');
-  togHot(p, 'land', 760, 1352, ['ON', 'OFF', 'RETRACT'], () => S.lt.land ? 0 : 2, v => { S.lt.land = v === 0; Tut.event('land'); }, 'LAND');
+  togHot(p, 'land', 760, 1352, ['ON', 'OFF', 'RETRACT'], () => S.sw.landPos, setLandingLights, 'LAND');
   togHot(p, 'nose', 940, 1352, ['T.O', 'TAXI', 'OFF'], () => 2 - S.lt.nose, v => { S.lt.nose = 2 - v; Tut.event('nose'); }, 'NOSE');
   // ---- APU ----
   pbHot(p, 'apu_master', 1215, 1310, 'MASTER SW', () => T('FAULT', ANN.amber, false), () => T('ON', ANN.blue, S.apu.master, true), () => { S.apu.master = !S.apu.master; Audio2.click(); Tut.event('apu_master'); }, 'APU MASTER SW');
@@ -3744,7 +3746,7 @@ const Tut = (() => {
   ST({ ph: 'Pushback and start', title: 'Take-off config test', text: "Press T.O CONFIG on the ECAM control panel, at the front of the pedestal. It checks flaps, armed spoilers, autobrake MAX, rudder trim and landing gear. Correct any fault it reports, then test again. Check the take-off memo on the upper screen too.", hl: 'toconfig', done: () => takeoffConfigNormal() && S.cabinReady, doit: () => { S.flapLever = S.flapPos = 1; S.sbArmed = true; S.sbLever = S.spoiler = 0; S.autobrake = 3; S.rudTrim = 0; S.gearLever = S.gearPos = 1; S.toConfigTested = true; S.cabinReady = true; }, enter: () => { setTimeout(() => { S.cabinReady = true; Audio2.ding(); showATC('Purser', 'Captain, cabin is secure and ready for departure.'); }, 9000); } });
   // ===== TAXI =====
   ST({ ph: 'Taxi', title: 'Taxi to 27R', freq: 121905, who: 'Heathrow Ground', atc: ['Albion 324, taxi holding point A1, runway 27 right, via Alpha. Follow the greens.', 'Holding point A1, 27 right, via Alpha, Albion 324.'], text: "Set the NOSE light to TAXI and release the parking brake. Add a touch of thrust to get rolling, then back to idle. Steer with the tiller: comma and full stop keys, or the left and right arrows. Follow the green centreline lights to the holding point and keep the speed below 20 knots. Use B to brake.", hl: () => S.lt.nose < 1 ? 'nose' : S.parkBrake ? 'parkbrk' : null, done: () => near(HOLD_27R.x, HOLD_27R.z, 45) && S.gs < 5, items: [['NOSE light TAXI', () => S.lt.nose >= 1], ['PARK BRK off', () => !S.parkBrake], ['At holding point A1', () => near(HOLD_27R.x, HOLD_27R.z, 45)]], doit: () => { autoTaxi(); }, skipDo: () => { S.lt.nose = Math.max(S.lt.nose, 1); S.parkBrake = false; } });
-  ST({ ph: 'Before take-off', title: 'Line up', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, runway 27 right, line up and wait.', 'Line up and wait 27 right, Albion 324.'], text: "We're on Tower now. Lights for take-off: STROBE on, LAND lights on, NOSE light to T.O. Set the TCAS selector on the ATC panel to TA/RA so the transponder is fully on. Then taxi onto the runway and line up on the centreline, heading 270, close to the threshold markings.", hl: () => S.lt.strobe < 2 ? 'strobe' : !S.lt.land ? 'land' : S.lt.nose < 2 ? 'nose' : S.xpdr.tcas < 2 ? 'tcas' : null, done: () => S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(1560, -850, 70) && hdgNear(270, 6) && S.gs < 8, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 27R', () => near(1560, -850, 70) && hdgNear(270, 6)]], doit: () => { S.lt.strobe = 2; S.lt.land = true; S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(1560, -850, 270); S.parkBrake = false; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, seats for take-off.'); showATC('Captain (PA)', 'Cabin crew, seats for take-off.'); }, 6000) });
+  ST({ ph: 'Before take-off', title: 'Line up', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, runway 27 right, line up and wait.', 'Line up and wait 27 right, Albion 324.'], text: "We're on Tower now. Lights for take-off: STROBE on, LAND lights on, NOSE light to T.O. Set the TCAS selector on the ATC panel to TA/RA so the transponder is fully on. Then taxi onto the runway and line up on the centreline, heading 270, close to the threshold markings.", hl: () => S.lt.strobe < 2 ? 'strobe' : !S.lt.land ? 'land' : S.lt.nose < 2 ? 'nose' : S.xpdr.tcas < 2 ? 'tcas' : null, done: () => S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(1560, -850, 70) && hdgNear(270, 6) && S.gs < 8, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 27R', () => near(1560, -850, 70) && hdgNear(270, 6)]], doit: () => { S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(1560, -850, 270); S.parkBrake = false; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, seats for take-off.'); showATC('Captain (PA)', 'Cabin crew, seats for take-off.'); }, 6000) });
   // ===== TAKE-OFF =====
   ST({ ph: 'Take-off', title: 'Cleared for take-off', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, wind 250 degrees 8 knots, runway 27 right, cleared for take-off.', 'Cleared for take-off 27 right, Albion 324.'], text: "Hold the brakes, push the thrust levers to about 50 percent and let the engines stabilise, then all the way to the FLX MCT detent. Press Shift F, or drag the levers. Keep the centreline with the rudder: Z and X. I'll call the speeds.", hl: 'thrust', done: () => S.tl.every(t => t >= DET.FLX - 0.02) && !S.parkBrake, doit: () => { S.parkBrake = false; S.tl = [DET.FLX, DET.FLX]; } });
   ST({ ph: 'Take-off', title: 'Rotate', text: "At rotate, pull the sidestick back smoothly, about 3 degrees per second, towards 15 degrees nose up. Use the down arrow or S key. Follow the green flight director bars on your PFD.", hl: 'sidestick', done: () => !S.onGround && S.ra > 35, quiet: true });
@@ -3753,13 +3755,13 @@ const Tut = (() => {
   ST({ ph: 'Climb', title: 'Thrust reduction', text: "LVR CLB is flashing on the PFD. Pull both thrust levers back to the CL detent: press Shift C or drag them. The autothrust becomes active.", hl: 'thrust', done: () => S.tl.every(t => Math.abs(t - DET.CL) < 0.02), doit: () => { S.tl = [DET.CL, DET.CL]; }, wait: () => S.ra > 1400 });
   ST({ ph: 'Climb', title: 'Flaps up', text: "We're accelerating. Once the speed passes the green S on the speed tape, retract the flaps: flaps zero, press V.", hl: 'flaps', done: () => S.flapLever === 0, doit: () => S.flapLever = 0, wait: () => S.ias > speeds().S - 2 });
   ST({ ph: 'Climb', title: 'Climb to FL250', freq: 128405, who: 'London Control', atc: ['Albion 324, London Control, climb flight level 250.', 'Climb flight level 250, Albion 324.'], text: "We're cleared to flight level 250. Scroll the ALT knob to 25000, then click it to push it in for a managed climb: a dot appears in the ALT window. Above the 6000 foot transition altitude we use standard pressure, so click the BARO knob to show Std.", hl: () => S.fcu.alt !== 25000 ? 'fcu_alt' : !['CLB', 'OP CLB'].includes(S.ap.vert) ? 'fcu_alt' : 'baro', done: () => S.fcu.alt === 25000 && ['CLB', 'OP CLB', 'ALT*', 'ALT'].includes(S.ap.vert) && S.baro.std, items: [['ALT 25000', () => S.fcu.alt === 25000], ['ALT knob pushed', () => ['CLB', 'OP CLB'].includes(S.ap.vert) || (S.fcu.alt === 25000 && indicatedAlt() > 24000)], ['BARO STD', () => S.baro.std]], doit: () => { S.fcu.alt = 25000; S.ap.vert = 'CLB'; S.baro.std = true; }, wait: () => S.ap.vert === 'ALT' || S.ap.vert === 'ALT*' || indicatedAlt() > 5000 });
-  ST({ ph: 'Climb', title: 'Passing 10,000 feet', text: "Passing flight level 100 the speed limit lifts and we accelerate. Switch the landing lights off.", hl: 'land', done: () => !S.lt.land, doit: () => S.lt.land = false, wait: () => indicatedAlt() > 10000, enter: () => Audio2.ding() });
+  ST({ ph: 'Climb', title: 'Passing 10,000 feet', text: "Passing flight level 100 the speed limit lifts and we accelerate. Switch the landing lights off.", hl: 'land', done: () => !S.lt.land, doit: () => setLandingLights(1), wait: () => indicatedAlt() > 10000, enter: () => Audio2.ding() });
   // ===== CRUISE =====
   ST({ ph: 'Cruise', title: 'Cruise', text: "We're levelling at flight level 250. That's the Kent coast below; Dover's white cliffs are ahead and France is across the Channel. You can speed up time with T. I'll tell you when it's time to descend.", done: () => distToGo() < 88, quiet: false, wait: () => indicatedAlt() > 24000 || S.ap.vert === 'ALT' });
   // ===== DESCENT =====
   ST({ ph: 'Descent', title: 'Start descent', freq: 128280, who: 'Paris Control', atc: ['Albion 324, Paris Control, bonjour. Descend flight level 110.', 'Descend flight level 110, Albion 324.'], text: "Top of descent. Scroll the ALT knob to 11000 and click it to push for a managed descent. The thrust goes to idle and the aircraft pitches down to hold the speed.", hl: 'fcu_alt', done: () => S.fcu.alt === 11000 && ['DES', 'OP DES', 'ALT*', 'ALT'].includes(S.ap.vert) && indicatedAlt() < 24800, doit: () => { S.fcu.alt = 11000; S.ap.vert = 'DES'; S.fms.phase = 'DESCENT'; }, enter: () => { S.time_compress = 1; } });
   ST({ ph: 'Descent', title: 'Approach briefing', text: "Briefing: ILS approach runway 26 right, course 266, frequency 110.10. Decision height 200 feet. Flaps full, autobrake medium. If we go around, it's TOGA thrust and climb to 5000 feet. Press Continue when you're happy.", manual: true });
-  ST({ ph: 'Descent', title: 'Descend to 4000 feet', freq: 125825, who: 'De Gaulle Approach', atc: ['Albion 324, descend altitude 4000 feet, QNH 1015.', 'Descend 4000 feet, QNH 1015, Albion 324.'], text: "Scroll the ALT knob to 4000 and click to push it. Then set the Paris QNH: right-click the BARO knob to pull it out of Std, and scroll to 1015. Below 10,000 feet, landing lights back on.", hl: () => S.fcu.alt !== 4000 ? 'fcu_alt' : S.baro.std || S.baro.qnh !== 1015 ? 'baro' : 'land', done: () => S.fcu.alt === 4000 && !S.baro.std && S.baro.qnh === 1015 && S.lt.land, items: [['ALT 4000 pushed', () => S.fcu.alt === 4000], ['QNH 1015', () => !S.baro.std && S.baro.qnh === 1015], ['LAND lights on', () => S.lt.land]], doit: () => { S.fcu.alt = 4000; S.ap.vert = 'DES'; S.baro.std = false; S.baro.qnh = 1015; S.lt.land = true; }, wait: () => indicatedAlt() < 12500 });
+  ST({ ph: 'Descent', title: 'Descend to 4000 feet', freq: 125825, who: 'De Gaulle Approach', atc: ['Albion 324, descend altitude 4000 feet, QNH 1015.', 'Descend 4000 feet, QNH 1015, Albion 324.'], text: "Scroll the ALT knob to 4000 and click to push it. Then set the Paris QNH: right-click the BARO knob to pull it out of Std, and scroll to 1015. Below 10,000 feet, landing lights back on.", hl: () => S.fcu.alt !== 4000 ? 'fcu_alt' : S.baro.std || S.baro.qnh !== 1015 ? 'baro' : 'land', done: () => S.fcu.alt === 4000 && !S.baro.std && S.baro.qnh === 1015 && S.lt.land, items: [['ALT 4000 pushed', () => S.fcu.alt === 4000], ['QNH 1015', () => !S.baro.std && S.baro.qnh === 1015], ['LAND lights on', () => S.lt.land]], doit: () => { S.fcu.alt = 4000; S.ap.vert = 'DES'; S.baro.std = false; S.baro.qnh = 1015; setLandingLights(0); }, wait: () => indicatedAlt() < 12500 });
   // ===== APPROACH =====
   ST({ ph: 'Approach', title: 'Arm the approach', freq: 125825, who: 'De Gaulle Approach', atc: ['Albion 324, cleared ILS approach runway 26 right.', 'Cleared ILS 26 right, Albion 324.'], text: "We're cleared for the ILS. Press LS on your EFIS panel to show the ILS scales, then press APPR on the FCU. LOC and G/S appear in blue: armed. Engage AP2 as well for a dual autopilot approach.", hl: () => !S.efisLS ? 'efis_ls' : S.ap.vertArm !== 'G/S' && !['G/S*', 'G/S', 'LAND'].includes(S.ap.vert) ? 'fcu_appr' : 'fcu_ap2', done: () => S.efisLS && (S.ap.vertArm === 'G/S' || ['G/S*', 'G/S', 'LAND', 'FLARE'].includes(S.ap.vert)) && S.fcu.ap1 && S.fcu.ap2, items: [['LS on', () => !!S.efisLS], ['APPR armed', () => S.ap.vertArm === 'G/S' || ['G/S*', 'G/S', 'LAND', 'FLARE'].includes(S.ap.vert)], ['AP1 and AP2 engaged', () => S.fcu.ap1 && S.fcu.ap2]], doit: () => { S.efisLS = true; S.ap.vertArm = 'G/S'; if (!S.ap.lat.startsWith('LOC')) S.ap.latArm = 'LOC'; S.fcu.ap1 = S.fcu.ap2 = true; }, wait: () => distToGo() < 30 || S.loc.dist < 22 * NM });
   ST({ ph: 'Approach', title: 'Flaps 1', text: "Speed is reducing towards green dot. Flaps 1, press F.", hl: 'flaps', done: () => S.flapLever >= 1, doit: () => S.flapLever = 1, wait: () => S.ias < 222 });
@@ -3770,7 +3772,7 @@ const Tut = (() => {
   ST({ ph: 'Landing', title: 'Reverse thrust', text: "Touchdown! Thrust levers to idle and then reverse: hold Page Down or press R. Keep straight with the rudder.", hl: 'thrust', done: () => S.rev.some(r => r > 0.8) || S.gs < 50, doit: () => S.tl = [-1, -1] });
   ST({ ph: 'Landing', title: 'Slow down', text: "Seventy knots. Reverse idle, thrust levers back to idle with Page Up or I. Brake to walking pace with B.", hl: 'thrust', done: () => S.gs < 20 && S.tl.every(t => t >= -0.01), doit: () => S.tl = [0, 0], wait: () => S.gs < 75 });
   // ===== AFTER LANDING =====
-  ST({ ph: 'After landing', title: 'After landing', text: "Welcome to Paris. Bring the aircraft to a stop with the brakes. After landing: flaps up, disarm the spoilers, STROBE to AUTO, landing lights off.", hl: () => S.flapLever ? 'flaps' : S.sbArmed ? 'spoilers' : S.lt.strobe === 2 ? 'strobe' : 'land', done: () => S.gs < 1 && S.flapLever === 0 && !S.sbArmed && S.lt.strobe < 2 && !S.lt.land, items: [['Stopped', () => S.gs < 1], ['FLAPS 0', () => S.flapLever === 0], ['SPLRS disarmed', () => !S.sbArmed], ['STROBE AUTO', () => S.lt.strobe < 2], ['LAND lights off', () => !S.lt.land]], doit: () => { S.flapLever = 0; S.sbArmed = false; S.sbLever = 0; S.lt.strobe = 1; S.lt.land = false; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, disarm doors and cross check.'); showATC('Captain (PA)', 'Cabin crew, disarm doors and cross check.'); }, 5000) });
+  ST({ ph: 'After landing', title: 'After landing', text: "Welcome to Paris. Bring the aircraft to a stop with the brakes. After landing: flaps up, disarm the spoilers, STROBE to AUTO, landing lights off.", hl: () => S.flapLever ? 'flaps' : S.sbArmed ? 'spoilers' : S.lt.strobe === 2 ? 'strobe' : 'land', done: () => S.gs < 1 && S.flapLever === 0 && !S.sbArmed && S.lt.strobe < 2 && !S.lt.land, items: [['Stopped', () => S.gs < 1], ['FLAPS 0', () => S.flapLever === 0], ['SPLRS disarmed', () => !S.sbArmed], ['STROBE AUTO', () => S.lt.strobe < 2], ['LAND lights off', () => !S.lt.land]], doit: () => { S.flapLever = 0; S.sbArmed = false; S.sbLever = 0; S.lt.strobe = 1; setLandingLights(1); }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, disarm doors and cross check.'); showATC('Captain (PA)', 'Cabin crew, disarm doors and cross check.'); }, 5000) });
   ST({ ph: 'Shutdown', title: 'Shutdown', text: "Ground will tow us to the stand. Parking brake on, both ENG MASTERS off, then BEACON off and SEAT BELTS off.", hl: () => !S.parkBrake ? 'parkbrk' : S.eng[0].master ? 'eng1' : S.eng[1].master ? 'eng2' : S.lt.beacon ? 'beacon' : 'belts', done: () => S.parkBrake && !S.eng[0].master && !S.eng[1].master && !S.lt.beacon && !S.lt.belts, items: [['PARK BRK on', () => S.parkBrake], ['ENG 1 off', () => !S.eng[0].master], ['ENG 2 off', () => !S.eng[1].master], ['BEACON off', () => !S.lt.beacon], ['SEAT BELTS off', () => !S.lt.belts]], doit: () => { S.parkBrake = true; S.eng[0].master = S.eng[1].master = false; S.lt.beacon = false; S.lt.belts = false; } });
   ST({ ph: 'Debrief', title: 'Debrief', text: "That's the end of the flight. Well done. Here's your debrief.", manual: false, done: () => false, enter: () => setTimeout(() => showDebrief(), 3500) });
 
@@ -4016,7 +4018,7 @@ function scenario(name, tutorialFrom, quiet) {
     Object.values(DU).forEach(d => d.boot = 5);
   }
   if (name === 'runway' || name === 'free') {
-    placeAt(1560, -850, 270); S.parkBrake = false; S.flapLever = 1; S.flapPos = 1; S.sbArmed = true; S.autobrake = 3; S.lt.strobe = 2; S.lt.land = true; S.lt.nose = 2; S.fcu.athr = false;
+    placeAt(1560, -850, 270); S.parkBrake = false; S.flapLever = 1; S.flapPos = 1; S.sbArmed = true; S.autobrake = 3; S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.fcu.athr = false;
   }
   if (name === 'cruise') {
     const a = FPLAN[4], b = FPLAN[5]; const x = lerp(a.x, b.x, 0.35), z = lerp(a.z, b.z, 0.35); const h = brg(a.x, a.z, b.x, b.z);
@@ -4024,7 +4026,7 @@ function scenario(name, tutorialFrom, quiet) {
   }
   if (name === 'approach') {
     const r = CDG.rwys[0]; const d = 17 * NM; const x = r.tx - r.dx * d, z = r.tz - r.dz * d;
-    airborne(x, z, 4000 * FT, 266, 210); S.baro.qnh = 1015; S.fcu.alt = 4000; S.fms.wp = FPLAN.length - 1; S.fms.phase = 'APPROACH'; S.ap.vert = 'ALT'; S.ap.lat = 'HDG'; S.fcu.hdg = 266; S.fcu.hdgMan = true; S.lt.land = true; S.lt.strobe = 1;
+    airborne(x, z, 4000 * FT, 266, 210); S.baro.qnh = 1015; S.fcu.alt = 4000; S.fms.wp = FPLAN.length - 1; S.fms.phase = 'APPROACH'; S.ap.vert = 'ALT'; S.ap.lat = 'HDG'; S.fcu.hdg = 266; S.fcu.hdgMan = true; setLandingLights(0); S.lt.strobe = 1;
   }
   updQuat(); stepSystems(0.001); updNav(); stepFlight(0.0001);
   if (quiet) return;
@@ -4053,7 +4055,7 @@ function fly(x, z, altFt, hdg, ias, o = {}) {
   if (o.tl != null) S.tl = [o.tl, o.tl]; S.fcu.ap1 = o.ap !== false; S.fcu.ap2 = !!o.ap2; S.fcu.athr = true;
   if (o.tl > DET.CL) S.ap.athrMode = ''; S.fcu.spdMan = false; S.fcu.hdgMan = !!o.hdgMan; if (o.hdgMan) S.fcu.hdg = Math.round(hdg);
   if (o.vs) S.vel.y = o.vs * FT / 60;
-  S.lt.land = altFt < 10000; S.lt.strobe = 2; S.lt.nose = 0; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.sbArmed = !!o.spl; S.autobrake = o.ab || 0;
+  setLandingLights(altFt < 10000 ? 0 : 1); S.lt.strobe = 2; S.lt.nose = 0; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.sbArmed = !!o.spl; S.autobrake = o.ab || 0;
   S.airborneT = 600; S.touchdown = null; S.efisLS = !!o.ls; S.flareMode = false;
   if (o.altLeg) { S.fms.altLegX = o.altLeg.x; S.fms.altLegZ = o.altLeg.z; }
   stepSystems(0.001); updNav(); trimPitch(); stepFlight(0.0001);
@@ -4071,7 +4073,7 @@ function setupAt(kind) {
   const ils = (dNm) => { const x = ILS26R.gsX - c.dx * dNm * NM, z = ILS26R.gsZ - c.dz * dNm * NM; return { x, z, alt: elevC + dNm * NM / FT * Math.tan(3 * D2R) }; };
   const cdgRoll = (along, kt, done) => { onGroundAt(c.tx + c.dx * along, c.tz + c.dz * along, 266, kt); Object.assign(S, { flapLever: 4, flapPos: 4, gearLever: 1, gearPos: 1, sbArmed: !done, autobrake: 2, groundSpoilersOut: !done, spoiler: done ? 0 : 1 });
     S.touchdown = { fpm: -160, x: c.tx + c.dx * 420, z: c.tz + c.dz * 420, t: S.time - 5, ias: 132, pitch: 4.5 }; S.baro.qnh = 1015; S.fms.wp = FPLAN.length - 1; S.fms.phase = done ? 'DONE' : 'APPROACH';
-    S.ap.lat = S.ap.vert = 'ROLL OUT'; S.fcu.ap1 = S.fcu.ap2 = false; S.fcu.athr = false; S.tl = [0, 0]; S.lt.land = !done; S.lt.strobe = done ? 1 : 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; S.rmp.act = 119250; };
+    S.ap.lat = S.ap.vert = 'ROLL OUT'; S.fcu.ap1 = S.fcu.ap2 = false; S.fcu.athr = false; S.tl = [0, 0]; setLandingLights(done ? 1 : 0); S.lt.strobe = done ? 1 : 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; S.rmp.act = 119250; };
   switch (kind) {
     case 'stand': if (dist2(S.pos.x, S.pos.z, LHR_STAND.x, LHR_STAND.z) > 20) { placeAt(LHR_STAND.x, LHR_STAND.z, LHR_STAND.hdg); S.parkBrake = true; } break;
     case 'pushed': onGroundAt(PUSH_END.x, PUSH_END.z, 90, 0); S.parkBrake = true; S.tl = [0, 0]; S.rmp.act = 121905; break;
@@ -4099,7 +4101,7 @@ function setupAt(kind) {
 function airborne(x, z, y, hdg, ias) {
   S.pos.set(x, y, z); S.psi = hdg * D2R; S.theta = 2.5 * D2R; S.phi = 0; S.onGround = false; S.airborneT = 600;
   const a = isa(y); const tas = ias * KT / Math.sqrt(a.sigma); const v = hdgVec(hdg); S.vel.set(v.x * tas, 0, v.z * tas);
-  S.gearLever = 0; S.gearPos = 0; S.flapLever = 0; S.flapPos = 0; S.parkBrake = false; S.lt.land = false; S.lt.strobe = 1; S.lt.nose = 0; S.sbArmed = false; S.autobrake = 0;
+  S.gearLever = 0; S.gearPos = 0; S.flapLever = 0; S.flapPos = 0; S.parkBrake = false; setLandingLights(1); S.lt.strobe = 1; S.lt.nose = 0; S.sbArmed = false; S.autobrake = 0;
   S.fcu.ap1 = true; S.fcu.athr = true; S.tl = [DET.CL, DET.CL]; S.fcu.spdMan = false; S.fcu.hdgMan = false; S.rmp.act = 128405; S.rmp.stby = 125825; S.et.run = true; S.et.t = 1500;
   const n1 = 72; S.eng.forEach(e => { e.N1 = n1; e.N2 = 58.5 + (n1 - 19.5) * 0.53; }); S.ap.n1C = n1; S.ap.athrMode = 'SPEED'; S.ap.gammaC = 0; S.gammaT = 0;
   // trim: set pitch for level flight
@@ -4358,7 +4360,7 @@ function renderControlList() {
 function operateControl(action) {
   const h = controlSelectedId && hotById(controlSelectedId); if (!h) return;
   if (action === 'increase' || action === 'decrease') { if (h.wheel) h.wheel(action === 'increase' ? 1 : -1); }
-  else if (h.click) h.click({ u: 0.5, v: action === 'pull' ? 0.25 : 0.75, right: action === 'pull', shift: false });
+  else if (h.click) h.click(action === 'press' && h.kind === 'toggle' ? undefined : { u: 0.5, v: action === 'pull' ? 0.25 : 0.75, right: action === 'pull', shift: false });
   h.panel.sig = ''; updateScreens(); updateControlState();
 }
 function setupUI() {

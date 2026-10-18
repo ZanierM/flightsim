@@ -199,7 +199,7 @@ function pbHot(panel, id, x, y, label, top, bot, onClick, tip, pressed) {
     draw: (g, h) => { drawPB(g, h.x, h.y, h.w, h.h, top ? top() : null, bot ? bot() : null); legendMulti(g, label, h.x + h.w / 2, h.y + h.h + 14, 11); } });
 }
 function togHot(p, id, x, y, labels, get, set, title, o = {}) {
-  return p.hot({ id, x: x - 22, y: y - 44, w: 44, h: 88, label: o.tip || (() => `${title.replace('\n', ' ')}: ${labels[get()]} · click upper / lower half to move`), get: () => [get()],
+  return p.hot({ id, kind: 'toggle', x: x - 22, y: y - 44, w: 44, h: 88, label: o.tip || (() => `${title.replace('\n', ' ')}: ${labels[get()]} · click upper / lower half to move`), get: () => [get()],
     click: (e) => { const n = labels.length; let v = get(); if (e && e.v != null) v = e.v < 0.5 ? v - 1 : v + 1; else v = (v + 1) % n; set(clamp(v, 0, n - 1)); Audio2.toggle(); Tut.event(id); },
     draw: (g, h) => { drawToggleBase(g, x, y, labels); legendMulti(g, title, x, y - 50, 12); }, init3d: () => tog3D(p, x, y, labels.length, get) });
 }
@@ -819,7 +819,7 @@ function buildOverhead(p) {
   togHot(p, 'wing', 330, 1352, ['ON', 'OFF'], () => S.lt.wing ? 0 : 1, v => { S.lt.wing = v === 0; }, 'WING');
   togHot(p, 'navlt', 460, 1352, ['1', '2', 'OFF'], () => S.lt.nav ? (S.sw.navpos || 0) : 2, v => { S.lt.nav = v !== 2; if (v !== 2) S.sw.navpos = v; Tut.event('nav'); }, 'NAV & LOGO');
   togHot(p, 'rwyto', 600, 1352, ['ON', 'OFF'], () => S.lt.rwyto ? 0 : 1, v => { S.lt.rwyto = v === 0; }, 'RWY TURN OFF');
-  togHot(p, 'land', 760, 1352, ['ON', 'OFF', 'RETRACT'], () => S.lt.land ? 0 : 2, v => { S.lt.land = v === 0; Tut.event('land'); }, 'LAND');
+  togHot(p, 'land', 760, 1352, ['ON', 'OFF', 'RETRACT'], () => S.sw.landPos, setLandingLights, 'LAND');
   togHot(p, 'nose', 940, 1352, ['T.O', 'TAXI', 'OFF'], () => 2 - S.lt.nose, v => { S.lt.nose = 2 - v; Tut.event('nose'); }, 'NOSE');
   // ---- APU ----
   pbHot(p, 'apu_master', 1215, 1310, 'MASTER SW', () => T('FAULT', ANN.amber, false), () => T('ON', ANN.blue, S.apu.master, true), () => { S.apu.master = !S.apu.master; Audio2.click(); Tut.event('apu_master'); }, 'APU MASTER SW');

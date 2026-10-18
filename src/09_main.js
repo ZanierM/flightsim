@@ -138,7 +138,7 @@ function scenario(name, tutorialFrom, quiet) {
     Object.values(DU).forEach(d => d.boot = 5);
   }
   if (name === 'runway' || name === 'free') {
-    placeAt(1560, -850, 270); S.parkBrake = false; S.flapLever = 1; S.flapPos = 1; S.sbArmed = true; S.autobrake = 3; S.lt.strobe = 2; S.lt.land = true; S.lt.nose = 2; S.fcu.athr = false;
+    placeAt(1560, -850, 270); S.parkBrake = false; S.flapLever = 1; S.flapPos = 1; S.sbArmed = true; S.autobrake = 3; S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.fcu.athr = false;
   }
   if (name === 'cruise') {
     const a = FPLAN[4], b = FPLAN[5]; const x = lerp(a.x, b.x, 0.35), z = lerp(a.z, b.z, 0.35); const h = brg(a.x, a.z, b.x, b.z);
@@ -146,7 +146,7 @@ function scenario(name, tutorialFrom, quiet) {
   }
   if (name === 'approach') {
     const r = CDG.rwys[0]; const d = 17 * NM; const x = r.tx - r.dx * d, z = r.tz - r.dz * d;
-    airborne(x, z, 4000 * FT, 266, 210); S.baro.qnh = 1015; S.fcu.alt = 4000; S.fms.wp = FPLAN.length - 1; S.fms.phase = 'APPROACH'; S.ap.vert = 'ALT'; S.ap.lat = 'HDG'; S.fcu.hdg = 266; S.fcu.hdgMan = true; S.lt.land = true; S.lt.strobe = 1;
+    airborne(x, z, 4000 * FT, 266, 210); S.baro.qnh = 1015; S.fcu.alt = 4000; S.fms.wp = FPLAN.length - 1; S.fms.phase = 'APPROACH'; S.ap.vert = 'ALT'; S.ap.lat = 'HDG'; S.fcu.hdg = 266; S.fcu.hdgMan = true; setLandingLights(0); S.lt.strobe = 1;
   }
   updQuat(); stepSystems(0.001); updNav(); stepFlight(0.0001);
   if (quiet) return;
@@ -175,7 +175,7 @@ function fly(x, z, altFt, hdg, ias, o = {}) {
   if (o.tl != null) S.tl = [o.tl, o.tl]; S.fcu.ap1 = o.ap !== false; S.fcu.ap2 = !!o.ap2; S.fcu.athr = true;
   if (o.tl > DET.CL) S.ap.athrMode = ''; S.fcu.spdMan = false; S.fcu.hdgMan = !!o.hdgMan; if (o.hdgMan) S.fcu.hdg = Math.round(hdg);
   if (o.vs) S.vel.y = o.vs * FT / 60;
-  S.lt.land = altFt < 10000; S.lt.strobe = 2; S.lt.nose = 0; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.sbArmed = !!o.spl; S.autobrake = o.ab || 0;
+  setLandingLights(altFt < 10000 ? 0 : 1); S.lt.strobe = 2; S.lt.nose = 0; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.sbArmed = !!o.spl; S.autobrake = o.ab || 0;
   S.airborneT = 600; S.touchdown = null; S.efisLS = !!o.ls; S.flareMode = false;
   if (o.altLeg) { S.fms.altLegX = o.altLeg.x; S.fms.altLegZ = o.altLeg.z; }
   stepSystems(0.001); updNav(); trimPitch(); stepFlight(0.0001);
@@ -193,7 +193,7 @@ function setupAt(kind) {
   const ils = (dNm) => { const x = ILS26R.gsX - c.dx * dNm * NM, z = ILS26R.gsZ - c.dz * dNm * NM; return { x, z, alt: elevC + dNm * NM / FT * Math.tan(3 * D2R) }; };
   const cdgRoll = (along, kt, done) => { onGroundAt(c.tx + c.dx * along, c.tz + c.dz * along, 266, kt); Object.assign(S, { flapLever: 4, flapPos: 4, gearLever: 1, gearPos: 1, sbArmed: !done, autobrake: 2, groundSpoilersOut: !done, spoiler: done ? 0 : 1 });
     S.touchdown = { fpm: -160, x: c.tx + c.dx * 420, z: c.tz + c.dz * 420, t: S.time - 5, ias: 132, pitch: 4.5 }; S.baro.qnh = 1015; S.fms.wp = FPLAN.length - 1; S.fms.phase = done ? 'DONE' : 'APPROACH';
-    S.ap.lat = S.ap.vert = 'ROLL OUT'; S.fcu.ap1 = S.fcu.ap2 = false; S.fcu.athr = false; S.tl = [0, 0]; S.lt.land = !done; S.lt.strobe = done ? 1 : 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; S.rmp.act = 119250; };
+    S.ap.lat = S.ap.vert = 'ROLL OUT'; S.fcu.ap1 = S.fcu.ap2 = false; S.fcu.athr = false; S.tl = [0, 0]; setLandingLights(done ? 1 : 0); S.lt.strobe = done ? 1 : 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; S.rmp.act = 119250; };
   switch (kind) {
     case 'stand': if (dist2(S.pos.x, S.pos.z, LHR_STAND.x, LHR_STAND.z) > 20) { placeAt(LHR_STAND.x, LHR_STAND.z, LHR_STAND.hdg); S.parkBrake = true; } break;
     case 'pushed': onGroundAt(PUSH_END.x, PUSH_END.z, 90, 0); S.parkBrake = true; S.tl = [0, 0]; S.rmp.act = 121905; break;
@@ -221,7 +221,7 @@ function setupAt(kind) {
 function airborne(x, z, y, hdg, ias) {
   S.pos.set(x, y, z); S.psi = hdg * D2R; S.theta = 2.5 * D2R; S.phi = 0; S.onGround = false; S.airborneT = 600;
   const a = isa(y); const tas = ias * KT / Math.sqrt(a.sigma); const v = hdgVec(hdg); S.vel.set(v.x * tas, 0, v.z * tas);
-  S.gearLever = 0; S.gearPos = 0; S.flapLever = 0; S.flapPos = 0; S.parkBrake = false; S.lt.land = false; S.lt.strobe = 1; S.lt.nose = 0; S.sbArmed = false; S.autobrake = 0;
+  S.gearLever = 0; S.gearPos = 0; S.flapLever = 0; S.flapPos = 0; S.parkBrake = false; setLandingLights(1); S.lt.strobe = 1; S.lt.nose = 0; S.sbArmed = false; S.autobrake = 0;
   S.fcu.ap1 = true; S.fcu.athr = true; S.tl = [DET.CL, DET.CL]; S.fcu.spdMan = false; S.fcu.hdgMan = false; S.rmp.act = 128405; S.rmp.stby = 125825; S.et.run = true; S.et.t = 1500;
   const n1 = 72; S.eng.forEach(e => { e.N1 = n1; e.N2 = 58.5 + (n1 - 19.5) * 0.53; }); S.ap.n1C = n1; S.ap.athrMode = 'SPEED'; S.ap.gammaC = 0; S.gammaT = 0;
   // trim: set pitch for level flight
@@ -480,7 +480,7 @@ function renderControlList() {
 function operateControl(action) {
   const h = controlSelectedId && hotById(controlSelectedId); if (!h) return;
   if (action === 'increase' || action === 'decrease') { if (h.wheel) h.wheel(action === 'increase' ? 1 : -1); }
-  else if (h.click) h.click({ u: 0.5, v: action === 'pull' ? 0.25 : 0.75, right: action === 'pull', shift: false });
+  else if (h.click) h.click(action === 'press' && h.kind === 'toggle' ? undefined : { u: 0.5, v: action === 'pull' ? 0.25 : 0.75, right: action === 'pull', shift: false });
   h.panel.sig = ''; updateScreens(); updateControlState();
 }
 function setupUI() {
