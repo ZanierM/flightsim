@@ -123,6 +123,11 @@ button { font-family: var(--ui); }
 .vrow label { color: var(--dim); font-size: 13px; }
 .vrow select, .vrow input[type=range] { width: 100%; min-width: 0; background: #0b1013; color: var(--fg); border: 1px solid var(--line); padding: 6px; font-family: var(--ui); font-size: 13px; }
 #vRateV { font-family: var(--mono); font-size: 13px; color: var(--cyan); min-width: 3em; }
+.graphics-choice { display: grid; gap: 8px; font-size: 13px; }
+.graphics-choice label { color: var(--dim); }
+.graphics-choice select { width: 100%; box-sizing: border-box; background: #0b1013; color: var(--fg); border: 1px solid #788f9b; padding: 10px; font: 14px var(--ui); }
+#graphicsDescription { color: var(--fg); min-height: 2.7em; }
+#graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { #looks { display: none; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
@@ -148,6 +153,7 @@ button { font-family: var(--ui); }
       <button class="scn" data-scn="free"><span class="tag">NO CAPTAIN</span><b>Free flight</b><small>Lined up on 27R. You're on your own.</small></button>
     </div>
     <p class="note">Best with headphones and a keyboard. Press H for the controls or F2 for a searchable, keyboard-operable cockpit control list. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
+    <button class="btn" id="menuGraphics">Graphics settings</button>
   </div>
 </div>
 
@@ -158,7 +164,7 @@ button { font-family: var(--ui); }
   <button class="btn look" data-look="-22,58">Overhead</button>
   <button class="btn look" data-look="70,-5">Left window</button>
 </div>
-<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnCockpit">Cockpit controls (F2)</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnCockpit">Cockpit controls (F2)</button><button class="btn" id="btnGraphics">Graphics</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
 
 <aside id="controlDrawer" aria-labelledby="controlHeading" hidden>
   <div class="drawerHead"><h2 id="controlHeading">Cockpit controls</h2><button class="btn" id="controlClose">Close</button></div>
@@ -242,6 +248,16 @@ button { font-family: var(--ui); }
     <div class="vrow"><label for="vRate">Speaking speed</label><input id="vRate" type="range" min="0.8" max="1.25" step="0.05"><span id="vRateV"></span></div>
     <div class="vrow"><label for="vMute">Voice</label><select id="vMute"><option value="on">On</option><option value="off">Off (text only)</option></select></div>
     <div class="row"><button class="btn primary" id="voicesClose">Done</button></div>
+  </div>
+</div>
+<div id="graphics" class="modal" role="dialog" aria-modal="true" aria-labelledby="graphicsHeading" hidden>
+  <div class="card">
+    <h2 id="graphicsHeading">Graphics quality</h2>
+    <p class="vnote">Changes apply immediately and are saved for your next visit. If the flight feels slow, choose Performance.</p>
+    <div class="graphics-choice"><label for="graphicsPreset">Quality preset</label><select id="graphicsPreset"><option value="performance">Performance</option><option value="balanced">Balanced</option><option value="high">High</option></select></div>
+    <p id="graphicsDescription"></p>
+    <p id="graphicsStats"></p>
+    <div class="row"><button class="btn primary" id="graphicsClose">Done</button></div>
   </div>
 </div>
 <div id="debrief" class="modal" role="dialog" aria-modal="true" aria-labelledby="debriefHeading" hidden>
