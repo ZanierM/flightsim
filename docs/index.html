@@ -3716,7 +3716,7 @@ const Audio2 = (() => {
   function setVoice(kind, name) { VPREF[kind] = name; try { localStorage.setItem('a320.voices', JSON.stringify(VPREF)); } catch (e) { } pickVoices(); }
   function voiceList() { return window.speechSynthesis ? rank(speechSynthesis.getVoices(), /en-GB/i, false) : []; }
   // Keep cockpit labels and captions exact; only expand them for the speech engine.
-  // Commas make single-letter names distinct across browser voices ("APU" can become "ah-poo").
+  // Spaces keep the letters distinct without the long pauses caused by commas.
   function spokenText(text) {
     return String(text)
       .replace(/\bF-PLN\b/gi, 'flight plan')
@@ -3726,7 +3726,7 @@ const Audio2 = (() => {
       .replace(/\bLVR CLB\b/gi, 'lever climb')
       .replace(/\bG\/S\b/gi, 'glide slope')
       .replace(/\b(A320|APU|MCDU|FCU|ILS|IRS|QNH|PFD|EFIS)\b/gi, match =>
-        match.toUpperCase() === 'A320' ? 'A three twenty' : match.toUpperCase().split('').join(', '))
+        match.toUpperCase() === 'A320' ? 'A three twenty' : match.toUpperCase().split('').join(' '))
       .replace(/\bAP([12])\b/gi, 'autopilot $1')
       .replace(/\bSW\b/gi, 'switch')
       .replace(/\bENG\b/gi, 'engine')
