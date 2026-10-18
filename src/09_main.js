@@ -41,6 +41,19 @@ function applyGraphicsQuality(value) {
 }
 const VIEW = { mode: 'cockpit', overview: false, preset: null, offset: null, yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
 function fullPanelFov() { return clamp(2 * Math.atan(1.45 / (1.43 * window.innerWidth / window.innerHeight)) * R2D, 50, 94); }
+// Include the MCDU tops and the aft-most pedestal controls with room for the toolbar.
+function pedestalFov() {
+  const aspect = Math.max(window.innerWidth / window.innerHeight, 0.55);
+  const pitch = -40 * D2R, cy = Math.cos(pitch), sy = Math.sin(pitch);
+  let halfTan = 0;
+  for (const x of [-0.28, 0.28]) for (const [y, z] of [[-0.52, -0.88], [-1.02, 0.48]]) {
+    const dy = y - 0.04, dz = z - 1.06;
+    const cameraY = cy * dy + sy * dz;
+    const depth = sy * dy - cy * dz;
+    halfTan = Math.max(halfTan, Math.abs(cameraY / depth), Math.abs(x / depth) / aspect);
+  }
+  return clamp(2 * Math.atan(halfTan * 1.28) * R2D, 60, 82);
+}
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
 let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
@@ -153,6 +166,7 @@ async function boot() {
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
   if (VIEW.overview || VIEW.preset === 'instruments') VIEW.fov = fullPanelFov();
+  else if (VIEW.preset === 'pedestal') VIEW.fov = pedestalFov();
   wCam.aspect = w / h; wCam.updateProjectionMatrix(); if (CK.cam) { CK.cam.aspect = w / h; CK.cam.updateProjectionMatrix(); }
   updateGraphicsPanel(); syncCaptainPanel();
 }
@@ -360,7 +374,17 @@ function setupInput() {
         const now = performance.now(); if (Math.abs(VIEW._wacc) < 90 || now - (VIEW._wt || 0) < 70) return;
         const d = Math.sign(VIEW._wacc); VIEW._wacc = 0; VIEW._wt = now;
         h.wheel(d * (e.shiftKey ? 10 : 1)); Audio2.click(); h.panel.sig = ''; updateScreens(); showTip(h); return; }
-      VIEW.fov = clamp(VIEW.fov - dir * 4, 22, 80);
+      const fittedFov = VIEW.overview || VIEW.preset === 'instruments' ? fullPanelFov()
+        : VIEW.preset === 'pedestal' ? pedestalFov()
+        : VIEW.preset === 'overhead' ? 76 : 22;
+      if (dir > 0 && VIEW.fov <= fittedFov) {
+        if (performance.now() - (VIEW._fitNotice || 0) > 3000) {
+          toast('This preset fits its controls. Use Cockpit controls (F2) for a close-up.', 2400);
+          VIEW._fitNotice = performance.now();
+        }
+        return;
+      }
+      VIEW.fov = clamp(VIEW.fov - dir * 4, fittedFov, Math.max(80, fittedFov));
     } else VIEW.odist = clamp(VIEW.odist * (dir > 0 ? 0.9 : 1.1), 22, 900);
   }, { passive: false });
   window.addEventListener('gamepadconnected', () => toast('Joystick connected'));
@@ -476,6 +500,7 @@ function render(dt) {
   _e2.set((VIEW.pitch * D2R) + sy + VIEW._hp, VIEW.yaw * D2R + sx, sx * 0.5, 'YXZ'); _hq.setFromEuler(_e2);
   const inCockpit = VIEW.mode === 'cockpit';
   model.visible = !inCockpit; shadowBlob.visible = !inCockpit;
+  if (CK.seat) CK.seat.visible = !(inCockpit && (VIEW.preset === 'pedestal' || (VIEW.fov < 45 && VIEW.pitch < -30)));
   if (inCockpit) {
     const offset = VIEW.offset || (VIEW.overview ? new THREE.Vector3(.52, .02, .57) : new THREE.Vector3());
     const eye = new THREE.Vector3(AC.eyeSide + offset.x, AC.eyeUp + td + offset.y, AC.eyeFwd + offset.z).applyQuaternion(S.q).add(S.pos);
@@ -606,9 +631,10 @@ function setupUI() {
     const preset = b.dataset.view; VIEW.preset = preset || null;
     if (VIEW.overview) { VIEW.offset = null; VIEW.tyaw = 0; VIEW.tpitch = -18; VIEW.fov = fullPanelFov(); }
     else if (preset === 'instruments') { VIEW.offset = new THREE.Vector3(.52, 0, .57); VIEW.tyaw = 0; VIEW.tpitch = -27; VIEW.fov = fullPanelFov(); }
-    else if (preset === 'pedestal') { VIEW.offset = new THREE.Vector3(.52, 0, .85); VIEW.tyaw = 0; VIEW.tpitch = -53; VIEW.fov = 65; }
+    else if (preset === 'pedestal') { VIEW.offset = new THREE.Vector3(.52, .04, 1.06); VIEW.tyaw = 0; VIEW.tpitch = -40; VIEW.fov = pedestalFov(); }
     else if (preset === 'overhead') { VIEW.offset = new THREE.Vector3(.52, 0, .47); VIEW.tyaw = 0; VIEW.tpitch = 50; VIEW.fov = 76; }
     else { VIEW.offset = null; const [y, p] = b.dataset.look.split(',').map(Number); VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.dataset.look === '0,-10' ? 62 : 46; }
+    syncCaptainPanel();
   });
 }
 function lookAtHot(id) {
@@ -676,7 +702,7 @@ function captainAction(st) {
 function syncCaptainPanel() {
   const box = $('captain'); if (!box) return;
   box.classList.toggle('dock-right', captainDockRight); document.body.classList.toggle('captain-right', captainDockRight);
-  const compact = !$('controlDrawer').hidden || (captainManualSize === null ? window.innerWidth <= 600 && !S.onGround : captainManualSize);
+  const compact = !$('controlDrawer').hidden || (captainManualSize === null ? (window.innerWidth <= 600 && !S.onGround) || (VIEW.mode === 'cockpit' && !!VIEW.preset) : captainManualSize);
   box.classList.toggle('min', compact);
   $('tMin').textContent = compact ? 'Expand' : 'Collapse'; $('tMin').setAttribute('aria-expanded', String(!compact));
   $('tDock').textContent = captainDockRight ? 'Dock left' : 'Dock right';

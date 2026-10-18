@@ -347,7 +347,7 @@ function buildCockpit() {
     g.fillStyle = '#c00'; g.fillRect(W / 2 - 1.5, 0, 3, H); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 30, H); g.fillRect(W - 30, 0, 30, H); } });
   add(comp);
   // first officer's seat (empty)
-  const seatM = new THREE.MeshStandardMaterial({ color: 0x8b8070, roughness: 1 }), seatF = new THREE.MeshStandardMaterial({ color: 0x2a2e31, roughness: .7 });
+  const seatM = new THREE.MeshStandardMaterial({ color: 0x48535a, roughness: 1 }), seatF = new THREE.MeshStandardMaterial({ color: 0x2a2e31, roughness: .7 });
   const seat = new THREE.Group(); seat.position.set(1.04, -0.95, 0.42);
   const sp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.5), seatM); seat.add(sp);
   const sb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.78, 0.13), seatM); sb.position.set(0, 0.44, 0.26); sb.rotation.x = -0.14; seat.add(sb);
@@ -359,7 +359,7 @@ function buildCockpit() {
   }
   for (const s of [-1, 1]) { const ar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.4), seatF); ar.position.set(s * 0.29, 0.25, 0.02); seat.add(ar); }
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.4), seatF); base.position.y = -0.16; seat.add(base);
-  add(seat);
+  add(seat); CK.seat = seat;
   const knee = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 0.42), new THREE.MeshStandardMaterial({ color: 0x3d474f, roughness: .9, side: THREE.DoubleSide })); knee.position.set(0.52, -0.99, -0.80); add(knee);
   for (const x of [-0.78, 1.82]) { const f = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.9, 0.3), shellM); f.position.set(x, -0.55, -0.82); add(f); }
   // side wall lining
@@ -405,8 +405,8 @@ function buildCockpit() {
   const mcdu2 = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.30), mcdu.mat); mcdu2.position.set(0.70, -0.82, -0.69); mcdu2.rotation.x = -1.2; add(mcdu2, false);
   const ms2 = ms.clone(); ms2.position.copy(mcdu2.localToWorld(new THREE.Vector3(0, 0.083, 0.002))); scene.add(ms2);
   // side consoles + sidesticks
-  const consoleM = new THREE.MeshStandardMaterial({ color: 0x38424a, roughness: .92 });
-  const consoleTopM = new THREE.MeshStandardMaterial({ color: 0x56616a, roughness: .86 });
+  const consoleM = new THREE.MeshStandardMaterial({ color: 0x303940, roughness: .92 });
+  const consoleTopM = new THREE.MeshStandardMaterial({ color: 0x3f4a52, roughness: .86 });
   const armrestM = new THREE.MeshStandardMaterial({ color: 0x22282c, roughness: .98 });
   const con = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 1.2), consoleM); con.position.set(-0.62, -0.88, -0.1); add(con);
   const con2 = con.clone(); con2.position.x = 1.66; add(con2);

@@ -29,6 +29,8 @@ Use **Retry approach** in the flight menu or landing debrief to return to the se
 
 Choose **Full panel** in the view buttons to see both pilots' PFD/ND pairs, the upper and lower ECAM, and the standby instrument together. **Instruments** gives a closer captain-side view for reading and using the controls. The full-panel camera adjusts its field of view to fit the display arrangement when the window size changes.
 
+**Pedestal** fits the MCDUs through the aft controls in one view. The focused view presets keep their panels in frame when you scroll; use **Cockpit controls (F2)** to focus an individual switch or key, or **Forward** for free camera zoom.
+
 | Control | Action |
 | --- | --- |
 | ↑ ↓ ← → | Sidestick (W / S also pitch) |
