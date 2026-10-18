@@ -23,6 +23,8 @@ function liveryTexture(name) {
   g.fillStyle = '#1d2f5a'; g.fillRect(Wd * 0.03, yb(0.12), Wd * 0.97, yb(0.06)); g.fillRect(Wd * 0.03, yb(0.82), Wd * 0.97, yb(0.06));
   g.fillStyle = '#b3242c'; g.fillRect(Wd * 0.03, yb(0.18), Wd * 0.97, yb(0.008)); g.fillRect(Wd * 0.03, yb(0.812), Wd * 0.97, yb(0.008));
   const L = 37.6, px = (t) => t / L * Wd;
+  g.strokeStyle = 'rgba(70,80,90,.11)'; g.lineWidth = 1;
+  for (const t of [4.8, 7.1, 10.5, 14.1, 18.5, 22.8, 27.1, 31.5, 35.3]) { g.beginPath(); g.moveTo(px(t), 0); g.lineTo(px(t), Hh); g.stroke(); }
   // cabin windows (both sides)
   for (const side of [0.29, 0.71]) {
     for (let t = 7.2; t < 30.5; t += 0.535) {
@@ -76,8 +78,8 @@ function wingGeom(side, rootLE, rootChord, tipLE, tipChord, rootY, tipY, span, t
 }
 function buildA320(opts = {}) {
   const grp = new THREE.Group();
-  const white = new THREE.MeshStandardMaterial({ color: 0xf1f2f3, roughness: 0.45, metalness: 0.1 });
-  const grey = new THREE.MeshStandardMaterial({ color: 0xb8bec4, roughness: 0.5, metalness: 0.35 });
+  const white = new THREE.MeshStandardMaterial({ color: 0xe4e8eb, roughness: 0.58, metalness: 0.06 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0xaeb6bc, roughness: 0.62, metalness: 0.18 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.6 });
   const navy = new THREE.MeshStandardMaterial({ color: 0x1d2f5a, roughness: 0.4, metalness: 0.1 });
   const metal = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.3, metalness: 0.8 });
@@ -91,7 +93,7 @@ function buildA320(opts = {}) {
   // swap uv so u = along length (x on canvas), v = around
   const uv = fg.attributes.uv; for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); uv.setXY(i, v, 1 - u); }
   fg.computeVertexNormals();
-  const liv = new THREE.MeshStandardMaterial({ map: liveryTexture(opts.name || 'ALBION'), roughness: 0.42, metalness: 0.12 });
+  const liv = new THREE.MeshStandardMaterial({ map: liveryTexture(opts.name || 'ALBION'), roughness: 0.56, metalness: 0.08 });
   const fus = new THREE.Mesh(fg, liv); grp.add(fus);
   // wings
   const wm = grey;

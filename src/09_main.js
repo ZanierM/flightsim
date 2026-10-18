@@ -1,7 +1,7 @@
 // ---------- Main: renderer, views, input, UI, scenarios ----------
-let renderer, wScene, wCam, sky, clouds, cities, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
+let renderer, wScene, wCam, sky, clouds, cities, vegetation, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
 const GRAPHICS_PRESETS = {
-  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings and clouds, with cockpit shadows off. Best for slower devices.' },
+  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings, trees and clouds, with cockpit shadows off. Best for slower devices.' },
   balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows at a moderate render resolution.' },
   high: { pixelRatio: 2, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows, with a sharper image on high-density displays.' }
 };
@@ -17,7 +17,7 @@ function updateGraphicsPanel() {
   $('graphicsPreset').value = graphicsQuality;
   $('graphicsDescription').textContent = preset.description;
   const ratio = Math.min(window.devicePixelRatio || 1, preset.pixelRatio);
-  $('graphicsStats').textContent = `${graphicsFps || '—'} FPS · ${Math.round(window.innerWidth * ratio)} × ${Math.round(window.innerHeight * ratio)} render pixels · ${cities ? cities.count.toLocaleString() : '—'} buildings · ${clouds ? clouds.geometry.instanceCount.toLocaleString() : '—'} cloud puffs`;
+  $('graphicsStats').textContent = `${graphicsFps || '—'} FPS · ${Math.round(window.innerWidth * ratio)} × ${Math.round(window.innerHeight * ratio)} render pixels · ${cities ? cities.count.toLocaleString() : '—'} buildings · ${vegetation ? vegetation.trunks.count.toLocaleString() : '—'} trees · ${clouds ? clouds.geometry.instanceCount.toLocaleString() : '—'} cloud puffs`;
 }
 function applyGraphicsQuality(value) {
   if (!Object.hasOwn(GRAPHICS_PRESETS, value)) return;
@@ -26,6 +26,11 @@ function applyGraphicsQuality(value) {
   const preset = GRAPHICS_PRESETS[value];
   if (renderer) { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.pixelRatio)); onResize(); }
   if (cities) cities.count = Math.min(cities.userData.fullCount, preset.cities);
+  if (vegetation) {
+    const fraction = value === 'performance' ? .4 : 1;
+    vegetation.trunks.count = Math.round(vegetation.trunks.userData.fullCount * fraction);
+    vegetation.crowns.count = vegetation.trunks.count * 2;
+  }
   if (clouds) { clouds.userData.density = preset.clouds; clouds.userData.sort(wCam.position); }
   if (CK.sunLight && CK.sunLight.castShadow !== preset.shadows) {
     CK.sunLight.castShadow = preset.shadows;
@@ -82,6 +87,7 @@ async function boot() {
   sky = buildSky(wScene); buildAirports(wScene);
   prog('Building London and Paris', 0.62); await nextFrame();
   cities = buildCities(wScene);
+  vegetation = buildVegetation(wScene);
   prog('Forming cumulus clouds', 0.72); await nextFrame();
   clouds = buildClouds(wScene);
   prog('Rolling the A320 out of the hangar', 0.80); await nextFrame();
@@ -359,7 +365,7 @@ function readControls(dt) {
 const _q = new THREE.Quaternion(), _hq = new THREE.Quaternion(), _v = new THREE.Vector3(), _e2 = new THREE.Euler();
 function loop(t) {
   requestAnimationFrame(loop);
-  const elapsed = (t - lastT) / 1000 || 0.016, dt = Math.min(0.05, elapsed); lastT = t; frameN++;
+  const elapsed = lastT ? (t - lastT) / 1000 : .016, dt = Math.min(0.05, elapsed); lastT = t; frameN++;
   graphicsFrames++; graphicsTime += elapsed;
   if (graphicsTime >= 1) { graphicsFps = Math.round(graphicsFrames / graphicsTime); graphicsFrames = 0; graphicsTime = 0; if (!$('graphics').hidden) updateGraphicsPanel(); }
   if (started && !paused) {

@@ -14,7 +14,7 @@ To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `m
 - **Systems**: APU, engine start sequence, electrics, hydraulics, bleed air, fuel pumps, fire test, flight-control computers and autobrake. Switching something off has a real effect and raises an amber ECAM caution.
 - **Flight model and automation**: fly-by-wire normal law with protections, autothrust, autopilot modes (SRS, CLB, DES, ALT, V/S, HDG, NAV, LOC, G/S), managed speeds and an automatic landing.
 - **Captain tutorial**: 48 step-locked lessons with voice, checklists and ATC. "Show me" turns your view to the control, "Do it for me" carries out the step, and skipping moves the aircraft to where that step happens.
-- **World**: scenery generated from real coastlines, rivers, towns and runway layouts for both airports. It is not satellite imagery.
+- **World**: scenery generated from real coastlines, rivers, towns and runway layouts for both airports, with airport grass variation, runway shoulders, nearby tree belts and scattered clouds. It is not satellite imagery.
 
 ## Controls
 
@@ -40,7 +40,7 @@ The captain, ATC and callouts use your browser's speech voices. Open **Voices** 
 
 ## Graphics quality
 
-Open **Graphics** from the start menu or the top bar. **Balanced** keeps the original scenery and cockpit shadows. **Performance** renders at up to 1× device resolution, draws fewer buildings and clouds, and disables cockpit shadows. **High** keeps full scenery and renders at up to 2× device resolution for sharper detail on high-density displays. Changes take effect immediately and the preset is saved in your browser. The panel shows the current frame rate and render size to help you choose.
+Open **Graphics** from the start menu or the top bar. **Balanced** keeps full scenery and cockpit shadows. **Performance** renders at up to 1× device resolution, draws fewer buildings, trees and clouds, and disables cockpit shadows. **High** keeps full scenery and renders at up to 2× device resolution for sharper detail on high-density displays. Changes take effect immediately and the preset is saved in your browser. The panel shows the current frame rate and render size to help you choose.
 
 ## Source
 

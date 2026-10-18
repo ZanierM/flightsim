@@ -701,9 +701,13 @@ void main(){
   ucol = mix(ucol, vec3(.45,.43,.42), smoothstep(3000., 20000., dist) * .5);
   col = mix(col, ucol, ur * .92);
   // airport grass
-  vec3 acol = mix(vec3(.34,.42,.20), vec3(.42,.47,.25), vnoise(p * .02)) * (.92 + .16 * vnoise(p * 1.3));
-  acol *= .95 + .07 * step(.5, fract((p.x * .6 + p.y * .8) / 22.)) * (1. - smoothstep(600., 2500., dist));
-  acol = mix(acol, vec3(.52,.50,.36), smoothstep(.62, .8, vnoise(p * .004)) * .45);
+  float meadow = vnoise(p * .008) * .65 + vnoise(p * .035) * .35;
+  vec3 acol = mix(vec3(.27,.35,.15), vec3(.46,.48,.27), meadow);
+  float mowing = sin(p.x * .19 + vnoise(p * .0015) * 3.);
+  acol *= .94 + .08 * mowing * (1. - smoothstep(1600., 7000., dist));
+  float dry = smoothstep(.62, .79, vnoise(p * .003 + vec2(12., 5.)));
+  acol = mix(acol, vec3(.52,.48,.31), dry * .32);
+  acol *= .94 + .12 * vnoise(p * .7) * (1. - smoothstep(250., 1800., dist));
   col = mix(col, acol, m.a);
   // lighting
   vec3 n = normalize(vN);
@@ -816,14 +820,18 @@ function buildClouds(scene) {
       puffs.push([cx + Math.cos(a) * d, base + s * 0.35 + hh, cz + Math.sin(a) * d * 0.8, s, cx, base, cz, w]);
     }
   };
-  // along the route, keep the airports fairly clear
+  // Scattered cumulus over the route, with clear sight lines on final approach.
   for (let i = 0; i < 520; i++) {
     const x = WORLD.X0 + r() * (WORLD.X1 - WORLD.X0), z = WORLD.Z0 + r() * (WORLD.Z1 - WORLD.Z0);
     const dl = Math.hypot(x - 0, z - 0), dc = Math.hypot(x - CDG.rwys[0].tx, z - CDG.rwys[0].tz);
-    if (dl < 9000 || dc < 9000) continue;
+    if (dl < 5000 || dc < 5000) continue;
     const sea = waterLoAt(x, z) > 0.5;
     if (sea && r() < 0.6) continue;
     addCluster(x, z, 1150 + r() * 350, 0.8 + r() * 0.7);
+  }
+  for (const ap of AIRPORTS) for (let i = 0; i < 18; i++) {
+    const a = r() * Math.PI * 2, d = 8500 + r() * 19000;
+    addCluster(ap.cx + Math.cos(a) * d, ap.cz + Math.sin(a) * d, 1250 + r() * 550, .7 + r() * .6);
   }
   const N = puffs.length;
   const base = new THREE.PlaneGeometry(1, 1);
@@ -1021,6 +1029,13 @@ function buildAirports(scene, mats) {
       const midL = r.len - 2 * endLen; const mt = midTex[w].clone(); mt.needsUpdate = true; mt.repeat.set(1, midL / 50);
       const mm = new THREE.MeshLambertMaterial({ map: mt, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
       mk(endLen, midL, mm, false);
+      // Narrow concrete shoulders break the hard asphalt-to-grass boundary.
+      const shoulderTex = tConc.clone(); shoulderTex.repeat.set(1, r.len / 50); shoulderTex.needsUpdate = true;
+      const shoulderMat = new THREE.MeshLambertMaterial({ map: shoulderTex });
+      for (const side of [-1, 1]) {
+        const offset = side * (w / 2 + 1.7), cx = r.tx + r.dx * r.len / 2 - r.dz * offset, cz = r.tz + r.dz * r.len / 2 + r.dx * offset;
+        scene.add(new THREE.Mesh(quadXZ(cx, cz, 3.4, r.len, r.hdg, y0 - .035), shoulderMat));
+      }
       // blast pads
       for (const s of [-1, 1]) { const g = quadXZ(s < 0 ? r.tx - r.dx * 40 : r.ex + r.dx * 40, s < 0 ? r.tz - r.dz * 40 : r.ez + r.dz * 40, w, 80, r.hdg, y0 - 0.02); scene.add(new THREE.Mesh(g, matTaxi)); }
       // edge lights & centreline lights
@@ -1124,6 +1139,43 @@ function buildAirports(scene, mats) {
   const [twx, twz] = at(2300, 1050); const tw2 = tw.clone(); tw2.position.set(twx, yC, twz); scene.add(tw2);
 }
 
+// Mixed-height tree belts outside the airfields add a grounded horizon without
+// placing foliage on runways, taxiways or aprons. All crowns share two draw calls.
+function buildVegetation(scene) {
+  const r = mulberry(78541), trees = [], target = 2400;
+  for (let tries = 0; trees.length < target && tries < target * 30; tries++) {
+    const ap = AIRPORTS[tries % AIRPORTS.length];
+    const angle = r() * Math.PI * 2, radius = 1.18 + Math.pow(r(), 1.3) * 1.55;
+    const x = ap.cx + Math.cos(angle) * ap.rx * radius;
+    const z = ap.cz + Math.sin(angle) * ap.rz * radius;
+    if (x < WORLD.X0 || x > WORLD.X1 || z < WORLD.Z0 || z > WORLD.Z1) continue;
+    const m = maskAt(x, z);
+    if (m[0] > .15 || m[3] > .08 || r() > .55 + m[2] * .4) continue;
+    const height = 6 + r() * 9, width = height * (.27 + r() * .16);
+    trees.push({ x, y: groundH(x, z), z, height, width, shade: r() });
+  }
+  const trunkGeo = new THREE.CylinderGeometry(.14, .23, 1, 5);
+  const crownGeo = new THREE.IcosahedronGeometry(1, 1);
+  const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshLambertMaterial({ color: 0x71654c }), trees.length);
+  const crowns = new THREE.InstancedMesh(crownGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), trees.length * 2);
+  const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3(), color = new THREE.Color();
+  trees.forEach((t, i) => {
+    pos.set(t.x, t.y + t.height * .18, t.z); scale.set(.22, t.height * .36, .22);
+    matrix.compose(pos, q, scale); trunks.setMatrixAt(i, matrix);
+    for (let l = 0; l < 2; l++) {
+      pos.set(t.x + (l ? t.width * .22 : 0), t.y + t.height * (l ? .76 : .60), t.z + (l ? -t.width * .16 : 0));
+      scale.set(t.width * (l ? .72 : 1), t.height * (l ? .27 : .33), t.width * (l ? .72 : 1));
+      matrix.compose(pos, q, scale); crowns.setMatrixAt(i * 2 + l, matrix);
+      color.setRGB(.15 + t.shade * .09, .22 + t.shade * .12, .09 + t.shade * .06);
+      crowns.setColorAt(i * 2 + l, color);
+    }
+  });
+  trunks.userData.fullCount = trees.length; crowns.userData.fullCount = trees.length * 2;
+  trunks.frustumCulled = crowns.frustumCulled = false;
+  scene.add(trunks, crowns);
+  return { trunks, crowns };
+}
+
 // ----- City buildings (instanced) -----
 function buildCities(scene) {
   const r = mulberry(31337);
@@ -1178,6 +1230,8 @@ function liveryTexture(name) {
   g.fillStyle = '#1d2f5a'; g.fillRect(Wd * 0.03, yb(0.12), Wd * 0.97, yb(0.06)); g.fillRect(Wd * 0.03, yb(0.82), Wd * 0.97, yb(0.06));
   g.fillStyle = '#b3242c'; g.fillRect(Wd * 0.03, yb(0.18), Wd * 0.97, yb(0.008)); g.fillRect(Wd * 0.03, yb(0.812), Wd * 0.97, yb(0.008));
   const L = 37.6, px = (t) => t / L * Wd;
+  g.strokeStyle = 'rgba(70,80,90,.11)'; g.lineWidth = 1;
+  for (const t of [4.8, 7.1, 10.5, 14.1, 18.5, 22.8, 27.1, 31.5, 35.3]) { g.beginPath(); g.moveTo(px(t), 0); g.lineTo(px(t), Hh); g.stroke(); }
   // cabin windows (both sides)
   for (const side of [0.29, 0.71]) {
     for (let t = 7.2; t < 30.5; t += 0.535) {
@@ -1231,8 +1285,8 @@ function wingGeom(side, rootLE, rootChord, tipLE, tipChord, rootY, tipY, span, t
 }
 function buildA320(opts = {}) {
   const grp = new THREE.Group();
-  const white = new THREE.MeshStandardMaterial({ color: 0xf1f2f3, roughness: 0.45, metalness: 0.1 });
-  const grey = new THREE.MeshStandardMaterial({ color: 0xb8bec4, roughness: 0.5, metalness: 0.35 });
+  const white = new THREE.MeshStandardMaterial({ color: 0xe4e8eb, roughness: 0.58, metalness: 0.06 });
+  const grey = new THREE.MeshStandardMaterial({ color: 0xaeb6bc, roughness: 0.62, metalness: 0.18 });
   const dark = new THREE.MeshStandardMaterial({ color: 0x2a2e33, roughness: 0.6 });
   const navy = new THREE.MeshStandardMaterial({ color: 0x1d2f5a, roughness: 0.4, metalness: 0.1 });
   const metal = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.3, metalness: 0.8 });
@@ -1246,7 +1300,7 @@ function buildA320(opts = {}) {
   // swap uv so u = along length (x on canvas), v = around
   const uv = fg.attributes.uv; for (let i = 0; i < uv.count; i++) { const u = uv.getX(i), v = uv.getY(i); uv.setXY(i, v, 1 - u); }
   fg.computeVertexNormals();
-  const liv = new THREE.MeshStandardMaterial({ map: liveryTexture(opts.name || 'ALBION'), roughness: 0.42, metalness: 0.12 });
+  const liv = new THREE.MeshStandardMaterial({ map: liveryTexture(opts.name || 'ALBION'), roughness: 0.56, metalness: 0.08 });
   const fus = new THREE.Mesh(fg, liv); grp.add(fus);
   // wings
   const wm = grey;
@@ -2737,6 +2791,7 @@ function buildCockpit() {
   const scene = new THREE.Scene(); CK.scene = scene;
   const cam = new THREE.PerspectiveCamera(62, 1, 0.02, 20); CK.cam = cam; scene.add(cam);
   const shellM = new THREE.MeshStandardMaterial({ color: 0x59656e, roughness: 0.9, side: THREE.DoubleSide });
+  const liningM = new THREE.MeshStandardMaterial({ color: 0x59656e, roughness: .94, side: THREE.DoubleSide });
   const darkM = new THREE.MeshStandardMaterial({ color: 0x24292d, roughness: 0.75, side: THREE.DoubleSide });
   const glareM = new THREE.MeshStandardMaterial({ color: 0x1e2226, roughness: 0.95 });
   const lightM = new THREE.MeshStandardMaterial({ color: 0x6e7a82, roughness: 0.85, side: THREE.DoubleSide });
@@ -2750,13 +2805,20 @@ function buildCockpit() {
   sh.holes.push(hole(-0.70, 0.47, 0.03, slopeLen - 0.07, 0.06)); sh.holes.push(hole(0.57, 1.74, 0.03, slopeLen - 0.07, 0.06));
   const frame = new THREE.Mesh(new THREE.ShapeGeometry(sh, 6), darkM);
   frame.position.copy(fb); const tilt = Math.atan2(ft.z - fb.z, ft.y - fb.y); frame.rotation.x = tilt; add(frame);
+  const sealM = new THREE.MeshStandardMaterial({ color: 0x101416, roughness: .86 });
+  for (const [u0, u1] of [[-0.70, 0.47], [0.57, 1.74]]) {
+    const v0 = .03, v1 = slopeLen - .07, rr = .06;
+    const points = [[u0 + rr, v0], [u1 - rr, v0], [u1, v0 + rr], [u1, v1 - rr], [u1 - rr, v1], [u0 + rr, v1], [u0, v1 - rr], [u0, v0 + rr]];
+    const path = new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, .006)), true, 'centripetal');
+    frame.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, .008, 6, true), sealM));
+  }
   const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, slopeLen, 0.06), darkM); post.position.copy(fb.clone().lerp(ft, 0.5)).add(new THREE.Vector3(0.52, 0, 0.02)); post.rotation.x = tilt; add(post);
   // windscreen wipers (outside the glass, parked along the bottom)
   const wiperM = new THREE.MeshStandardMaterial({ color: 0x15181a, roughness: 0.6, metalness: 0.3 });
   for (const [u, dir] of [[-0.62, 1], [1.66, -1]]) {
-    const piv = new THREE.Group(); piv.position.set(u, 0.06, -0.025); frame.add(piv);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.012, 0.01), wiperM); arm.position.x = dir * 0.31; piv.add(arm);
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.014), wiperM); blade.position.set(dir * 0.37, 0.004, -0.006); piv.add(blade);
+    const piv = new THREE.Group(); piv.position.set(u, 0.015, -0.025); frame.add(piv);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.009, 0.01), wiperM); arm.position.x = dir * 0.27; piv.add(arm);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.009, 0.014), wiperM); blade.position.set(dir * 0.32, 0.004, -0.006); piv.add(blade);
     const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 12), wiperM); hub.rotation.x = Math.PI / 2; piv.add(hub);
     CK.wipers.push({ piv, dir, ph: 0 });
   }
@@ -2765,7 +2827,7 @@ function buildCockpit() {
   const sideWall = (x) => {
     const s = new THREE.Shape(); s.moveTo(-0.95, -1.3); s.lineTo(0.9, -1.3); s.lineTo(0.9, 0.7); s.lineTo(-0.95, 0.7); s.closePath();
     s.holes.push(hole(-0.82, -0.18, -0.02, 0.33, 0.07)); s.holes.push(hole(-0.12, 0.40, 0.0, 0.31, 0.07));
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 6), shellM); m.rotation.y = -Math.PI / 2; m.position.x = x; return add(m);
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 6), liningM); m.rotation.y = -Math.PI / 2; m.position.x = x; return add(m);
   };
   sideWall(-0.82); sideWall(1.86);
   for (const x of [-0.82, 1.86]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 1.3), darkM); b.position.set(x, -0.04, -0.2); add(b); const t = b.clone(); t.position.y = 0.35; add(t); }
@@ -2777,6 +2839,7 @@ function buildCockpit() {
   const back = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.0), shellM); back.position.set(0.52, -0.3, 1.45); back.rotation.y = Math.PI; add(back);
   // glareshield
   const gsTop = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.03, 0.30), glareM); gsTop.position.set(0.52, -0.152, -0.84); add(gsTop);
+  const brow = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, 2.60, 14), glareM); brow.rotation.z = Math.PI / 2; brow.position.set(0.52, -0.13, -0.80); add(brow);
   const gsFace = new THREE.Mesh(new THREE.PlaneGeometry(2.62, 0.17), glareM); gsFace.position.set(0.52, -0.218, -0.648); gsFace.rotation.x = -0.3; add(gsFace);
   // standby compass hanging from the centre post
   const comp = new THREE.Group(); comp.position.set(0.52, 0.29, -0.59);
@@ -2794,6 +2857,11 @@ function buildCockpit() {
   const sp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.5), seatM); seat.add(sp);
   const sb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.78, 0.13), seatM); sb.position.set(0, 0.44, 0.26); sb.rotation.x = -0.14; seat.add(sb);
   const hr = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.12), seatM); hr.position.set(0, 0.92, 0.33); seat.add(hr);
+  const seamM = new THREE.MeshStandardMaterial({ color: 0x665f55, roughness: 1 });
+  for (const side of [-1, 1]) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(.006, .66, .009), seamM); seam.position.set(side * .18, .44, .332); seam.rotation.x = -.14; seat.add(seam);
+    const bolster = new THREE.Mesh(new THREE.BoxGeometry(.07, .62, .16), seatM); bolster.position.set(side * .24, .42, .25); bolster.rotation.x = -.14; seat.add(bolster);
+  }
   for (const s of [-1, 1]) { const ar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.4), seatF); ar.position.set(s * 0.29, 0.25, 0.02); seat.add(ar); }
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.4), seatF); base.position.y = -0.16; seat.add(base);
   add(seat);
@@ -2804,7 +2872,7 @@ function buildCockpit() {
   wg.strokeStyle = 'rgba(0,0,0,.35)'; wg.lineWidth = 3; for (const y of [140, 300]) { wg.beginPath(); wg.moveTo(0, y); wg.lineTo(512, y); wg.stroke(); } for (const x of [170, 360]) { wg.beginPath(); wg.moveTo(x, 300); wg.lineTo(x, 512); wg.stroke(); }
   for (let i = 0; i < 4000; i++) { wg.fillStyle = `rgba(${Math.random() < .5 ? '0,0,0' : '255,255,255'},.04)`; wg.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
   wg.fillStyle = '#2a3136'; wg.fillRect(200, 330, 130, 90); wg.fillStyle = '#ddd'; wg.font = 'bold 14px Arial'; wg.fillText('OXY MASK', 225, 360); wg.fillStyle = '#c8b400'; wg.fillRect(210, 395, 110, 12);
-  const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(0.8, 0.8); shellM.map = wt; shellM.color.setHex(0xb8c4cc); shellM.needsUpdate = true;
+  const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(0.8, 0.8); liningM.map = wt; liningM.color.setHex(0xb8c4cc); liningM.needsUpdate = true;
   // ---------------- main instrument panel ----------------
   const mp = new Panel('main', 2048, 426, 2.5, 0.52);
   mp.mesh.position.set(0.52, -0.53, -0.86); mp.mesh.rotation.x = -0.18; add(mp.mesh, false);
@@ -2884,6 +2952,9 @@ function buildMainPanel(p) {
   // layout (px): PFD 463, ND 631, ECAM 1024, F/O ND 1417, F/O PFD 1585; top row centre y 164, SD y 324
   buildStatic(p, g => {
     g.fillStyle = PANEL_COL; g.fillRect(0, 0, p.W, p.H); g.fillStyle = grainPattern(g); g.fillRect(0, 0, p.W, p.H);
+    const shade = g.createLinearGradient(0, 0, 0, p.H);
+    shade.addColorStop(0, 'rgba(0,0,0,.17)'); shade.addColorStop(.28, 'rgba(0,0,0,0)'); shade.addColorStop(.72, 'rgba(255,255,255,.025)'); shade.addColorStop(1, 'rgba(0,0,0,.10)');
+    g.fillStyle = shade; g.fillRect(0, 0, p.W, p.H);
     g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 3; for (const x of [370, 715, 935, 1113, 1335, 1680]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, p.H); g.stroke(); }
     for (let i = 0; i < 26; i++) drawScrew(g, 20 + i * 79, 12);
     // ISIS & clock bezels
@@ -3797,9 +3868,9 @@ function stepAutoTaxi(dt) {
 }
 
 // ---------- Main: renderer, views, input, UI, scenarios ----------
-let renderer, wScene, wCam, sky, clouds, cities, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
+let renderer, wScene, wCam, sky, clouds, cities, vegetation, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
 const GRAPHICS_PRESETS = {
-  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings and clouds, with cockpit shadows off. Best for slower devices.' },
+  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings, trees and clouds, with cockpit shadows off. Best for slower devices.' },
   balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows at a moderate render resolution.' },
   high: { pixelRatio: 2, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows, with a sharper image on high-density displays.' }
 };
@@ -3815,7 +3886,7 @@ function updateGraphicsPanel() {
   $('graphicsPreset').value = graphicsQuality;
   $('graphicsDescription').textContent = preset.description;
   const ratio = Math.min(window.devicePixelRatio || 1, preset.pixelRatio);
-  $('graphicsStats').textContent = `${graphicsFps || '—'} FPS · ${Math.round(window.innerWidth * ratio)} × ${Math.round(window.innerHeight * ratio)} render pixels · ${cities ? cities.count.toLocaleString() : '—'} buildings · ${clouds ? clouds.geometry.instanceCount.toLocaleString() : '—'} cloud puffs`;
+  $('graphicsStats').textContent = `${graphicsFps || '—'} FPS · ${Math.round(window.innerWidth * ratio)} × ${Math.round(window.innerHeight * ratio)} render pixels · ${cities ? cities.count.toLocaleString() : '—'} buildings · ${vegetation ? vegetation.trunks.count.toLocaleString() : '—'} trees · ${clouds ? clouds.geometry.instanceCount.toLocaleString() : '—'} cloud puffs`;
 }
 function applyGraphicsQuality(value) {
   if (!Object.hasOwn(GRAPHICS_PRESETS, value)) return;
@@ -3824,6 +3895,11 @@ function applyGraphicsQuality(value) {
   const preset = GRAPHICS_PRESETS[value];
   if (renderer) { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.pixelRatio)); onResize(); }
   if (cities) cities.count = Math.min(cities.userData.fullCount, preset.cities);
+  if (vegetation) {
+    const fraction = value === 'performance' ? .4 : 1;
+    vegetation.trunks.count = Math.round(vegetation.trunks.userData.fullCount * fraction);
+    vegetation.crowns.count = vegetation.trunks.count * 2;
+  }
   if (clouds) { clouds.userData.density = preset.clouds; clouds.userData.sort(wCam.position); }
   if (CK.sunLight && CK.sunLight.castShadow !== preset.shadows) {
     CK.sunLight.castShadow = preset.shadows;
@@ -3880,6 +3956,7 @@ async function boot() {
   sky = buildSky(wScene); buildAirports(wScene);
   prog('Building London and Paris', 0.62); await nextFrame();
   cities = buildCities(wScene);
+  vegetation = buildVegetation(wScene);
   prog('Forming cumulus clouds', 0.72); await nextFrame();
   clouds = buildClouds(wScene);
   prog('Rolling the A320 out of the hangar', 0.80); await nextFrame();
@@ -4157,7 +4234,7 @@ function readControls(dt) {
 const _q = new THREE.Quaternion(), _hq = new THREE.Quaternion(), _v = new THREE.Vector3(), _e2 = new THREE.Euler();
 function loop(t) {
   requestAnimationFrame(loop);
-  const elapsed = (t - lastT) / 1000 || 0.016, dt = Math.min(0.05, elapsed); lastT = t; frameN++;
+  const elapsed = lastT ? (t - lastT) / 1000 : .016, dt = Math.min(0.05, elapsed); lastT = t; frameN++;
   graphicsFrames++; graphicsTime += elapsed;
   if (graphicsTime >= 1) { graphicsFps = Math.round(graphicsFrames / graphicsTime); graphicsFrames = 0; graphicsTime = 0; if (!$('graphics').hidden) updateGraphicsPanel(); }
   if (started && !paused) {

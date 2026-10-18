@@ -286,6 +286,7 @@ function buildCockpit() {
   const scene = new THREE.Scene(); CK.scene = scene;
   const cam = new THREE.PerspectiveCamera(62, 1, 0.02, 20); CK.cam = cam; scene.add(cam);
   const shellM = new THREE.MeshStandardMaterial({ color: 0x59656e, roughness: 0.9, side: THREE.DoubleSide });
+  const liningM = new THREE.MeshStandardMaterial({ color: 0x59656e, roughness: .94, side: THREE.DoubleSide });
   const darkM = new THREE.MeshStandardMaterial({ color: 0x24292d, roughness: 0.75, side: THREE.DoubleSide });
   const glareM = new THREE.MeshStandardMaterial({ color: 0x1e2226, roughness: 0.95 });
   const lightM = new THREE.MeshStandardMaterial({ color: 0x6e7a82, roughness: 0.85, side: THREE.DoubleSide });
@@ -299,13 +300,20 @@ function buildCockpit() {
   sh.holes.push(hole(-0.70, 0.47, 0.03, slopeLen - 0.07, 0.06)); sh.holes.push(hole(0.57, 1.74, 0.03, slopeLen - 0.07, 0.06));
   const frame = new THREE.Mesh(new THREE.ShapeGeometry(sh, 6), darkM);
   frame.position.copy(fb); const tilt = Math.atan2(ft.z - fb.z, ft.y - fb.y); frame.rotation.x = tilt; add(frame);
+  const sealM = new THREE.MeshStandardMaterial({ color: 0x101416, roughness: .86 });
+  for (const [u0, u1] of [[-0.70, 0.47], [0.57, 1.74]]) {
+    const v0 = .03, v1 = slopeLen - .07, rr = .06;
+    const points = [[u0 + rr, v0], [u1 - rr, v0], [u1, v0 + rr], [u1, v1 - rr], [u1 - rr, v1], [u0 + rr, v1], [u0, v1 - rr], [u0, v0 + rr]];
+    const path = new THREE.CatmullRomCurve3(points.map(([x, y]) => new THREE.Vector3(x, y, .006)), true, 'centripetal');
+    frame.add(new THREE.Mesh(new THREE.TubeGeometry(path, 64, .008, 6, true), sealM));
+  }
   const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, slopeLen, 0.06), darkM); post.position.copy(fb.clone().lerp(ft, 0.5)).add(new THREE.Vector3(0.52, 0, 0.02)); post.rotation.x = tilt; add(post);
   // windscreen wipers (outside the glass, parked along the bottom)
   const wiperM = new THREE.MeshStandardMaterial({ color: 0x15181a, roughness: 0.6, metalness: 0.3 });
   for (const [u, dir] of [[-0.62, 1], [1.66, -1]]) {
-    const piv = new THREE.Group(); piv.position.set(u, 0.06, -0.025); frame.add(piv);
-    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.62, 0.012, 0.01), wiperM); arm.position.x = dir * 0.31; piv.add(arm);
-    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.02, 0.014), wiperM); blade.position.set(dir * 0.37, 0.004, -0.006); piv.add(blade);
+    const piv = new THREE.Group(); piv.position.set(u, 0.015, -0.025); frame.add(piv);
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.009, 0.01), wiperM); arm.position.x = dir * 0.27; piv.add(arm);
+    const blade = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.009, 0.014), wiperM); blade.position.set(dir * 0.32, 0.004, -0.006); piv.add(blade);
     const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 0.02, 12), wiperM); hub.rotation.x = Math.PI / 2; piv.add(hub);
     CK.wipers.push({ piv, dir, ph: 0 });
   }
@@ -314,7 +322,7 @@ function buildCockpit() {
   const sideWall = (x) => {
     const s = new THREE.Shape(); s.moveTo(-0.95, -1.3); s.lineTo(0.9, -1.3); s.lineTo(0.9, 0.7); s.lineTo(-0.95, 0.7); s.closePath();
     s.holes.push(hole(-0.82, -0.18, -0.02, 0.33, 0.07)); s.holes.push(hole(-0.12, 0.40, 0.0, 0.31, 0.07));
-    const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 6), shellM); m.rotation.y = -Math.PI / 2; m.position.x = x; return add(m);
+    const m = new THREE.Mesh(new THREE.ShapeGeometry(s, 6), liningM); m.rotation.y = -Math.PI / 2; m.position.x = x; return add(m);
   };
   sideWall(-0.82); sideWall(1.86);
   for (const x of [-0.82, 1.86]) { const b = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.04, 1.3), darkM); b.position.set(x, -0.04, -0.2); add(b); const t = b.clone(); t.position.y = 0.35; add(t); }
@@ -326,6 +334,7 @@ function buildCockpit() {
   const back = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.0), shellM); back.position.set(0.52, -0.3, 1.45); back.rotation.y = Math.PI; add(back);
   // glareshield
   const gsTop = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.03, 0.30), glareM); gsTop.position.set(0.52, -0.152, -0.84); add(gsTop);
+  const brow = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, 2.60, 14), glareM); brow.rotation.z = Math.PI / 2; brow.position.set(0.52, -0.13, -0.80); add(brow);
   const gsFace = new THREE.Mesh(new THREE.PlaneGeometry(2.62, 0.17), glareM); gsFace.position.set(0.52, -0.218, -0.648); gsFace.rotation.x = -0.3; add(gsFace);
   // standby compass hanging from the centre post
   const comp = new THREE.Group(); comp.position.set(0.52, 0.29, -0.59);
@@ -343,6 +352,11 @@ function buildCockpit() {
   const sp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.5), seatM); seat.add(sp);
   const sb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.78, 0.13), seatM); sb.position.set(0, 0.44, 0.26); sb.rotation.x = -0.14; seat.add(sb);
   const hr = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.12), seatM); hr.position.set(0, 0.92, 0.33); seat.add(hr);
+  const seamM = new THREE.MeshStandardMaterial({ color: 0x665f55, roughness: 1 });
+  for (const side of [-1, 1]) {
+    const seam = new THREE.Mesh(new THREE.BoxGeometry(.006, .66, .009), seamM); seam.position.set(side * .18, .44, .332); seam.rotation.x = -.14; seat.add(seam);
+    const bolster = new THREE.Mesh(new THREE.BoxGeometry(.07, .62, .16), seatM); bolster.position.set(side * .24, .42, .25); bolster.rotation.x = -.14; seat.add(bolster);
+  }
   for (const s of [-1, 1]) { const ar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.4), seatF); ar.position.set(s * 0.29, 0.25, 0.02); seat.add(ar); }
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.4), seatF); base.position.y = -0.16; seat.add(base);
   add(seat);
@@ -353,7 +367,7 @@ function buildCockpit() {
   wg.strokeStyle = 'rgba(0,0,0,.35)'; wg.lineWidth = 3; for (const y of [140, 300]) { wg.beginPath(); wg.moveTo(0, y); wg.lineTo(512, y); wg.stroke(); } for (const x of [170, 360]) { wg.beginPath(); wg.moveTo(x, 300); wg.lineTo(x, 512); wg.stroke(); }
   for (let i = 0; i < 4000; i++) { wg.fillStyle = `rgba(${Math.random() < .5 ? '0,0,0' : '255,255,255'},.04)`; wg.fillRect(Math.random() * 512, Math.random() * 512, 2, 2); }
   wg.fillStyle = '#2a3136'; wg.fillRect(200, 330, 130, 90); wg.fillStyle = '#ddd'; wg.font = 'bold 14px Arial'; wg.fillText('OXY MASK', 225, 360); wg.fillStyle = '#c8b400'; wg.fillRect(210, 395, 110, 12);
-  const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(0.8, 0.8); shellM.map = wt; shellM.color.setHex(0xb8c4cc); shellM.needsUpdate = true;
+  const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(0.8, 0.8); liningM.map = wt; liningM.color.setHex(0xb8c4cc); liningM.needsUpdate = true;
   // ---------------- main instrument panel ----------------
   const mp = new Panel('main', 2048, 426, 2.5, 0.52);
   mp.mesh.position.set(0.52, -0.53, -0.86); mp.mesh.rotation.x = -0.18; add(mp.mesh, false);
@@ -433,6 +447,9 @@ function buildMainPanel(p) {
   // layout (px): PFD 463, ND 631, ECAM 1024, F/O ND 1417, F/O PFD 1585; top row centre y 164, SD y 324
   buildStatic(p, g => {
     g.fillStyle = PANEL_COL; g.fillRect(0, 0, p.W, p.H); g.fillStyle = grainPattern(g); g.fillRect(0, 0, p.W, p.H);
+    const shade = g.createLinearGradient(0, 0, 0, p.H);
+    shade.addColorStop(0, 'rgba(0,0,0,.17)'); shade.addColorStop(.28, 'rgba(0,0,0,0)'); shade.addColorStop(.72, 'rgba(255,255,255,.025)'); shade.addColorStop(1, 'rgba(0,0,0,.10)');
+    g.fillStyle = shade; g.fillRect(0, 0, p.W, p.H);
     g.strokeStyle = 'rgba(0,0,0,.45)'; g.lineWidth = 3; for (const x of [370, 715, 935, 1113, 1335, 1680]) { g.beginPath(); g.moveTo(x, 0); g.lineTo(x, p.H); g.stroke(); }
     for (let i = 0; i < 26; i++) drawScrew(g, 20 + i * 79, 12);
     // ISIS & clock bezels
