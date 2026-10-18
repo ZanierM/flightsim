@@ -37,13 +37,14 @@ function newState() {
     time: 0, airborneT: 0, warn: { master: false, caution: false, msgs: [] }, wind: new THREE.Vector3(), windDir: 250, windKt: 8,
     stats: { maxBank: 0, overspeed: 0, maxG: 1, tdFpm: 0, tdDist: 0, tdCl: 0, flown: 0 },
     pushback: null,
-    sw: {}, momT: {}, guard: {}, fireTest: {}, efis: { mode: 3, cstr: false, wpt: false, vord: false, ndb: false, arpt: false }, duBrt: { pfd: 1, nd: 1, ewd: 1, sd: 1 },
+    sw: { landPos: 2 }, momT: {}, guard: {}, fireTest: {}, efis: { mode: 3, cstr: false, wpt: false, vord: false, ndb: false, arpt: false }, duBrt: { pfd: 1, nd: 1, ewd: 1, sd: 1 },
     rmp: { act: 121905, stby: 118505, sel: 0 }, xpdr: { code: '2000', entry: '', mode: 0, tcas: 0 }, chrono: { run: false, t: 0 }, et: { run: false, t: 0 }, rudTrim: 0, sdPage: null, vol: 0.8, annTest: false, dcOnT: null, altLaw: false,
   };
 }
 function mkEng() { return { master: false, N1: 0, N2: 0, EGT: 25, FF: 0, run: false, starting: false, ign: false, startFail: '' }; }
 
 let S = newState();
+function setLandingLights(position) { S.sw.landPos = clamp(position, 0, 2); S.lt.land = S.sw.landPos === 0; }
 
 function takeoffConfigFaults() {
   const faults = [];
