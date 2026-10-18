@@ -39,7 +39,7 @@ function applyGraphicsQuality(value) {
   }
   updateGraphicsPanel();
 }
-const VIEW = { mode: 'cockpit', overview: false, yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
+const VIEW = { mode: 'cockpit', overview: false, preset: null, offset: null, yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
 function fullPanelFov() { return clamp(2 * Math.atan(1.45 / (1.43 * window.innerWidth / window.innerHeight)) * R2D, 50, 94); }
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
@@ -152,7 +152,7 @@ async function boot() {
 }
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
-  if (VIEW.overview) VIEW.fov = fullPanelFov();
+  if (VIEW.overview || VIEW.preset === 'instruments') VIEW.fov = fullPanelFov();
   wCam.aspect = w / h; wCam.updateProjectionMatrix(); if (CK.cam) { CK.cam.aspect = w / h; CK.cam.updateProjectionMatrix(); }
   updateGraphicsPanel(); syncCaptainPanel();
 }
@@ -189,7 +189,7 @@ function scenario(name, tutorialFrom, quiet) {
   Tut.captainOn = name !== 'free';
   const startIdx = { cold: 0, runway: Tut.find('Cleared for take-off'), cruise: Tut.find('Cruise'), approach: Tut.find('Arm the approach') }[name];
   if (name === 'free') Tut.stop(); else Tut.start(tutorialFrom ?? startIdx ?? 0);
-  VIEW.overview = false; VIEW.fov = 62; VIEW.yaw = VIEW.tyaw = 0; VIEW.pitch = VIEW.tpitch = -10;
+  VIEW.overview = false; VIEW.preset = null; VIEW.offset = null; VIEW.fov = 62; VIEW.yaw = VIEW.tyaw = 0; VIEW.pitch = VIEW.tpitch = -10;
   renderTutUI();
 }
 // ---------- put the aircraft where a tutorial step expects it (used when skipping) ----------
@@ -477,7 +477,7 @@ function render(dt) {
   const inCockpit = VIEW.mode === 'cockpit';
   model.visible = !inCockpit; shadowBlob.visible = !inCockpit;
   if (inCockpit) {
-    const offset = VIEW.overview ? new THREE.Vector3(.52, .02, .57) : new THREE.Vector3();
+    const offset = VIEW.offset || (VIEW.overview ? new THREE.Vector3(.52, .02, .57) : new THREE.Vector3());
     const eye = new THREE.Vector3(AC.eyeSide + offset.x, AC.eyeUp + td + offset.y, AC.eyeFwd + offset.z).applyQuaternion(S.q).add(S.pos);
     wCam.position.copy(eye); wCam.quaternion.copy(S.q).multiply(_hq); wCam.fov = VIEW.fov; wCam.near = 0.5;
     CK.cam.position.set(offset.x, td + offset.y, offset.z); CK.cam.quaternion.copy(_hq); CK.cam.fov = VIEW.fov; CK.cam.updateProjectionMatrix();
@@ -603,13 +603,17 @@ function setupUI() {
   Tut.onUI = renderTutUI;
   document.querySelectorAll('.look').forEach(b => b.onclick = () => {
     VIEW.lookTo = null; VIEW.mode = 'cockpit'; VIEW.overview = b.dataset.view === 'full-panel';
-    if (VIEW.overview) { VIEW.tyaw = 0; VIEW.tpitch = -18; VIEW.fov = fullPanelFov(); }
-    else { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.dataset.look === '0,-10' ? 62 : 46; }
+    const preset = b.dataset.view; VIEW.preset = preset || null;
+    if (VIEW.overview) { VIEW.offset = null; VIEW.tyaw = 0; VIEW.tpitch = -18; VIEW.fov = fullPanelFov(); }
+    else if (preset === 'instruments') { VIEW.offset = new THREE.Vector3(.52, 0, .57); VIEW.tyaw = 0; VIEW.tpitch = -27; VIEW.fov = fullPanelFov(); }
+    else if (preset === 'pedestal') { VIEW.offset = new THREE.Vector3(.52, 0, .85); VIEW.tyaw = 0; VIEW.tpitch = -53; VIEW.fov = 65; }
+    else if (preset === 'overhead') { VIEW.offset = new THREE.Vector3(.52, 0, .47); VIEW.tyaw = 0; VIEW.tpitch = 50; VIEW.fov = 76; }
+    else { VIEW.offset = null; const [y, p] = b.dataset.look.split(',').map(Number); VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.dataset.look === '0,-10' ? 62 : 46; }
   });
 }
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
-  VIEW.overview = false;
+  VIEW.overview = false; VIEW.preset = null; VIEW.offset = null;
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
   VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }
