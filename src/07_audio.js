@@ -71,13 +71,35 @@ const Audio2 = (() => {
   }
   function setVoice(kind, name) { VPREF[kind] = name; try { localStorage.setItem('a320.voices', JSON.stringify(VPREF)); } catch (e) { } pickVoices(); }
   function voiceList() { return window.speechSynthesis ? rank(speechSynthesis.getVoices(), /en-GB/i, false) : []; }
+  // Keep cockpit labels and captions exact; only expand them for the speech engine.
+  // Commas make single-letter names distinct across browser voices ("APU" can become "ah-poo").
+  function spokenText(text) {
+    return String(text)
+      .replace(/\bF-PLN\b/gi, 'flight plan')
+      .replace(/\bCO RTE\b/gi, 'company route')
+      .replace(/\bFLT NBR\b/gi, 'flight number')
+      .replace(/\bCRZ FL\b/gi, 'cruise flight level')
+      .replace(/\bLVR CLB\b/gi, 'lever climb')
+      .replace(/\bG\/S\b/gi, 'glide slope')
+      .replace(/\b(A320|APU|MCDU|FCU|ILS|IRS|QNH|PFD|EFIS)\b/gi, match =>
+        match.toUpperCase() === 'A320' ? 'A three twenty' : match.toUpperCase().split('').join(', '))
+      .replace(/\bAP([12])\b/gi, 'autopilot $1')
+      .replace(/\bSW\b/gi, 'switch')
+      .replace(/\bENG\b/gi, 'engine')
+      .replace(/\bNORM\b/gi, 'normal')
+      .replace(/\bAVAIL\b/gi, 'available')
+      .replace(/\bAPPR\b/gi, 'approach')
+      .replace(/\bLOC\b/gi, 'localiser')
+      .replace(/\bTCAS\b/gi, 'tee-cas')
+      .replace(/\bECAM\b/gi, 'ee-cam');
+  }
   function say(text, kind = 'capt', onend) {
     if (!window.speechSynthesis || !enabled || Audio2.muteVoice) { onend && setTimeout(onend, Math.min(6000, 600 + text.length * 55)); return; }
     if (kind === 'gpws') speechSynthesis.cancel();
     // speak sentence by sentence: more natural pauses, and avoids Chrome cutting off long utterances
     const parts = String(text).match(/[^.!?]+[.!?]*\s*/g) || [text];
     parts.forEach((t, i) => {
-      const u = new SpeechSynthesisUtterance(t.trim());
+      const u = new SpeechSynthesisUtterance(spokenText(t.trim()));
       u.voice = (kind === 'pa' ? voices.atc : voices[kind]) || null; u.lang = (u.voice && u.voice.lang) || 'en-GB';
       const r = VPREF.rate || 1;
       if (kind === 'gpws') { u.rate = 1.0; u.pitch = 0.8; u.volume = 1; }
@@ -128,7 +150,7 @@ const Audio2 = (() => {
     const gl = S.gearPos > 0.999 ? 1 : S.gearPos < 0.001 ? 0 : -1; if (gl !== -1 && S._gearLock !== undefined && S._gearLock === -1) { burst(0.25, 0.6, 120, 'lowpass'); } S._gearLock = gl;
   }
   return {
-    init, update, say, setVoice, voiceList, pickVoices, get voices() { return voices; }, get vpref() { return VPREF; },
+    init, update, say, spokenText, setVoice, voiceList, pickVoices, get voices() { return voices; }, get vpref() { return VPREF; },
     setVolume(v) { volume = v; if (master) master.gain.value = v; },
     click() { burst(0.025, 0.25, 3000); },
     toggle() { burst(0.04, 0.35, 1800); burst(0.02, 0.2, 5000); },
