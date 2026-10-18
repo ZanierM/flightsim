@@ -6,7 +6,7 @@ A browser flight simulator. You fly an Airbus A320 from London Heathrow to Paris
 
 Open `index.html` in a modern desktop browser (Chrome, Edge, Safari or Firefox) with WebGL. Headphones and a keyboard are recommended. Three.js loads from cdnjs, so you need an internet connection.
 
-To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `main` / root**. `index.html` is the entry point.
+To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `main`**, with either `/ (root)` or `/docs`. Both folders hold the same built `index.html`, and `.nojekyll` tells Pages to serve the files as they are.
 
 ## What's in it
 
@@ -56,6 +56,6 @@ The captain, ATC and callouts use your browser's speech voices. Open **Voices** 
 | `09_main.js` | Renderer, input, scenarios, UI |
 | `shell.html` | Page markup and styles |
 
-After editing anything in `src/`, run `python3 build.py`.
+After editing anything in `src/`, run `python3 build.py`. It rewrites both `index.html` and `docs/index.html`.
 
 No airline affiliation and no certified aircraft data. This is for learning and fun, not for training real pilots.
