@@ -50,7 +50,7 @@ const Audio2 = (() => {
     nodes.crcG = gain(0); const crc = osc('square', 1100); chain(crc, filt('lowpass', 2500), nodes.crcG, master);
     nodes.hornG = gain(0); const horn = osc('sawtooth', 440); const hm = osc('sine', 2); const hmg = gain(60); hm.connect(hmg); hmg.connect(horn.frequency); chain(horn, filt('lowpass', 1800), nodes.hornG, master);
     enabled = true;
-    pickVoices(); if (window.speechSynthesis) speechSynthesis.onvoiceschanged = pickVoices;
+    pickVoices(); if (window.speechSynthesis) speechSynthesis.addEventListener('voiceschanged', pickVoices);
   }
   // Voice quality: browsers expose neural voices under names such as "(Natural)", "Online", "Premium", "Enhanced" or "Google UK English".
   const VPREF = { capt: 'auto', atc: 'auto', gpws: 'auto', rate: 1.0 };
@@ -93,20 +93,41 @@ const Audio2 = (() => {
       .replace(/\bTCAS\b/gi, 'tee-cas')
       .replace(/\bECAM\b/gi, 'ee-cam');
   }
+  function speechChunks(text) {
+    const sentences = String(text).trim().split(/(?<=[.!?])\s+/);
+    const chunks = []; let current = '';
+    for (const sentence of sentences) {
+      for (const word of sentence.split(/\s+/)) {
+        if (current && current.length + word.length + 1 > 190) { chunks.push(current); current = ''; }
+        current += (current ? ' ' : '') + word;
+      }
+    }
+    if (current) chunks.push(current);
+    return chunks;
+  }
+  let speechSerial = 0;
+  function stopVoice() { speechSerial++; if (window.speechSynthesis) speechSynthesis.cancel(); }
   function say(text, kind = 'capt', onend) {
-    if (!window.speechSynthesis || !enabled || Audio2.muteVoice) { onend && setTimeout(onend, Math.min(6000, 600 + text.length * 55)); return; }
-    if (kind === 'gpws') speechSynthesis.cancel();
-    // speak sentence by sentence: more natural pauses, and avoids Chrome cutting off long utterances
-    const parts = String(text).match(/[^.!?]+[.!?]*\s*/g) || [text];
+    if (!window.speechSynthesis || !enabled || Audio2.muteVoice) {
+      const serial = speechSerial;
+      if (onend) setTimeout(() => { if (serial === speechSerial) onend(); }, Math.min(6000, 600 + text.length * 55));
+      return;
+    }
+    if (kind === 'gpws') stopVoice();
+    // Group short sentences for natural flow, while keeping each browser utterance bounded.
+    const parts = speechChunks(text), serial = speechSerial;
     parts.forEach((t, i) => {
-      const u = new SpeechSynthesisUtterance(spokenText(t.trim()));
+      const u = new SpeechSynthesisUtterance(spokenText(t));
       u.voice = (kind === 'pa' ? voices.atc : voices[kind]) || null; u.lang = (u.voice && u.voice.lang) || 'en-GB';
       const r = VPREF.rate || 1;
       if (kind === 'gpws') { u.rate = 1.0; u.pitch = 0.8; u.volume = 1; }
       else if (kind === 'atc') { u.rate = 1.08 * r; u.pitch = 1.0; u.volume = 0.85; }
       else if (kind === 'pa') { u.rate = 0.97 * r; u.pitch = 1.05; u.volume = 0.7; }
-      else { u.rate = 1.0 * r; u.pitch = 1.0; u.volume = 1; }
-      if (i === parts.length - 1 && onend) { u.onend = onend; u.onerror = onend; }
+      else { u.rate = 1.03 * r; u.pitch = 0.97; u.volume = 1; }
+      if (i === parts.length - 1 && onend) {
+        u.onend = () => { if (serial === speechSerial) onend(); };
+        u.onerror = e => { if (serial === speechSerial && e.error !== 'canceled' && e.error !== 'interrupted') onend(); };
+      }
       speechSynthesis.speak(u);
     });
   }
@@ -150,7 +171,7 @@ const Audio2 = (() => {
     const gl = S.gearPos > 0.999 ? 1 : S.gearPos < 0.001 ? 0 : -1; if (gl !== -1 && S._gearLock !== undefined && S._gearLock === -1) { burst(0.25, 0.6, 120, 'lowpass'); } S._gearLock = gl;
   }
   return {
-    init, update, say, spokenText, setVoice, voiceList, pickVoices, get voices() { return voices; }, get vpref() { return VPREF; },
+    init, update, say, spokenText, speechChunks, stopVoice, setVoice, voiceList, pickVoices, get voices() { return voices; }, get vpref() { return VPREF; },
     setVolume(v) { volume = v; if (master) master.gain.value = v; },
     click() { burst(0.025, 0.25, 3000); },
     toggle() { burst(0.04, 0.35, 1800); burst(0.02, 0.2, 5000); },

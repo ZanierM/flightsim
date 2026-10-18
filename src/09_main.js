@@ -499,7 +499,7 @@ function render(dt) {
   ground.material.uniforms.uCam.value.copy(cp); ground.material.uniforms.uTime.value = S.time;
   clouds.material.uniforms.uCam.value.copy(cp);
   const vis = 32000 + camAlt * 6; ground.material.uniforms.uVis.value = vis; clouds.material.uniforms.uVis.value = vis;
-  sky.position.copy(cp); sky.material.uniforms.uAlt.value = camAlt;
+  sky.position.copy(cp); sky.material.uniforms.uAlt.value = camAlt; sky.material.uniforms.uTime.value = S.time;
   wScene.fog.near = 1500 + camAlt * 0.6; wScene.fog.far = vis * 1.5 + camAlt * 2;
   sunLight.position.copy(cp).addScaledVector(W.sunDir, 1000); sunLight.target.position.copy(cp);
   if (frameN % 90 === 0) clouds.userData.sort(cp);
@@ -589,8 +589,8 @@ function setupUI() {
   $('voicesClose').onclick = () => closeDialog('voices');
   $('voices').onclick = (e) => { if (e.target.id === 'voices') closeDialog('voices'); };
   $('vRate').oninput = () => { Audio2.vpref.rate = +$('vRate').value; $('vRateV').textContent = (+$('vRate').value).toFixed(2) + '×'; Audio2.setVoice('rate', +$('vRate').value); };
-  $('vMute').onchange = () => { Audio2.muteVoice = $('vMute').value === 'off'; if (Audio2.muteVoice && window.speechSynthesis) speechSynthesis.cancel(); };
-  document.querySelectorAll('[data-test]').forEach(b => b.onclick = () => { const k = b.dataset.test; speechSynthesis && speechSynthesis.cancel(); Audio2.say(k === 'capt' ? "Good afternoon. I'm Captain Hughes, and I'll be flying with you to Paris today." : k === 'atc' ? 'Albion 324, Heathrow Ground, push and start approved, face east.' : 'Five hundred. Minimum. Retard.', k); });
+  $('vMute').onchange = () => { Audio2.muteVoice = $('vMute').value === 'off'; if (Audio2.muteVoice) Audio2.stopVoice(); };
+  document.querySelectorAll('[data-test]').forEach(b => b.onclick = () => { const k = b.dataset.test; Audio2.stopVoice(); Audio2.say(k === 'capt' ? "Good afternoon. I'm Captain Hughes. We'll bring the APU online, check the MCDU, then fly together to Paris." : k === 'atc' ? 'Albion 324, Heathrow Ground, push and start approved, face east.' : 'Five hundred. Minimum. Retard.', k); });
   $('tContinue').onclick = () => Tut.cont();
   $('tShow').onclick = () => { const id = Tut.hlOf(Tut.cur()); if (id) { if (hotById(id)) openControlDrawer(id); else lookAtHot(id); } };
   $('tDo').onclick = () => Tut.doit();

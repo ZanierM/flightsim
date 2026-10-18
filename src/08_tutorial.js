@@ -93,7 +93,7 @@ const Tut = (() => {
   function applyDone(k) { const st = steps[k]; try { if (st.skipDo) st.skipDo(); else if (st.doit) st.doit(); } catch (e) { console.warn(e); } }
   function jump(j) {
     j = clamp(j, 0, steps.length - 1); if (j === idx) return;
-    const from = idx; window.speechSynthesis && speechSynthesis.cancel();
+    const from = idx;
     if (j < from) { scenario('cold', null, true); for (let k = 0; k < j; k++) applyDone(k); }
     else for (let k = Math.max(from, 0); k < j; k++) applyDone(k);
     setupAt(steps[j].at);
@@ -102,6 +102,7 @@ const Tut = (() => {
   function cur() { return steps[idx]; }
   function hlOf(st) { if (!st || !st.hl) return null; return typeof st.hl === 'function' ? st.hl() : st.hl; }
   function goto(i) {
+    Audio2.stopVoice();
     const prev = cur(); if (prev && prev.exit) prev.exit();
     idx = i; stepT = 0; spoken = false; events.clear();
     const st = cur(); if (!st) return;
@@ -148,7 +149,7 @@ const Tut = (() => {
     next() { jump(idx + 1); }, prev() { jump(idx - 1); }, jump,
     cont() { events.add('continue'); },
     doit() { const st = cur(); if (st && st._waiting) { setupAt(st.at); enterStep(st); return; } if (st && st.doit) { st.doit(); Audio2.click(); } else events.add('continue'); },
-    repeat() { const st = cur(); if (st) Audio2.say(st.text, 'capt'); },
+    repeat() { const st = cur(); if (st) { Audio2.stopVoice(); Audio2.say(st.text, 'capt'); } },
     event(n) { events.add(n); },
     find(title) { return steps.findIndex(s => s.title === title); },
     update, cur, hlOf, set onUI(f) { onUI = f; }, resetCalls() { calls = {}; }

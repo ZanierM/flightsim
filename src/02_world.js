@@ -271,7 +271,11 @@ void main(){
   float fw = max(fwidth(p.x), 0.05);
   float hedge = 1. - smoothstep(3., 3. + fw * 1.5, edge);
   col = mix(col, vec3(.13,.19,.08), hedge * .85 * (1. - smoothstep(4000., 15000., dist)));
-  col = mix(col, vec3(.26,.32,.17), smoothstep(4000., 18000., dist) * .35);
+  // At flight altitude the individual field parcels merge into a broader landscape.
+  // This also keeps the regular field grid from reading like a checkerboard.
+  float aerialBlend = smoothstep(3500., 16000., dist);
+  vec3 aerialCol = mix(vec3(.23,.30,.15), vec3(.34,.36,.20), vnoise(p * .00008));
+  col = mix(col, aerialCol, aerialBlend * .62);
   // fine grain
   float g = vnoise(p * .35) * .5 + vnoise(p * 2.1) * .5; col *= .9 + .2 * g * (1. - smoothstep(300., 2500., dist));
   // forest
@@ -311,7 +315,8 @@ void main(){
     wn = normalize(mix(wn, vec3(0,1,0), smoothstep(2000., 40000., dist)));
     float fres = .02 + .98 * pow(1. - max(dot(-vd, wn), 0.), 5.);
     vec3 refl = reflect(vd, wn);
-    float spec = pow(max(dot(refl, uSunDir), 0.), 220.) * 6. + pow(max(dot(refl, uSunDir), 0.), 18.) * .25;
+    // Keep the sun path bright without turning a large area of the Channel pure white.
+    float spec = pow(max(dot(refl, uSunDir), 0.), 220.) * 1.45 + pow(max(dot(refl, uSunDir), 0.), 18.) * .14;
     vec3 deep = mix(vec3(.05,.13,.17), vec3(.08,.17,.18), france);
     vec3 sky = mix(uHaze, uSky * 1.4, .4);
     vec3 wc = mix(deep * (.6 + .5 * dif), sky, fres) + uSunCol * spec;
@@ -350,7 +355,7 @@ function buildTerrain(scene, maskTex) {
 // ----- Sky -----
 function buildSky(scene) {
   const mat = new THREE.ShaderMaterial({
-    uniforms: { uSunDir: { value: W.sunDir }, uHaze: { value: W.hazeCol }, uAlt: { value: 0 } },
+    uniforms: { uSunDir: { value: W.sunDir }, uHaze: { value: W.hazeCol }, uAlt: { value: 0 }, uTime: { value: 0 } },
     vertexShader: `#include <common>
 #include <logdepthbuf_pars_vertex>
 varying vec3 vD; void main(){ vD = normalize(position); vec4 w = modelMatrix * vec4(position,1.); gl_Position = projectionMatrix * viewMatrix * w; gl_Position.z = gl_Position.w * 0.99999;
@@ -358,7 +363,10 @@ varying vec3 vD; void main(){ vD = normalize(position); vec4 w = modelMatrix * v
 }`,
     fragmentShader: `#include <common>
 #include <logdepthbuf_pars_fragment>
-uniform vec3 uSunDir; uniform vec3 uHaze; uniform float uAlt; varying vec3 vD;
+uniform vec3 uSunDir; uniform vec3 uHaze; uniform float uAlt; uniform float uTime; varying vec3 vD;
+float skyHash(vec2 p){ vec3 q=fract(vec3(p.xyx)*.1031); q+=dot(q,q.yzx+33.33); return fract((q.x+q.y)*q.z); }
+float skyNoise(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f);
+  return mix(mix(skyHash(i),skyHash(i+vec2(1.,0.)),f.x),mix(skyHash(i+vec2(0.,1.)),skyHash(i+vec2(1.,1.)),f.x),f.y); }
 void main(){
 #include <logdepthbuf_fragment>
   vec3 d = normalize(vD);
@@ -373,10 +381,15 @@ void main(){
   col += vec3(1., .9, .7) * (pow(cs, 6.) * .18 + pow(cs, 60.) * .35);
   col += vec3(1., .98, .92) * smoothstep(.99975, .99992, cs) * 8.;
   if (e < 0.) col = mix(uHaze, uHaze * .92, smoothstep(0., -.08, e));
-  // thin cirrus
-  vec2 p = d.xz / max(d.y + .08, .02) * 2.;
-  float c = 0.; vec2 q = p * vec2(.6, 2.5);
-  float n = 0., a = .5; for (int i = 0; i < 4; i++) { n += a * fract(sin(dot(floor(q), vec2(12.9, 78.2))) * 43758.5) * 0.0; a *= .5; }
+  // Wispy high cloud bands; fade at the horizon so the airport view stays clear.
+  vec2 p = d.xz / max(d.y + .14, .08);
+  vec2 drift = vec2(uTime * .000002, uTime * .000001);
+  vec2 q = p + drift;
+  float veil = skyNoise(q * 3.4);
+  float streak = skyNoise(vec2(q.x * 7. + q.y * 1.8, q.y * 28.));
+  float cirrus = smoothstep(.58, .76, veil * .68 + streak * .32);
+  cirrus *= smoothstep(.06, .25, d.y) * .34;
+  col = mix(col, vec3(.87,.91,.97), cirrus);
   gl_FragColor = vec4(col, 1.);
 }`,
     side: THREE.BackSide, depthWrite: false
