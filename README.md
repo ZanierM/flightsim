@@ -1,8 +1,10 @@
-# A320 Heathrow to Paris
+# A320 Channel flights
 
-A browser flight simulator. You fly an Airbus A320 from London Heathrow to Paris Charles de Gaulle, with a training captain who talks you through the whole flight, from cold and dark at the stand to engine shutdown in Paris.
+A browser flight simulator with two guided Airbus A320 sectors: London Heathrow to Paris Charles de Gaulle and the return flight from Paris to London. A training captain talks you through each flight, from cold and dark at the stand to engine shutdown after landing.
 
 ## Play
+
+Choose a route on the start menu, then select the full tutorial or a take-off, cruise, or approach starting point. The briefing and captain checklists follow the selected direction.
 
 Open `index.html` in a modern desktop browser (Chrome, Edge, Safari or Firefox) with WebGL. Headphones and a keyboard are recommended. Three.js loads from cdnjs, so you need an internet connection.
 
@@ -52,7 +54,7 @@ Open **Graphics** from the start menu or the top bar. **Balanced** keeps full sc
 | File | Contents |
 | --- | --- |
 | `00_util.js` | Maths, geodesy, noise, ISA atmosphere |
-| `01_data.js` | Coastlines, rivers, towns, airports, runways, flight plan |
+| `01_data.js` | Coastlines, rivers, towns, airports, runways, and both flight plans |
 | `02_world.js` | Terrain, sky, clouds, airports, buildings |
 | `03_model.js` | Exterior A320 model |
 | `04_aircraft.js` | Flight model, systems, autopilot, warnings |
@@ -65,6 +67,6 @@ Open **Graphics** from the start menu or the top bar. **Balanced** keeps full sc
 
 After editing anything in `src/`, run `python3 build.py`. It rewrites both `index.html` and `docs/index.html`.
 
-Run `node tests/smoke.cjs` to check the take-off configuration and dual-autopilot tutorial requirements, `node tests/landing-lights.cjs` to check landing-light switch positions and tutorial actions, and `node tests/distance-to-go.cjs` to check runway distance on the ILS.
+Run `node tests/smoke.cjs`, `node tests/landing-lights.cjs`, `node tests/distance-to-go.cjs`, and `node tests/routes.cjs` for the cockpit checks, final-approach distance, and both route configurations.
 
 No airline affiliation and no certified aircraft data. This is for learning and fun, not for training real pilots.

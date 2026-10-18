@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A320 Heathrow to Paris</title>
+<title>A320 Channel flights</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400&family=B612+Mono:wght@400;700&display=swap">
 <style>
@@ -41,6 +41,8 @@ button { font-family: var(--ui); }
 #menu h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.08; margin: 6px 0 4px; font-weight: 700; text-wrap: balance; }
 #menu h1 .arrow { color: var(--cyan); }
 #menu .sub { color: var(--dim); max-width: 62ch; line-height: 1.5; font-size: 14px; margin: 0 0 20px; }
+.route-choice { display: grid; gap: 6px; margin: 16px 0; color: var(--dim); font-size: 13px; }
+.route-choice select { width: 100%; padding: 10px; color: var(--fg); background: #0b1013; border: 1px solid #788f9b; font: 14px var(--ui); }
 .route { display: flex; flex-wrap: wrap; gap: 6px 4px; font-family: var(--mono); font-size: 12px; color: var(--dim); margin-bottom: 22px; }
 .route span { padding: 2px 6px; border: 1px solid var(--line); }
 .route span.ap { color: var(--fg); border-color: var(--cyan); }
@@ -149,14 +151,15 @@ button { font-family: var(--ui); }
 </head>
 <body>
 <canvas id="gl"></canvas>
-<div id="loading"><div class="box"><div class="t">ALB324 · EGLL → LFPG</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
+<div id="loading"><div class="box"><div class="t">A320 · CHANNEL FLIGHTS</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
 
 <div id="menu" role="dialog" aria-modal="true" aria-labelledby="menuHeading" hidden>
   <div class="card">
-    <div class="flight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
+    <div class="flight" id="menuFlight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
+    <label class="route-choice" for="routeSelect">Flight route<select id="routeSelect"><option value="outbound">London Heathrow → Paris Charles de Gaulle</option><option value="return">Paris Charles de Gaulle → London Heathrow</option></select></label>
     <h1 id="menuHeading">London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
-    <p class="sub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
-    <div class="route"><span class="ap">EGLL 27R</span><span>(1500)</span><span>EPM</span><span>DET</span><span>DVR</span><span>ABB</span><span>BVS</span><span>MOPAR</span><span>CF26R</span><span class="ap">LFPG 26R</span></div>
+    <p class="sub" id="menuSub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
+    <div class="route" id="menuRoute"></div>
     <div class="briefing-teaser"><p><b>Flight briefing</b> · runways, climb, cruise, arrival and aircraft setup</p><button class="btn" id="menuBriefing">Review briefing</button></div>
     <div class="row" id="menuResumeRow" hidden><button class="btn primary" id="btnResume">Resume flight</button></div>
     <div class="scns">
@@ -218,20 +221,10 @@ button { font-family: var(--ui); }
 
 <div id="briefing" class="modal" role="dialog" aria-modal="true" aria-labelledby="briefingHeading" hidden>
   <div class="card">
-    <h2 id="briefingHeading">EGLL → LFPG flight briefing</h2>
-    <p class="vnote">Albion 324 · Airbus A320 · London Heathrow to Paris Charles de Gaulle. The captain will guide each checklist and callout during the flight.</p>
-    <div class="briefing-grid">
-      <section><h3>DEPARTURE · EGLL</h3><dl>
-        <div><dt>Runway</dt><dd>27R · 270°</dd></div><div><dt>QNH</dt><dd>1018 hPa</dd></div><div><dt>Initial climb</dt><dd>1500 ft, then 6000 ft</dd></div><div><dt>V1 / VR / V2</dt><dd>142 / 145 / 149 kt</dd></div>
-      </dl></section>
-      <section><h3>EN ROUTE</h3><dl>
-        <div><dt>Company route</dt><dd>EGLLLFPG1</dd></div><div><dt>Cruise</dt><dd>FL250</dd></div><div><dt>Fuel loaded</dt><dd>7800 kg</dd></div><div><dt>Channel crossing</dt><dd>DVR → ABB</dd></div>
-      </dl></section>
-      <section><h3>ARRIVAL · LFPG</h3><dl>
-        <div><dt>Runway</dt><dd>26R · 266°</dd></div><div><dt>ILS</dt><dd>GLE · 110.10 MHz</dd></div><div><dt>Final course</dt><dd>266° / 3.0°</dd></div><div><dt>QNH</dt><dd>1015 hPa</dd></div>
-      </dl></section>
-    </div>
-    <p class="briefing-route">EGLL 27R → (1500) → EPM → DET → DVR → ABB → BVS → MOPAR → CF26R → LFPG 26R</p>
+    <h2 id="briefingHeading"></h2>
+    <p class="vnote" id="briefingIntro"></p>
+    <div class="briefing-grid" id="briefingGrid"></div>
+    <p class="briefing-route" id="briefingRoute"></p>
     <p class="vnote">This is the simulator’s planned route and weather. Follow the captain’s live instructions for configuration and clearances.</p>
     <div class="row"><button class="btn primary" id="briefingClose">Close briefing</button></div>
   </div>
