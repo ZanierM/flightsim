@@ -289,9 +289,13 @@ void main(){
   ucol = mix(ucol, vec3(.45,.43,.42), smoothstep(3000., 20000., dist) * .5);
   col = mix(col, ucol, ur * .92);
   // airport grass
-  vec3 acol = mix(vec3(.34,.42,.20), vec3(.42,.47,.25), vnoise(p * .02)) * (.92 + .16 * vnoise(p * 1.3));
-  acol *= .95 + .07 * step(.5, fract((p.x * .6 + p.y * .8) / 22.)) * (1. - smoothstep(600., 2500., dist));
-  acol = mix(acol, vec3(.52,.50,.36), smoothstep(.62, .8, vnoise(p * .004)) * .45);
+  float meadow = vnoise(p * .008) * .65 + vnoise(p * .035) * .35;
+  vec3 acol = mix(vec3(.27,.35,.15), vec3(.46,.48,.27), meadow);
+  float mowing = sin(p.x * .19 + vnoise(p * .0015) * 3.);
+  acol *= .94 + .08 * mowing * (1. - smoothstep(1600., 7000., dist));
+  float dry = smoothstep(.62, .79, vnoise(p * .003 + vec2(12., 5.)));
+  acol = mix(acol, vec3(.52,.48,.31), dry * .32);
+  acol *= .94 + .12 * vnoise(p * .7) * (1. - smoothstep(250., 1800., dist));
   col = mix(col, acol, m.a);
   // lighting
   vec3 n = normalize(vN);
@@ -404,14 +408,18 @@ function buildClouds(scene) {
       puffs.push([cx + Math.cos(a) * d, base + s * 0.35 + hh, cz + Math.sin(a) * d * 0.8, s, cx, base, cz, w]);
     }
   };
-  // along the route, keep the airports fairly clear
+  // Scattered cumulus over the route, with clear sight lines on final approach.
   for (let i = 0; i < 520; i++) {
     const x = WORLD.X0 + r() * (WORLD.X1 - WORLD.X0), z = WORLD.Z0 + r() * (WORLD.Z1 - WORLD.Z0);
     const dl = Math.hypot(x - 0, z - 0), dc = Math.hypot(x - CDG.rwys[0].tx, z - CDG.rwys[0].tz);
-    if (dl < 9000 || dc < 9000) continue;
+    if (dl < 5000 || dc < 5000) continue;
     const sea = waterLoAt(x, z) > 0.5;
     if (sea && r() < 0.6) continue;
     addCluster(x, z, 1150 + r() * 350, 0.8 + r() * 0.7);
+  }
+  for (const ap of AIRPORTS) for (let i = 0; i < 18; i++) {
+    const a = r() * Math.PI * 2, d = 8500 + r() * 19000;
+    addCluster(ap.cx + Math.cos(a) * d, ap.cz + Math.sin(a) * d, 1250 + r() * 550, .7 + r() * .6);
   }
   const N = puffs.length;
   const base = new THREE.PlaneGeometry(1, 1);
@@ -609,6 +617,13 @@ function buildAirports(scene, mats) {
       const midL = r.len - 2 * endLen; const mt = midTex[w].clone(); mt.needsUpdate = true; mt.repeat.set(1, midL / 50);
       const mm = new THREE.MeshLambertMaterial({ map: mt, polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
       mk(endLen, midL, mm, false);
+      // Narrow concrete shoulders break the hard asphalt-to-grass boundary.
+      const shoulderTex = tConc.clone(); shoulderTex.repeat.set(1, r.len / 50); shoulderTex.needsUpdate = true;
+      const shoulderMat = new THREE.MeshLambertMaterial({ map: shoulderTex });
+      for (const side of [-1, 1]) {
+        const offset = side * (w / 2 + 1.7), cx = r.tx + r.dx * r.len / 2 - r.dz * offset, cz = r.tz + r.dz * r.len / 2 + r.dx * offset;
+        scene.add(new THREE.Mesh(quadXZ(cx, cz, 3.4, r.len, r.hdg, y0 - .035), shoulderMat));
+      }
       // blast pads
       for (const s of [-1, 1]) { const g = quadXZ(s < 0 ? r.tx - r.dx * 40 : r.ex + r.dx * 40, s < 0 ? r.tz - r.dz * 40 : r.ez + r.dz * 40, w, 80, r.hdg, y0 - 0.02); scene.add(new THREE.Mesh(g, matTaxi)); }
       // edge lights & centreline lights
@@ -710,6 +725,43 @@ function buildAirports(scene, mats) {
   bC(1300, 1500, 1100, 70, 20); bC(2700, 1300, 800, 60, 18); bC(2700, 1700, 800, 60, 18); bC(3500, 1500, 600, 90, 22, mOff); bC(1800, 1000, 300, 100, 16, mOff);
   const [t1x, t1z] = at(500, 1500); const t1 = new THREE.Mesh(new THREE.CylinderGeometry(95, 95, 32, 32), new THREE.MeshLambertMaterial({ color: 0x8b8680 })); t1.position.set(t1x, yC + 16, t1z); scene.add(t1);
   const [twx, twz] = at(2300, 1050); const tw2 = tw.clone(); tw2.position.set(twx, yC, twz); scene.add(tw2);
+}
+
+// Mixed-height tree belts outside the airfields add a grounded horizon without
+// placing foliage on runways, taxiways or aprons. All crowns share two draw calls.
+function buildVegetation(scene) {
+  const r = mulberry(78541), trees = [], target = 2400;
+  for (let tries = 0; trees.length < target && tries < target * 30; tries++) {
+    const ap = AIRPORTS[tries % AIRPORTS.length];
+    const angle = r() * Math.PI * 2, radius = 1.18 + Math.pow(r(), 1.3) * 1.55;
+    const x = ap.cx + Math.cos(angle) * ap.rx * radius;
+    const z = ap.cz + Math.sin(angle) * ap.rz * radius;
+    if (x < WORLD.X0 || x > WORLD.X1 || z < WORLD.Z0 || z > WORLD.Z1) continue;
+    const m = maskAt(x, z);
+    if (m[0] > .15 || m[3] > .08 || r() > .55 + m[2] * .4) continue;
+    const height = 6 + r() * 9, width = height * (.27 + r() * .16);
+    trees.push({ x, y: groundH(x, z), z, height, width, shade: r() });
+  }
+  const trunkGeo = new THREE.CylinderGeometry(.14, .23, 1, 5);
+  const crownGeo = new THREE.IcosahedronGeometry(1, 1);
+  const trunks = new THREE.InstancedMesh(trunkGeo, new THREE.MeshLambertMaterial({ color: 0x71654c }), trees.length);
+  const crowns = new THREE.InstancedMesh(crownGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }), trees.length * 2);
+  const matrix = new THREE.Matrix4(), q = new THREE.Quaternion(), pos = new THREE.Vector3(), scale = new THREE.Vector3(), color = new THREE.Color();
+  trees.forEach((t, i) => {
+    pos.set(t.x, t.y + t.height * .18, t.z); scale.set(.22, t.height * .36, .22);
+    matrix.compose(pos, q, scale); trunks.setMatrixAt(i, matrix);
+    for (let l = 0; l < 2; l++) {
+      pos.set(t.x + (l ? t.width * .22 : 0), t.y + t.height * (l ? .76 : .60), t.z + (l ? -t.width * .16 : 0));
+      scale.set(t.width * (l ? .72 : 1), t.height * (l ? .27 : .33), t.width * (l ? .72 : 1));
+      matrix.compose(pos, q, scale); crowns.setMatrixAt(i * 2 + l, matrix);
+      color.setRGB(.15 + t.shade * .09, .22 + t.shade * .12, .09 + t.shade * .06);
+      crowns.setColorAt(i * 2 + l, color);
+    }
+  });
+  trunks.userData.fullCount = trees.length; crowns.userData.fullCount = trees.length * 2;
+  trunks.frustumCulled = crowns.frustumCulled = false;
+  scene.add(trunks, crowns);
+  return { trunks, crowns };
 }
 
 // ----- City buildings (instanced) -----
