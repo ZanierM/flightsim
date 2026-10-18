@@ -381,7 +381,7 @@ function buildCockpit() {
   // ---------------- pedestal ----------------
   const pedBody = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.4, 1.3), shellM); pedBody.position.set(0.52, -1.065, -0.15); add(pedBody);
   const ped = new Panel('pedestal', 1024, 2304, 0.44, 0.99);
-  ped.mesh.position.set(0.52, -0.86, -0.055); ped.mesh.rotation.x = -Math.PI / 2 + 0.04; add(ped.mesh, false);
+  ped.mesh.position.set(0.52, -0.858, -0.055); ped.mesh.rotation.x = -Math.PI / 2; add(ped.mesh, false);
   buildPedestal(ped);
   const mcdu = new Panel('mcdu', 512, 768, 0.2, 0.30);
   mcdu.mesh.position.set(0.36, -0.82, -0.69); mcdu.mesh.rotation.x = -1.2; add(mcdu.mesh, false);
@@ -839,7 +839,7 @@ function buildPedestal(p) {
     g.fillStyle = '#1b1f22'; g.fillRect(860, Y(0.35), 30, Y(0.23)); g.fillRect(110, Y(0.36), 30, Y(0.22));
     subPanel(g, 0, Y(0.62), 1024, Y(0.20), 'ENG');
     subPanel(g, 0, Y(0.82), 1024, Y(0.17), '');
-    legend(g, 'MASTER 1', 300, Y(0.655), 14); legend(g, 'MASTER 2', 720, Y(0.655), 14);
+    legend(g, 'ENG 1', 254, Y(0.643), 18); legend(g, 'MASTER', 254, Y(0.652) + 4, 11); legend(g, 'ENG 2', 770, Y(0.643), 18); legend(g, 'MASTER', 770, Y(0.652) + 4, 11);
     legend(g, 'PARK BRK', 760, Y(0.845), 15); legend(g, 'RUDDER TRIM', 260, Y(0.835), 13); legend(g, 'COCKPIT DOOR', 500, Y(0.845), 12);
     bezel(g, 40, Y(0.18) + 30, 190, 64); bezel(g, 282, Y(0.18) + 30, 190, 64); legend(g, 'ACTIVE', 135, Y(0.18) + 18, 11); legend(g, 'STBY/CRS', 377, Y(0.18) + 18, 11);
     bezel(g, 560, Y(0.18) + 30, 170, 64); bezel(g, 200, Y(0.86), 120, 50);
@@ -884,18 +884,33 @@ function buildPedestal(p) {
   selHot(p, 'xpdr_mode', 600, ry + 165, 26, ['STBY', 'AUTO', 'ON'], [-50, 0, 50], () => S.xpdr.mode, v => { S.xpdr.mode = v; }, 'XPDR', { titleDy: 30 });
   selHot(p, 'tcas', 720, ry + 165, 26, ['STBY', 'TA', 'TA/RA'], [-50, 0, 50], () => S.xpdr.tcas, v => { S.xpdr.tcas = v; Tut.event('tcas'); }, 'TCAS', { titleDy: 30 });
   // ---- engine masters & mode ----
+  // Each master is a large lever in a slot: ON is forward (top of the panel), OFF is aft. FIRE and FAULT lights sit beside it.
+  const yTop = Y(0.66), yBot = Y(0.80), slotH = yBot - yTop;
   for (let i = 0; i < 2; i++) {
-    const x = i ? 720 : 300;
-    { const hy = Y(0.675), hh = Y(0.08); p.hot({ id: 'eng' + (i + 1) + '_3d', x: 0, y: 0, w: 0, h: 0, get: () => [0], init3d: () => {
-      const M = m3(), [sx] = sxy(p); const g3 = new THREE.Group(); const body = new THREE.Mesh(new THREE.BoxGeometry(48 * sx, 40 * sx, 34 * sx), M.metal); body.position.z = 17 * sx; g3.add(body);
-      const lip = new THREE.Mesh(new THREE.BoxGeometry(52 * sx, 10 * sx, 40 * sx), M.nut); lip.position.set(0, 18 * sx, 22 * sx); g3.add(lip);
-      mount(p, x, hy + hh / 2, g3); let cy = 0; CK.anim3d.push(() => { const t = (S.eng[i].master ? -1 : 1) * (hh / 2 - 26) * sx; cy = lerp(cy, t, 0.4); g3.position.y = p.local(x, hy + hh / 2).y - cy; }); } }); }
-    p.hot({ id: 'eng' + (i + 1), x: x - 50, y: Y(0.675), w: 100, h: Y(0.08), label: () => `ENG ${i + 1} MASTER: ${S.eng[i].master ? 'ON' : 'OFF'} (Ctrl+${i + 1})`, get: () => [S.eng[i].master, S.eng[i].starting, S.eng[i].startFail],
+    const x = i ? 770 : 254, side = i ? -1 : 1;   // lights on the inboard side of each slot
+    const lx = x + side * 100;
+    p.hot({ id: 'eng' + (i + 1), x: x - 58, y: yTop - 8, w: 116, h: slotH + 16, label: () => `ENG ${i + 1} MASTER switch: ${S.eng[i].master ? 'ON' : 'OFF'} · click to switch ${S.eng[i].master ? 'OFF' : 'ON'} (Ctrl+${i + 1})`,
+      get: () => [S.eng[i].master],
       click: () => { S.eng[i].master = !S.eng[i].master; Audio2.toggle(); Tut.event('eng' + (i + 1)); },
-      draw: (g, h) => { const on = S.eng[i].master; legend(g, 'ON', h.x - 20, h.y + 18, 14); legend(g, 'OFF', h.x - 22, h.y + h.h - 18, 14); g.fillStyle = '#121416'; g.fillRect(h.x + 30, h.y, 40, h.h);
-        drawLight(g, h.x + 4, Y(0.765) - h.y + h.y, 92, 26, 'FIRE', ANN.red, fireLit('eng' + (i + 1)), 13); drawLight(g, h.x + 4, Y(0.765) + 30, 92, 26, 'FAULT', ANN.amber, !!S.eng[i].startFail, 13); } });
+      draw: (g, h) => {
+        g.fillStyle = 'rgba(0,0,0,.5)'; g.fillRect(x - 22, yTop + 4, 48, slotH); g.fillStyle = '#0e1012'; g.fillRect(x - 24, yTop, 48, slotH);
+        g.strokeStyle = '#596269'; g.lineWidth = 2; g.strokeRect(x - 24, yTop, 48, slotH);
+        legend(g, 'ON', x - side * 62, yTop + 22, 20); legend(g, 'OFF', x - side * 62, yBot - 22, 20);
+        g.strokeStyle = LEGEND; g.lineWidth = 2; g.beginPath(); g.moveTo(x - side * 30, yTop + 22); g.lineTo(x - side * 40, yTop + 22); g.moveTo(x - side * 30, yBot - 22); g.lineTo(x - side * 40, yBot - 22); g.stroke();
+      },
+      init3d: () => {
+        const M = m3(), [sx] = sxy(p); const g3 = new THREE.Group();
+        const neck = new THREE.Mesh(new THREE.BoxGeometry(18 * sx, 18 * sx, 40 * sx), M.knob); neck.position.z = 20 * sx; g3.add(neck);
+        const hdl = new THREE.Mesh(new THREE.BoxGeometry(84 * sx, 54 * sx, 30 * sx), M.metal); hdl.position.z = 50 * sx; g3.add(hdl);
+        const grip = new THREE.Mesh(new THREE.BoxGeometry(88 * sx, 12 * sx, 34 * sx), M.nut); grip.position.set(0, 22 * sx, 52 * sx); g3.add(grip);
+        const idx = new THREE.Mesh(new THREE.BoxGeometry(60 * sx, 5 * sx, 2 * sx), M.white); idx.position.set(0, 0, 65.5 * sx); g3.add(idx);
+        mount(p, x, yTop, g3); const yOn = p.local(0, yTop + 34).y, yOff = p.local(0, yBot - 34).y; let yy = S.eng[i].master ? yOn : yOff;
+        CK.anim3d.push(() => { yy = lerp(yy, S.eng[i].master ? yOn : yOff, 0.35); g3.position.y = yy; });
+      } });
+    p.hot({ id: 'eng' + (i + 1) + '_lt', x: lx - 50, y: yTop + 10, w: 100, h: 104, label: `ENG ${i + 1} FIRE and FAULT lights (FAULT = start problem)`, cap: () => false, get: () => [fireLit('eng' + (i + 1)), !!S.eng[i].startFail],
+      draw: (g, h) => { drawLight(g, h.x, h.y, h.w, 48, 'FIRE', ANN.red, fireLit('eng' + (i + 1)), 18); drawLight(g, h.x, h.y + 56, h.w, 48, 'FAULT', ANN.amber, !!S.eng[i].startFail, 18); } });
   }
-  selHot(p, 'engmode', 512, Y(0.715), 30, ['CRANK', 'NORM', 'IGN\nSTART'].map(s => s.replace('\n', ' ')), [-55, 0, 55], () => S.engMode, v => { S.engMode = v; Tut.event('engmode'); }, 'MODE', { titleDy: 36, tip: () => `ENG MODE: ${['CRANK', 'NORM', 'IGN START'][S.engMode]}` });
+  selHot(p, 'engmode', 512, Y(0.725), 40, ['CRANK', 'NORM', 'IGN START'], [-60, 0, 60], () => S.engMode, v => { S.engMode = v; Tut.event('engmode'); }, 'ENG MODE', { fs: 15, titleDy: 44, tip: () => `ENG MODE selector: ${['CRANK', 'NORM', 'IGN START'][S.engMode]} · click = clockwise, right-click = back` });
   // ---- aft: park brake, rudder trim, door ----
   p.hot({ id: 'parkbrk', x: 700, y: Y(0.87), w: 120, h: Y(0.1), label: () => `PARKING BRAKE: ${S.parkBrake ? 'ON' : 'OFF'} (Shift+B)`, get: () => [S.parkBrake], click: () => { S.parkBrake = !S.parkBrake; Audio2.toggle(); Tut.event('parkbrk'); },
     draw: (g, h) => { legend(g, 'OFF', h.x + 6, h.y + 18, 12); legend(g, 'ON', h.x + 114, h.y + 18, 12); drawRecess(g, h.x + 60, h.y + h.h / 2 + 10, 22); },
