@@ -782,6 +782,8 @@ void main(){
   acol *= .94 + .08 * mowing * (1. - smoothstep(1600., 7000., dist));
   float dry = smoothstep(.62, .79, vnoise(p * .003 + vec2(12., 5.)));
   acol = mix(acol, vec3(.52,.48,.31), dry * .32);
+  float worn = smoothstep(.67, .82, vnoise(p * .012 + vec2(17., 31.))) * (1. - smoothstep(900., 3400., dist));
+  acol = mix(acol, vec3(.34,.35,.21), worn * .22);
   acol *= .94 + .12 * vnoise(p * .7) * (1. - smoothstep(250., 1800., dist));
   col = mix(col, acol, m.a);
   // lighting
@@ -955,9 +957,10 @@ void main(){
   float a = t.a * vFade; if (a < .01) discard;
   vec2 q = vUv * 2. - 1.;
   float lightSide = dot(vRel, uSunDir) * .5 + .5;
-  float l = mix(.55, 1.05, lightSide) * mix(.72, 1.0, vShade);
-  l += pow(lightSide, 4.) * .15;
-  vec3 col = mix(uSky * .65 + vec3(.25), uSunCol, l * .85) * l;
+  float crown = smoothstep(.15, .82, vUv.y);
+  float l = mix(.58, 1.04, lightSide) * mix(.72, 1.04, vShade) * mix(.78, 1.08, crown);
+  l += pow(lightSide, 4.) * .12;
+  vec3 col = mix(uSky * .48 + vec3(.31,.33,.35), uSunCol, l * .78) * l;
   col = aerial(col, vW);
   gl_FragColor = vec4(col, a * .92);
 }`,
@@ -995,6 +998,15 @@ function rwyEndTexture(num, w) {
   const Wd = 256, Hh = 2048, M = Hh / 900; // 900 m section
   const c = noiseCanvas(Wd, Hh, [58, 58, 60], 26, 6); const g = c.getContext('2d');
   const sx = Wd / w; // px per m across
+  const grime = mulberry([...num].reduce((n, ch) => n * 31 + ch.charCodeAt(0), 413));
+  // Rubber accumulates in two wheel tracks, strongest in the touchdown zone.
+  for (let i = 0; i < 700; i++) {
+    const y = (95 + grime() * 780) * M, x = Wd / 2 + (grime() < .5 ? -1 : 1) * (7.5 + (grime() - .5) * 4) * sx;
+    const strength = .04 + grime() * .15;
+    g.fillStyle = `rgba(14,16,18,${strength})`;
+    g.fillRect(x, y, (.2 + grime() * 1.4) * sx, (5 + grime() * 32) * M);
+  }
+  g.fillStyle = 'rgba(20,23,24,.14)'; g.fillRect(0, 0, 1.1 * sx, Hh); g.fillRect(Wd - 1.1 * sx, 0, 1.1 * sx, Hh);
   g.fillStyle = 'rgba(245,245,240,0.92)';
   // threshold bar? piano keys: 30 m long starting 6 m in
   const nk = w >= 60 ? 16 : 12; const kw = 1.8 * sx, gap = (Wd - 2 * 3 * sx - nk * kw) / (nk - 1 + 2);
@@ -1032,13 +1044,19 @@ function rwyEndTexture(num, w) {
 }
 function rwyMidTexture(w) {
   const Wd = 256, Hh = 256, M = Hh / 50; const c = noiseCanvas(Wd, Hh, [60, 60, 62], 24, 6); const g = c.getContext('2d'); const sx = Wd / w;
+  const grime = mulberry(w * 163);
+  for (let i = 0; i < 55; i++) { const side = grime() < .5 ? -1 : 1; g.fillStyle = `rgba(15,17,18,${.035 + grime() * .08})`; g.fillRect(Wd / 2 + side * (7 + grime() * 2) * sx, grime() * Hh, (.3 + grime()) * sx, (2 + grime() * 12) * M); }
+  g.fillStyle = 'rgba(18,20,22,.10)'; g.fillRect(0, 25 * M, Wd, 1.2 * M);
   g.fillStyle = 'rgba(240,240,236,0.9)'; g.fillRect(Wd / 2 - 0.45 * sx, 0, 0.9 * sx, 30 * M);
   g.fillRect(0.5 * sx, 0, 0.9 * sx, Hh); g.fillRect(Wd - 1.4 * sx, 0, 0.9 * sx, Hh);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 16; return t;
 }
 function taxiTexture() {
   const c = noiseCanvas(128, 128, [72, 72, 72], 22, 5); const g = c.getContext('2d');
-  g.fillStyle = '#d9a514'; g.fillRect(61, 0, 6, 128); g.fillStyle = 'rgba(220,200,90,.6)'; g.fillRect(2, 0, 3, 128); g.fillRect(123, 0, 3, 128);
+  const wear = mulberry(8802);
+  for (let i = 0; i < 90; i++) { g.fillStyle = `rgba(18,20,22,${.025 + wear() * .07})`; g.fillRect(wear() * 128, wear() * 128, 2 + wear() * 12, 5 + wear() * 30); }
+  g.fillStyle = 'rgba(20,22,24,.11)'; g.fillRect(0, 63, 128, 2);
+  g.fillStyle = '#d1a52a'; g.fillRect(62, 0, 4, 128); g.fillStyle = 'rgba(212,190,98,.48)'; g.fillRect(2, 0, 2, 128); g.fillRect(124, 0, 2, 128);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 8; return t;
 }
 function concreteTexture() {
@@ -1086,6 +1104,47 @@ function quadXZ(cx, cz, w, l, hdg, y) { // rectangle centred, length along headi
 
 const PAPIS = []; // {x,z,y, hdg, lights:[sprite...]}
 const RWY_LIGHTS = [];
+function airportSurfaceDetail(scene, routes, hold, incoming, y, lightTex) {
+  const group = new THREE.Group();
+  const blue = [], markerY = y + 0.45;
+  for (const pts of routes) {
+    for (let j = 1; j < pts.length; j++) {
+      const a = pts[j - 1], b = pts[j], dx = b[0] - a[0], dz = b[1] - a[1], len = Math.hypot(dx, dz);
+      if (len < 12) continue;
+      const nx = -dz / len, nz = dx / len;
+      for (let d = 20; d < len - 8; d += 40) for (const side of [-1, 1]) {
+        blue.push(a[0] + dx * d / len + nx * side * 13, markerY,
+          a[1] + dz * d / len + nz * side * 13);
+      }
+    }
+  }
+  if (blue.length) {
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(blue, 3));
+    group.add(new THREE.Points(geo, new THREE.PointsMaterial({ map: lightTex, size: 1.5, color: 0x77b8ec, transparent: true, opacity: .62, depthWrite: false })));
+  }
+  // Two solid bars and two segmented bars at the simulated departure holding point.
+  const length = Math.hypot(incoming[0], incoming[1]);
+  const fx = incoming[0] / length, fz = incoming[1] / length;
+  const nx = -fz, nz = fx;
+  const yellow = new THREE.MeshBasicMaterial({ color: 0xe6ba39, polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 });
+  const bar = (forward, lateral, width) => {
+    const cx = hold.x + fx * forward + nx * lateral, cz = hold.z + fz * forward + nz * lateral;
+    const mesh = new THREE.Mesh(quadXZ(cx, cz, width, .35, Math.atan2(fx, -fz) * R2D, y + .045), yellow);
+    group.add(mesh);
+  };
+  for (const offset of [-4, -2]) bar(offset, 0, 21);
+  for (const offset of [2, 4]) for (const lateral of [-8, -2.7, 2.7, 8]) bar(offset, lateral, 3.5);
+  scene.add(group);
+  return group;
+}
+function updateAirportDetail(camera, range) {
+  if (!W.airportDetail) return;
+  for (const item of W.airportDetail) {
+    const dx = camera.x - item.x, dz = camera.z - item.z;
+    item.group.visible = dx * dx + dz * dz < (range + item.radius) ** 2;
+  }
+}
 function buildAirports(scene, mats) {
   const midTex = { 45: rwyMidTexture(45), 50: rwyMidTexture(50), 60: rwyMidTexture(60) };
   const tTaxi = taxiTexture(), tConc = concreteTexture();
@@ -1093,6 +1152,7 @@ function buildAirports(scene, mats) {
   const matConc = new THREE.MeshLambertMaterial({ map: tConc, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   const lightTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.25, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   W.lightTex = lightTex;
+  W.airportDetail = [];
   for (const ap of AIRPORTS) {
     const y0 = ap.elev + PAVE + 0.06;
     for (const r of ap.rwys) {
@@ -1154,7 +1214,8 @@ function buildAirports(scene, mats) {
   }
   // ---- Heathrow layout ----
   const yL = LHR.elev + PAVE;
-  const taxi = (pts, w = 23) => { const g = ribbon(pts, w, yL, 25); scene.add(new THREE.Mesh(g, matTaxi)); };
+  const lhrTaxiRoutes = [];
+  const taxi = (pts, w = 23) => { const g = ribbon(pts, w, yL, 25); scene.add(new THREE.Mesh(g, matTaxi)); lhrTaxiRoutes.push(pts); };
   taxi(TAXI_LHR.slice(0, 6).concat([[1760, -760], [1760, -830]]));
   taxi([[1760, -830], [1745, -850], [1700, -850]], 40);
   taxi([[-2300, -720], [1600, -720]]); taxi([[-2200, 460], [1450, 460]]); taxi([[-2300, -350], [700, -350]]);
@@ -1201,6 +1262,7 @@ function buildAirports(scene, mats) {
   building(1300, 860, 220, 90, 28, 0, mHang); building(1560, 860, 220, 90, 28, 0, mHang); building(-1200, 880, 380, 80, 18, 0, mOff); building(-600, 880, 300, 70, 16, 0, mOff);
   building(2300, 120, 160, 220, 22, 0, mHang); building(2300, -260, 160, 160, 18, 0, mOff);
   taxi([[1300, 590], [1300, 700]]); taxi([[-500, 590], [-500, 760]]); taxi([[1760, -430], [1760, -100], [2050, -100]]);
+  W.airportDetail.push({ group: airportSurfaceDetail(scene, lhrTaxiRoutes, HOLD_27R, [0, -1], yL, lightTex), x: LHR.cx, z: LHR.cz, radius: LHR.rx });
   // control tower
   const tw = new THREE.Group(); tw.position.set(250, yL, -60);
   tw.add(new THREE.Mesh(new THREE.CylinderGeometry(4, 5, 75, 16), new THREE.MeshLambertMaterial({ color: 0xcfd2d3 })).translateY(37.5));
@@ -1211,12 +1273,14 @@ function buildAirports(scene, mats) {
   const r0 = CDG.rwys[0]; const yC = CDG.elev + PAVE;
   const dd = hdgVec(266), nn = { x: dd.z, z: -dd.x };
   const at = (along, side) => [r0.tx + dd.x * along + nn.x * side, r0.tz + dd.z * along + nn.z * side];
-  const taxiC = (a) => { const g = ribbon(a, 23, yC, 25); scene.add(new THREE.Mesh(g, matTaxi)); };
+  const cdgTaxiRoutes = [];
+  const taxiC = (a) => { const g = ribbon(a, 23, yC, 25); scene.add(new THREE.Mesh(g, matTaxi)); cdgTaxiRoutes.push(a); };
   taxiC([at(-50, 190), at(4300, 190)]); taxiC([at(-50, 2810), at(4300, 2810)]);
   taxiC(TAXI_CDG.slice(0, 4));
   taxiC([at(-50, 190), at(-50, 0), at(40, 0)]);
   for (const a of [600, 1500, 2300, 3200, 4000]) taxiC([at(a, 0), at(a, 190), at(a + 150, 600)]);
   for (const a of [800, 2000, 3400]) taxiC([at(a, 2810), at(a, 2400)]);
+  W.airportDetail.push({ group: airportSurfaceDetail(scene, cdgTaxiRoutes, HOLD_26R, [-nn.x, -nn.z], yC, lightTex), x: CDG.cx, z: CDG.cz, radius: CDG.rx });
   const [tcx, tcz] = at(2300, 1500);
   scene.add(new THREE.Mesh(quadXZ(tcx, tcz, 3200, 1200, 266, yC - 0.03), matConc));
   scene.add(new THREE.Mesh(quadXZ(CDG_STAND.x, CDG_STAND.z, 0.5, 200, 176, yC + 0.03), yel));
@@ -4055,9 +4119,9 @@ function stepAutoTaxi(dt) {
 // ---------- Main: renderer, views, input, UI, scenarios ----------
 let renderer, wScene, wCam, sky, clouds, cities, vegetation, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
 const GRAPHICS_PRESETS = {
-  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings, trees and clouds, with cockpit shadows off. Best for slower devices.' },
-  balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows at a moderate render resolution.' },
-  high: { pixelRatio: 2, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows, with a sharper image on high-density displays.' }
+  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, airportDetail: 1800, shadows: false, description: 'Fewer buildings and clouds; airport surface detail appears close to the aircraft. Best for slower devices.' },
+  balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, airportDetail: 5000, shadows: true, description: 'Full scenery and airport surface detail at a moderate render resolution.' },
+  high: { pixelRatio: 2, cities: 46000, clouds: 1, airportDetail: 10000, shadows: true, description: 'Full scenery and airport surface detail visible farther away, with a sharper image.' }
 };
 const GRAPHICS_KEY = 'flightsim.graphicsQuality';
 function savedGraphicsQuality() {
@@ -4086,6 +4150,7 @@ function applyGraphicsQuality(value) {
     vegetation.crowns.count = vegetation.trunks.count * 2;
   }
   if (clouds) { clouds.userData.density = preset.clouds; clouds.userData.sort(wCam.position); }
+  if (W.airportDetail && wCam) updateAirportDetail(wCam.position, preset.airportDetail);
   if (CK.sunLight && CK.sunLight.castShadow !== preset.shadows) {
     CK.sunLight.castShadow = preset.shadows;
     CK.scene.traverse(o => { if (o.isMesh) { const mats = Array.isArray(o.material) ? o.material : [o.material]; mats.forEach(m => { if (m) m.needsUpdate = true; }); } });
@@ -4583,6 +4648,7 @@ function render(dt) {
   wScene.fog.near = 1500 + camAlt * 0.6; wScene.fog.far = vis * 1.5 + camAlt * 2;
   sunLight.position.copy(cp).addScaledVector(W.sunDir, 1000); sunLight.target.position.copy(cp);
   if (frameN % 90 === 0) clouds.userData.sort(cp);
+  if (frameN % 30 === 0) updateAirportDetail(cp, GRAPHICS_PRESETS[graphicsQuality].airportDetail);
   taxiLights.visible = S.onGround && dist2(S.pos.x, S.pos.z, activeRoute.from.cx, activeRoute.from.cz) < 5500 && (!Tut.active || ['Taxi', 'Pushback and start', 'Before take-off'].includes((Tut.cur() || {}).ph));
   // PAPI colours
   for (const p of PAPIS) { const d = dist2(cp.x, cp.z, p.x, p.z); const ang = Math.atan2(cp.y - p.y, d) * R2D; p.lights.forEach(l => l.sp.material.color.setHex(ang > l.ang ? 0xffffff : 0xff2a1a)); }
