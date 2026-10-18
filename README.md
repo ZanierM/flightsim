@@ -14,6 +14,7 @@ To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `m
 - **Systems**: APU, engine start sequence, electrics, hydraulics, bleed air, fuel pumps, fire test, flight-control computers and autobrake. Switching something off has a real effect and raises an amber ECAM caution.
 - **Flight model and automation**: fly-by-wire normal law with protections, autothrust, autopilot modes (SRS, CLB, DES, ALT, V/S, HDG, NAV, LOC, G/S), managed speeds and an automatic landing.
 - **Captain tutorial**: 48 step-locked lessons with voice, checklists and ATC. "Show me" turns your view to the control, "Do it for me" carries out the step, and skipping moves the aircraft to where that step happens.
+- **Flight briefing**: available before departure and from the top bar in flight. It lists the simulated departure and arrival runways, QNH, climb clearance, V speeds, company route, cruise level, fuel and ILS details. Opening it in flight pauses the aircraft while you read.
 - **World**: scenery generated from real coastlines, rivers, towns and runway layouts for both airports, with airport grass variation, runway shoulders, nearby tree belts and scattered clouds. It is not satellite imagery.
 
 ## Controls

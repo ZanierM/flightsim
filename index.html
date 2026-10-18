@@ -44,6 +44,17 @@ button { font-family: var(--ui); }
 .route { display: flex; flex-wrap: wrap; gap: 6px 4px; font-family: var(--mono); font-size: 12px; color: var(--dim); margin-bottom: 22px; }
 .route span { padding: 2px 6px; border: 1px solid var(--line); }
 .route span.ap { color: var(--fg); border-color: var(--cyan); }
+.briefing-teaser { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 11px 0; margin: -8px 0 18px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.briefing-teaser p { margin: 0; color: var(--dim); font-size: 13px; line-height: 1.4; }
+.briefing-teaser b { color: var(--fg); }
+.briefing-teaser .btn { flex: none; }
+.briefing-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; margin: 16px 0; }
+.briefing-grid h3 { color: var(--cyan); font: 12px var(--mono); letter-spacing: .04em; margin: 0 0 9px; }
+.briefing-grid dl { margin: 0; }
+.briefing-grid div { display: flex; justify-content: space-between; gap: 12px; border-top: 1px solid var(--line); padding: 7px 0; font-size: 13px; }
+.briefing-grid dt { color: var(--dim); } .briefing-grid dd { margin: 0; text-align: right; font-family: var(--mono); color: var(--fg); }
+.briefing-route { font: 12px/1.6 var(--mono); color: var(--fg); overflow-wrap: anywhere; }
+@media (max-width: 650px) { .briefing-teaser { align-items: flex-start; flex-direction: column; } .briefing-grid { grid-template-columns: 1fr; gap: 4px; } }
 .scns { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; }
 .scn { text-align: left; background: rgba(255,255,255,.03); border: 1px solid var(--line); padding: 14px; color: var(--fg); cursor: pointer; border-radius: 2px; display: grid; gap: 4px; }
 .scn:hover { border-color: var(--cyan); background: rgba(47,214,255,.06); }
@@ -146,6 +157,7 @@ button { font-family: var(--ui); }
     <h1 id="menuHeading">London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
     <p class="sub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
     <div class="route"><span class="ap">EGLL 27R</span><span>(1500)</span><span>EPM</span><span>DET</span><span>DVR</span><span>ABB</span><span>BVS</span><span>MOPAR</span><span>CF26R</span><span class="ap">LFPG 26R</span></div>
+    <div class="briefing-teaser"><p><b>Flight briefing</b> · runways, climb, cruise, arrival and aircraft setup</p><button class="btn" id="menuBriefing">Review briefing</button></div>
     <div class="row" id="menuResumeRow" hidden><button class="btn primary" id="btnResume">Resume flight</button></div>
     <div class="scns">
       <button class="scn main" data-scn="cold"><span class="tag">FULL TUTORIAL · ABOUT 60 MIN</span><b>Cold and dark at the stand</b><small>Every check from batteries on to engines off in Paris. The captain explains each switch.</small></button>
@@ -167,7 +179,7 @@ button { font-family: var(--ui); }
   <button class="btn look" data-look="-22,58">Overhead</button>
   <button class="btn look" data-look="70,-5">Left window</button>
 </div>
-<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnCockpit">Cockpit controls (F2)</button><button class="btn" id="btnGraphics">Graphics</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnCockpit">Cockpit controls (F2)</button><button class="btn" id="btnBriefing">Briefing</button><button class="btn" id="btnGraphics">Graphics</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
 
 <aside id="controlDrawer" aria-labelledby="controlHeading" hidden>
   <div class="drawerHead"><h2 id="controlHeading">Cockpit controls</h2><button class="btn" id="controlClose">Close</button></div>
@@ -203,6 +215,27 @@ button { font-family: var(--ui); }
 <div id="tip" hidden></div>
 <div id="toast" hidden></div>
 <div id="xhud" hidden></div>
+
+<div id="briefing" class="modal" role="dialog" aria-modal="true" aria-labelledby="briefingHeading" hidden>
+  <div class="card">
+    <h2 id="briefingHeading">EGLL → LFPG flight briefing</h2>
+    <p class="vnote">Albion 324 · Airbus A320 · London Heathrow to Paris Charles de Gaulle. The captain will guide each checklist and callout during the flight.</p>
+    <div class="briefing-grid">
+      <section><h3>DEPARTURE · EGLL</h3><dl>
+        <div><dt>Runway</dt><dd>27R · 270°</dd></div><div><dt>QNH</dt><dd>1018 hPa</dd></div><div><dt>Initial climb</dt><dd>1500 ft, then 6000 ft</dd></div><div><dt>V1 / VR / V2</dt><dd>142 / 145 / 149 kt</dd></div>
+      </dl></section>
+      <section><h3>EN ROUTE</h3><dl>
+        <div><dt>Company route</dt><dd>EGLLLFPG1</dd></div><div><dt>Cruise</dt><dd>FL250</dd></div><div><dt>Fuel loaded</dt><dd>7800 kg</dd></div><div><dt>Channel crossing</dt><dd>DVR → ABB</dd></div>
+      </dl></section>
+      <section><h3>ARRIVAL · LFPG</h3><dl>
+        <div><dt>Runway</dt><dd>26R · 266°</dd></div><div><dt>ILS</dt><dd>GLE · 110.10 MHz</dd></div><div><dt>Final course</dt><dd>266° / 3.0°</dd></div><div><dt>QNH</dt><dd>1015 hPa</dd></div>
+      </dl></section>
+    </div>
+    <p class="briefing-route">EGLL 27R → (1500) → EPM → DET → DVR → ABB → BVS → MOPAR → CF26R → LFPG 26R</p>
+    <p class="vnote">This is the simulator’s planned route and weather. Follow the captain’s live instructions for configuration and clearances.</p>
+    <div class="row"><button class="btn primary" id="briefingClose">Close briefing</button></div>
+  </div>
+</div>
 
 <div id="help" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpHeading" hidden>
   <div class="card">
@@ -3720,7 +3753,7 @@ const Tut = (() => {
   const ST = (o) => steps.push(o);
   // phase: label shown in the checklist header
   // ===== COCKPIT PREPARATION =====
-  ST({ ph: 'Cockpit preparation', title: 'Welcome aboard', text: "Good afternoon, I'm Captain Hughes, and I'll be your training captain today. We're operating Albion 324 from London Heathrow to Paris Charles de Gaulle in an Airbus A320. The aircraft is cold and dark, so we'll bring her to life together. I'll point at every switch. Look around by dragging with the mouse; scroll on a knob to turn it. When you're ready, press Continue.", manual: true });
+  ST({ ph: 'Cockpit preparation', title: 'Welcome aboard', text: "Good afternoon, I'm Captain Hughes, and I'll be your training captain today. We're operating Albion 324 from London Heathrow to Paris Charles de Gaulle in an Airbus A320. Review the flight briefing from the top bar if you haven't already: runway 27 right, FL250, and the ILS to runway 26 right. The aircraft is cold and dark, so we'll bring her to life together. I'll point at every switch. Look around by dragging with the mouse; scroll on a knob to turn it. When you're ready, press Continue.", manual: true });
   ST({ ph: 'Cockpit preparation', title: 'Batteries on', text: "Look up at the overhead panel. In the ELEC section, press BAT 1 and BAT 2. The white OFF lights go out and the battery voltage appears.", hl: () => !S.elec.bat1 ? 'bat1' : 'bat2', done: () => S.elec.bat1 && S.elec.bat2, items: [['BAT 1', () => S.elec.bat1], ['BAT 2', () => S.elec.bat2]], doit: () => { S.elec.bat1 = S.elec.bat2 = true; } });
   ST({ ph: 'Cockpit preparation', title: 'APU master switch', text: "There's no ground power on this stand, so we'll use the APU, the small jet engine in the tail. Press APU MASTER SW at the front right of the overhead panel. The air intake flap starts to open.", hl: 'apu_master', done: () => S.apu.master, doit: () => S.apu.master = true });
   ST({ ph: 'Cockpit preparation', title: 'APU start', text: "Give the flap a few seconds to open, then press APU START. The blue ON light means the start sequence is running.", hl: 'apu_start', done: () => S.apu.start || S.apu.avail, doit: () => { S.apu.flap = 1; S.apu.start = true; } });
@@ -3749,8 +3782,8 @@ const Tut = (() => {
   ST({ ph: 'Before take-off', title: 'Line up', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, runway 27 right, line up and wait.', 'Line up and wait 27 right, Albion 324.'], text: "We're on Tower now. Lights for take-off: STROBE on, LAND lights on, NOSE light to T.O. Set the TCAS selector on the ATC panel to TA/RA so the transponder is fully on. Then taxi onto the runway and line up on the centreline, heading 270, close to the threshold markings.", hl: () => S.lt.strobe < 2 ? 'strobe' : !S.lt.land ? 'land' : S.lt.nose < 2 ? 'nose' : S.xpdr.tcas < 2 ? 'tcas' : null, done: () => S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(1560, -850, 70) && hdgNear(270, 6) && S.gs < 8, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 27R', () => near(1560, -850, 70) && hdgNear(270, 6)]], doit: () => { S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(1560, -850, 270); S.parkBrake = false; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, seats for take-off.'); showATC('Captain (PA)', 'Cabin crew, seats for take-off.'); }, 6000) });
   // ===== TAKE-OFF =====
   ST({ ph: 'Take-off', title: 'Cleared for take-off', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, wind 250 degrees 8 knots, runway 27 right, cleared for take-off.', 'Cleared for take-off 27 right, Albion 324.'], text: "Hold the brakes, push the thrust levers to about 50 percent and let the engines stabilise, then all the way to the FLX MCT detent. Press Shift F, or drag the levers. Keep the centreline with the rudder: Z and X. I'll call the speeds.", hl: 'thrust', done: () => S.tl.every(t => t >= DET.FLX - 0.02) && !S.parkBrake, doit: () => { S.parkBrake = false; S.tl = [DET.FLX, DET.FLX]; } });
-  ST({ ph: 'Take-off', title: 'Rotate', text: "At rotate, pull the sidestick back smoothly, about 3 degrees per second, towards 15 degrees nose up. Use the down arrow or S key. Follow the green flight director bars on your PFD.", hl: 'sidestick', done: () => !S.onGround && S.ra > 35, quiet: true });
-  ST({ ph: 'Take-off', title: 'Gear up', text: "Positive climb. Gear up: press G or click the gear lever.", hl: 'gear', done: () => S.gearLever === 0, doit: () => setGear(0) });
+  ST({ ph: 'Take-off', title: 'Rotate', text: "At rotate, pull the sidestick back smoothly, about 3 degrees per second, towards 15 degrees nose up. Use the down arrow or S key. Keep gentle back pressure as we climb; releasing it immediately after lift-off can let the aircraft settle. Follow the green flight director bars on your PFD.", hl: 'sidestick', done: () => !S.onGround && S.ra > 35, quiet: true });
+  ST({ ph: 'Take-off', title: 'Gear up', text: "Positive climb. Keep gentle back pressure until the autopilot is engaged. Gear up: press G or click the gear lever.", hl: 'gear', done: () => S.gearLever === 0, doit: () => setGear(0) });
   ST({ ph: 'Climb', title: 'Autopilot', text: "Now engage autopilot 1. Press AP1 on the FCU, or press A. Notice the flight mode annunciator at the top of the PFD: SRS for the pitch, NAV for the route.", hl: 'fcu_ap1', done: () => S.fcu.ap1 || S.fcu.ap2, doit: () => { S.fcu.ap1 = true; }, wait: () => S.ra > 300 });
   ST({ ph: 'Climb', title: 'Thrust reduction', text: "LVR CLB is flashing on the PFD. Pull both thrust levers back to the CL detent: press Shift C or drag them. The autothrust becomes active.", hl: 'thrust', done: () => S.tl.every(t => Math.abs(t - DET.CL) < 0.02), doit: () => { S.tl = [DET.CL, DET.CL]; }, wait: () => S.ra > 1400 });
   ST({ ph: 'Climb', title: 'Flaps up', text: "We're accelerating. Once the speed passes the green S on the speed tape, retract the flaps: flaps zero, press V.", hl: 'flaps', done: () => S.flapLever === 0, doit: () => S.flapLever = 0, wait: () => S.ias > speeds().S - 2 });
@@ -3923,7 +3956,7 @@ const VIEW = { mode: 'cockpit', overview: false, yaw: 0, pitch: -10, tyaw: 0, tp
 function fullPanelFov() { return clamp(2 * Math.atan(1.45 / (1.43 * window.innerWidth / window.innerHeight)) * R2D, 50, 94); }
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
-let menuWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
+let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
 function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
 function openMenu() {
   if (!$('menu').hidden) return;
@@ -3933,6 +3966,7 @@ function openMenu() {
 }
 function resumeMenu() { if (!started) return; $('menu').hidden = true; menuBackgroundInert(false); paused = menuWasPaused; $('btnMenu').focus(); }
 function openDialog(id) {
+  if (id === 'briefing' && started) { briefingWasPaused = paused; paused = true; }
   closeControlDrawer(); dialogPreviousFocus = document.activeElement; $(id).hidden = false;
   for (const child of document.body.children) if (child !== $(id)) child.inert = true;
   $(id).querySelector('button').focus();
@@ -3940,9 +3974,10 @@ function openDialog(id) {
 function closeDialog(id) {
   $(id).hidden = true; for (const child of document.body.children) child.inert = false;
   if (!$('menu').hidden) menuBackgroundInert(true);
+  if (id === 'briefing' && started) paused = briefingWasPaused;
   if (dialogPreviousFocus && dialogPreviousFocus.isConnected) dialogPreviousFocus.focus(); dialogPreviousFocus = null;
 }
-function activeDialog() { return ['help', 'voices', 'graphics', 'debrief'].find(id => !$(id).hidden); }
+function activeDialog() { return ['briefing', 'help', 'voices', 'graphics', 'debrief'].find(id => !$(id).hidden); }
 
 function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, ms); }
 function showATC(who, msg, freq) { const a = $('radio'); a.querySelector('.who').textContent = who + (freq ? ' · ' + (freq / 1000).toFixed(3) : ''); a.querySelector('.msg').textContent = msg; a.hidden = false; a.classList.remove('flash'); void a.offsetWidth; a.classList.add('flash'); clearTimeout(a._h); a._h = setTimeout(() => a.hidden = true, Math.max(6000, msg.length * 90)); }
@@ -4366,6 +4401,9 @@ function operateControl(action) {
 function setupUI() {
   document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
   $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
+  $('menuBriefing').onclick = $('btnBriefing').onclick = () => openDialog('briefing');
+  $('briefingClose').onclick = () => closeDialog('briefing');
+  $('briefing').onclick = e => { if (e.target.id === 'briefing') closeDialog('briefing'); };
   $('btnHelp').onclick = () => openDialog('help');
   $('btnGraphics').onclick = $('menuGraphics').onclick = () => { updateGraphicsPanel(); openDialog('graphics'); };
   $('graphicsClose').onclick = () => closeDialog('graphics');
