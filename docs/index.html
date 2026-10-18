@@ -1944,7 +1944,14 @@ function lnav() {
   return wrap360(legBrg - clamp(xr * 0.012, -45, 45));
 }
 function distToGo() { // nm along remaining route to destination
-  const fp = FPLAN; let i = Math.max(S.fms.wp, 1); let d = 0, px = S.pos.x, pz = S.pos.z;
+  const fp = FPLAN;
+  // Once established on the ILS, the course-fix is behind us. Continuing to
+  // route through it makes the MCDU distance grow again on short final.
+  if (S.fms.wp >= fp.length - 1 || /^(LOC|LAND|ROLL OUT)/.test(S.ap.lat)) {
+    const r = CDG.rwys[0];
+    return dist2(S.pos.x, S.pos.z, r.tx, r.tz) / NM;
+  }
+  let i = Math.max(S.fms.wp, 1); let d = 0, px = S.pos.x, pz = S.pos.z;
   for (let k = i; k < fp.length; k++) { const w = fp[k]; if (w.type === 'ALT') continue; d += dist2(px, pz, w.x, w.z); px = w.x; pz = w.z; }
   return d / NM;
 }

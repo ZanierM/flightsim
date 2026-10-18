@@ -65,6 +65,6 @@ Open **Graphics** from the start menu or the top bar. **Balanced** keeps full sc
 
 After editing anything in `src/`, run `python3 build.py`. It rewrites both `index.html` and `docs/index.html`.
 
-Run `node tests/smoke.cjs` to check the take-off configuration and dual-autopilot tutorial requirements, and `node tests/landing-lights.cjs` to check landing-light switch positions and tutorial actions.
+Run `node tests/smoke.cjs` to check the take-off configuration and dual-autopilot tutorial requirements, `node tests/landing-lights.cjs` to check landing-light switch positions and tutorial actions, and `node tests/distance-to-go.cjs` to check runway distance on the ILS.
 
 No airline affiliation and no certified aircraft data. This is for learning and fun, not for training real pilots.
