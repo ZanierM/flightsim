@@ -43,7 +43,7 @@ const VIEW = { mode: 'cockpit', overview: false, yaw: 0, pitch: -10, tyaw: 0, tp
 function fullPanelFov() { return clamp(2 * Math.atan(1.45 / (1.43 * window.innerWidth / window.innerHeight)) * R2D, 50, 94); }
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
-let menuWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
+let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
 function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
 function openMenu() {
   if (!$('menu').hidden) return;
@@ -53,6 +53,7 @@ function openMenu() {
 }
 function resumeMenu() { if (!started) return; $('menu').hidden = true; menuBackgroundInert(false); paused = menuWasPaused; $('btnMenu').focus(); }
 function openDialog(id) {
+  if (id === 'briefing' && started) { briefingWasPaused = paused; paused = true; }
   closeControlDrawer(); dialogPreviousFocus = document.activeElement; $(id).hidden = false;
   for (const child of document.body.children) if (child !== $(id)) child.inert = true;
   $(id).querySelector('button').focus();
@@ -60,9 +61,10 @@ function openDialog(id) {
 function closeDialog(id) {
   $(id).hidden = true; for (const child of document.body.children) child.inert = false;
   if (!$('menu').hidden) menuBackgroundInert(true);
+  if (id === 'briefing' && started) paused = briefingWasPaused;
   if (dialogPreviousFocus && dialogPreviousFocus.isConnected) dialogPreviousFocus.focus(); dialogPreviousFocus = null;
 }
-function activeDialog() { return ['help', 'voices', 'graphics', 'debrief'].find(id => !$(id).hidden); }
+function activeDialog() { return ['briefing', 'help', 'voices', 'graphics', 'debrief'].find(id => !$(id).hidden); }
 
 function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, ms); }
 function showATC(who, msg, freq) { const a = $('radio'); a.querySelector('.who').textContent = who + (freq ? ' · ' + (freq / 1000).toFixed(3) : ''); a.querySelector('.msg').textContent = msg; a.hidden = false; a.classList.remove('flash'); void a.offsetWidth; a.classList.add('flash'); clearTimeout(a._h); a._h = setTimeout(() => a.hidden = true, Math.max(6000, msg.length * 90)); }
@@ -486,6 +488,9 @@ function operateControl(action) {
 function setupUI() {
   document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
   $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
+  $('menuBriefing').onclick = $('btnBriefing').onclick = () => openDialog('briefing');
+  $('briefingClose').onclick = () => closeDialog('briefing');
+  $('briefing').onclick = e => { if (e.target.id === 'briefing') closeDialog('briefing'); };
   $('btnHelp').onclick = () => openDialog('help');
   $('btnGraphics').onclick = $('menuGraphics').onclick = () => { updateGraphicsPanel(); openDialog('graphics'); };
   $('graphicsClose').onclick = () => closeDialog('graphics');
