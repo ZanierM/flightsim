@@ -36,7 +36,7 @@ button { font-family: var(--ui); }
 
 /* start menu */
 #menu { position: fixed; inset: 0; z-index: 40; display: grid; place-items: center; background: radial-gradient(ellipse at 30% 20%, rgba(10,30,45,.55), rgba(3,6,8,.92)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 24px; overflow-y: auto; }
-#menu .card { width: min(760px, 100%); background: var(--panel-solid); border: 1px solid var(--line); padding: 28px; }
+#menu .card { box-sizing: border-box; width: min(760px, 100%); background: var(--panel-solid); border: 1px solid var(--line); padding: 28px; }
 #menu .flight { font-family: var(--mono); color: var(--green); font-size: 13px; letter-spacing: .1em; }
 #menu h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.08; margin: 6px 0 4px; font-weight: 700; text-wrap: balance; }
 #menu h1 .arrow { color: var(--cyan); }
@@ -122,7 +122,7 @@ button { font-family: var(--ui); }
 
 /* help & debrief */
 .modal { position: fixed; inset: 0; z-index: 45; background: rgba(0,0,0,.6); display: grid; place-items: center; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 20px; overflow-y: auto; }
-.modal .card { background: var(--panel-solid); border: 1px solid var(--line); padding: 22px; width: min(720px, 100%); }
+.modal .card { box-sizing: border-box; background: var(--panel-solid); border: 1px solid var(--line); padding: 22px; width: min(720px, 100%); }
 .modal h2 { margin: 0 0 12px; font-size: 20px; }
 .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 24px; font-size: 13px; }
 .keys div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
@@ -161,7 +161,7 @@ button { font-family: var(--ui); }
     <p class="sub" id="menuSub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
     <div class="route" id="menuRoute"></div>
     <div class="briefing-teaser"><p><b>Flight briefing</b> · runways, climb, cruise, arrival and aircraft setup</p><button class="btn" id="menuBriefing">Review briefing</button></div>
-    <div class="row" id="menuResumeRow" hidden><button class="btn primary" id="btnResume">Resume flight</button></div>
+    <div class="row" id="menuResumeRow" hidden><button class="btn" id="menuRetryApproach">Retry approach</button><button class="btn primary" id="btnResume">Resume flight</button></div>
     <div class="scns">
       <button class="scn main" data-scn="cold"><span class="tag">FULL TUTORIAL · ABOUT 60 MIN</span><b>Cold and dark at the stand</b><small>Every check from batteries on to engines off in Paris. The captain explains each switch.</small></button>
       <button class="scn" data-scn="runway"><span class="tag">FROM TAKE-OFF</span><b>Lined up on 27R</b><small>Engines running, checks done, cleared for take-off.</small></button>
@@ -293,6 +293,6 @@ button { font-family: var(--ui); }
   <div class="card">
     <h2 id="debriefHeading">Flight debrief · ALB324</h2>
     <table><tbody id="debriefRows"></tbody></table>
-    <div class="row"><button class="btn" id="debriefClose">Keep looking around</button><button class="btn primary" id="debriefMenu">Fly again</button></div>
+    <div class="row"><button class="btn" id="debriefClose">Keep looking around</button><button class="btn" id="debriefMenu">Fly again</button><button class="btn primary" id="debriefRetryApproach">Retry approach</button></div>
   </div>
 </div>

@@ -75,6 +75,14 @@ function openMenu() {
   (started ? $('btnResume') : $('menu').querySelector('[data-scn]')).focus();
 }
 function resumeMenu() { if (!started) return; $('menu').hidden = true; menuBackgroundInert(false); paused = menuWasPaused; $('btnMenu').focus(); }
+function retryApproach() {
+  if (!$('debrief').hidden) closeDialog('debrief');
+  if (!$('menu').hidden) { $('menu').hidden = true; menuBackgroundInert(false); }
+  if (window.speechSynthesis) speechSynthesis.cancel();
+  Audio2.init(); Tut.setRoute(activeRoute.id); scenario('approach');
+  started = true; paused = false; timeComp = 1; accum = 0; VIEW.mode = 'cockpit';
+  $('captain').classList.remove('min');
+}
 function openDialog(id) {
   if (id === 'briefing') { renderBriefing($('menu').hidden ? activeRoute : routePreview()); if (started) { briefingWasPaused = paused; paused = true; } }
   closeControlDrawer(); dialogPreviousFocus = document.activeElement; $(id).hidden = false;
@@ -547,6 +555,7 @@ function setupUI() {
   $('routeSelect').onchange = renderRouteMenu;
   document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); selectRouteData($('routeSelect').value); Tut.setRoute(activeRoute.id); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
   $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
+  $('menuRetryApproach').onclick = $('debriefRetryApproach').onclick = retryApproach;
   $('menuBriefing').onclick = $('btnBriefing').onclick = () => openDialog('briefing');
   $('briefingClose').onclick = () => closeDialog('briefing');
   $('briefing').onclick = e => { if (e.target.id === 'briefing') closeDialog('briefing'); };
@@ -636,6 +645,7 @@ function updateHUD() {
 }
 function showDebrief(crash) {
   const d = $('debrief'); const td = S.touchdown; const r = activeRoute.arrRwy;
+  $('debriefHeading').textContent = `Flight debrief · ${activeRoute.flightNumber}`;
   let rows = [];
   if (crash) rows.push(['Outcome', 'The aircraft was damaged on landing', 'bad']);
   if (td) {
