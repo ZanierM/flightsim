@@ -55,16 +55,22 @@ const Audio2 = (() => {
   // Voice quality: browsers expose neural voices under names such as "(Natural)", "Online", "Premium", "Enhanced" or "Google UK English".
   const VPREF = { capt: 'auto', atc: 'auto', gpws: 'auto', rate: 1.0 };
   try { Object.assign(VPREF, JSON.parse(localStorage.getItem('a320.voices') || '{}')); } catch (e) { }
+  // System voice lists include character/novelty voices. Keep them available for an
+  // explicit choice, but never let "Best available" use one for a radio call.
+  function noveltyVoice(v) { return /bahh|bad news|good news|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|albert|jester|organ|superstar|wobble|fred|junior|ralph|kathy|grandma|grandpa|rocko|robot|novelty|compact|eloquence|espeak/i.test(v.name); }
   function quality(v) { let q = 0; const n = v.name;
     if (/natural|neural/i.test(n)) q += 100; if (/online/i.test(n)) q += 60; if (/premium/i.test(n)) q += 90; if (/enhanced/i.test(n)) q += 70; if (/^google/i.test(n)) q += 50;
-    if (/compact|eloquence|espeak|robot|novelty|bad news|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|albert|jester|organ|superstar|wobble|fred|junior|ralph|kathy/i.test(n)) q -= 200;
+    if (/^(daniel|moira|karen|samantha|tessa|rishi)$/i.test(n)) q += 35;
+    if (noveltyVoice(v)) q -= 200;
     if (!v.localService) q += 5; return q; }
   function rank(vs, lang, male) { return vs.filter(v => /^en/i.test(v.lang)).map(v => ({ v, s: quality(v) + (lang.test(v.lang) ? 40 : 0) + (male && /male|daniel|arthur|oliver|george|ryan|thomas|alfie|elliot|guy|david|aaron|christopher|eric|andrew|brian|liam|noah|william/i.test(v.name) && !/female/i.test(v.name) ? 25 : 0) })).sort((a, b) => b.s - a.s).map(x => x.v); }
   function pickVoices() {
     if (!window.speechSynthesis) return; const vs = speechSynthesis.getVoices(); if (!vs.length) return;
     const byName = (n) => n && n !== 'auto' ? vs.find(v => v.name === n) : null;
-    const capt = rank(vs, /en-GB/i, true), atc = rank(vs, /en-(IE|AU|GB|US)/i, false), gp = rank(vs, /en-US/i, true);
+    const usable = vs.filter(v => !noveltyVoice(v));
+    const capt = rank(usable, /en-GB/i, true), atc = rank(usable, /en-IE/i, false), gp = rank(usable, /en-US/i, true);
     voices.capt = byName(VPREF.capt) || capt[0] || null;
+    // Give ATC a distinct, natural English voice where the platform has one.
     voices.atc = byName(VPREF.atc) || atc.find(v => v !== voices.capt) || voices.capt;
     voices.gpws = byName(VPREF.gpws) || gp.find(v => v !== voices.capt && v !== voices.atc) || gp[0] || voices.capt;
     Audio2.onVoices && Audio2.onVoices();

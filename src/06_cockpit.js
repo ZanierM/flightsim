@@ -292,6 +292,16 @@ function buildCockpit() {
   const lightM = new THREE.MeshStandardMaterial({ color: 0x6e7a82, roughness: 0.85, side: THREE.DoubleSide });
   const floorM = new THREE.MeshStandardMaterial({ color: 0x2e3438, roughness: 1 });
   const add = (m, cast = true, recv = true) => { m.castShadow = cast; m.receiveShadow = recv; scene.add(m); m.updateMatrixWorld(true); return m; };
+  const roundedPad = (w, h, d, r, material) => {
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2 + r, -h / 2); s.lineTo(w / 2 - r, -h / 2);
+    s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+    s.lineTo(w / 2, h / 2 - r); s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+    s.lineTo(-w / 2 + r, h / 2); s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
+    s.lineTo(-w / 2, -h / 2 + r); s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+    const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: true, bevelThickness: .008, bevelSize: .008, bevelSegments: 2, curveSegments: 6 });
+    g.translate(0, 0, -d / 2); return new THREE.Mesh(g, material);
+  };
   // front window frame
   const fb = new THREE.Vector3(0, -0.15, -0.95), ft = new THREE.Vector3(0, 0.40, -0.56);
   const slopeLen = fb.distanceTo(ft);
@@ -335,6 +345,7 @@ function buildCockpit() {
   // glareshield
   const gsTop = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.03, 0.30), glareM); gsTop.position.set(0.52, -0.152, -0.84); add(gsTop);
   const brow = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, 2.60, 14), glareM); brow.rotation.z = Math.PI / 2; brow.position.set(0.52, -0.13, -0.80); add(brow);
+  const browLip = roundedPad(2.62, .095, .032, .03, glareM); browLip.rotation.x = -Math.PI / 2; browLip.position.set(.52, -.14, -.665); add(browLip);
   const gsFace = new THREE.Mesh(new THREE.PlaneGeometry(2.62, 0.17), glareM); gsFace.position.set(0.52, -0.218, -0.648); gsFace.rotation.x = -0.3; add(gsFace);
   // standby compass hanging from the centre post
   const comp = new THREE.Group(); comp.position.set(0.52, 0.29, -0.59);
@@ -347,17 +358,20 @@ function buildCockpit() {
     g.fillStyle = '#c00'; g.fillRect(W / 2 - 1.5, 0, 3, H); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 30, H); g.fillRect(W - 30, 0, 30, H); } });
   add(comp);
   // first officer's seat (empty)
-  const seatM = new THREE.MeshStandardMaterial({ color: 0x48535a, roughness: 1 }), seatF = new THREE.MeshStandardMaterial({ color: 0x2a2e31, roughness: .7 });
+  const fabric = mkCanvas(128, 128), fg = fabric.getContext('2d'); fg.fillStyle = '#505b61'; fg.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 2300; i++) { fg.fillStyle = i % 3 ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.055)'; fg.fillRect(Math.random() * 128, Math.random() * 128, 1, 2); }
+  const fabricT = new THREE.CanvasTexture(fabric); fabricT.wrapS = fabricT.wrapT = THREE.RepeatWrapping; fabricT.repeat.set(2, 3);
+  const seatM = new THREE.MeshStandardMaterial({ map: fabricT, roughness: 1 }), seatF = new THREE.MeshStandardMaterial({ color: 0x2a2e31, roughness: .78 });
   const seat = new THREE.Group(); seat.position.set(1.04, -0.95, 0.42);
-  const sp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.5), seatM); seat.add(sp);
-  const sb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.78, 0.13), seatM); sb.position.set(0, 0.44, 0.26); sb.rotation.x = -0.14; seat.add(sb);
-  const hr = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.12), seatM); hr.position.set(0, 0.92, 0.33); seat.add(hr);
+  const sp = roundedPad(.5, .48, .12, .06, seatM); sp.rotation.x = -Math.PI / 2; seat.add(sp);
+  const sb = roundedPad(.48, .76, .13, .065, seatM); sb.position.set(0, .44, .26); sb.rotation.x = -.14; seat.add(sb);
+  const hr = roundedPad(.31, .18, .12, .045, seatM); hr.position.set(0, .92, .33); seat.add(hr);
   const seamM = new THREE.MeshStandardMaterial({ color: 0x665f55, roughness: 1 });
   for (const side of [-1, 1]) {
     const seam = new THREE.Mesh(new THREE.BoxGeometry(.006, .66, .009), seamM); seam.position.set(side * .18, .44, .332); seam.rotation.x = -.14; seat.add(seam);
-    const bolster = new THREE.Mesh(new THREE.BoxGeometry(.07, .62, .16), seatM); bolster.position.set(side * .24, .42, .25); bolster.rotation.x = -.14; seat.add(bolster);
+    const bolster = roundedPad(.07, .62, .12, .03, seatM); bolster.position.set(side * .24, .42, .25); bolster.rotation.x = -.14; seat.add(bolster);
   }
-  for (const s of [-1, 1]) { const ar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.4), seatF); ar.position.set(s * 0.29, 0.25, 0.02); seat.add(ar); }
+  for (const s of [-1, 1]) { const ar = roundedPad(.09, .37, .045, .035, seatF); ar.rotation.x = -Math.PI / 2; ar.position.set(s * .29, .25, .02); seat.add(ar); }
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.4), seatF); base.position.y = -0.16; seat.add(base);
   add(seat); CK.seat = seat;
   const knee = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 0.42), new THREE.MeshStandardMaterial({ color: 0x3d474f, roughness: .9, side: THREE.DoubleSide })); knee.position.set(0.52, -0.99, -0.80); add(knee);
@@ -394,6 +408,13 @@ function buildCockpit() {
   const ohBox = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.06, 0.74), darkM); ohBox.rotation.x = -0.42; ohBox.position.copy(oh.mesh.position).add(new THREE.Vector3(0, Math.cos(0.42), -Math.sin(0.42)).multiplyScalar(0.036)); add(ohBox);
   // ---------------- pedestal ----------------
   const pedBody = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.4, 1.3), shellM); pedBody.position.set(0.52, -1.065, -0.15); add(pedBody);
+  const pedRailM = new THREE.MeshStandardMaterial({ color: 0x252c31, roughness: .82 });
+  for (const x of [.281, .759]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(.018, .08, 1.24), pedRailM);
+    rail.position.set(x, -.84, -.12); add(rail);
+    const stitch = new THREE.Mesh(new THREE.BoxGeometry(.004, .004, 1.18), lightM);
+    stitch.position.set(x + (x < .5 ? -.011 : .011), -.795, -.12); add(stitch, false);
+  }
   const ped = new Panel('pedestal', 1024, 2304, 0.44, 0.99);
   ped.mesh.position.set(0.52, -0.858, -0.055); ped.mesh.rotation.x = -Math.PI / 2; add(ped.mesh, false);
   buildPedestal(ped);
@@ -412,8 +433,12 @@ function buildCockpit() {
   const con2 = con.clone(); con2.position.x = 1.66; add(con2);
   for (const x of [-0.62, 1.66]) {
     const ct = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 1.2), consoleTopM); ct.rotation.x = -Math.PI / 2; ct.position.set(x, -0.699, -0.1); add(ct, false);
-    const rest = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.035, 0.32), armrestM); rest.position.set(x, -0.67, 0.29); add(rest);
+    const rest = roundedPad(.24, .32, .035, .045, armrestM); rest.rotation.x = -Math.PI / 2; rest.position.set(x, -.66, .29); add(rest);
     const edge = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.98), darkM); edge.position.set(x < 0 ? x + 0.164 : x - 0.164, -0.688, -0.12); add(edge);
+    // Recessed service panels and a low padded rail break up the former slab sidewall.
+    const innerX = x + (x < 0 ? .174 : -.174);
+    for (const z of [-.47, .06]) { const hatch = roundedPad(.40, .19, .005, .018, consoleTopM); hatch.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2; hatch.position.set(innerX, -.91, z); add(hatch, false); }
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(.038, .055, .95), armrestM); rail.position.set(innerX, -.69, -.10); add(rail);
   }
   const mkStick = (x) => {
     const ss = new THREE.Group(); ss.position.set(x, -0.70, -0.30);

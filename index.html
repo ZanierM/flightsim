@@ -2892,6 +2892,16 @@ function buildCockpit() {
   const lightM = new THREE.MeshStandardMaterial({ color: 0x6e7a82, roughness: 0.85, side: THREE.DoubleSide });
   const floorM = new THREE.MeshStandardMaterial({ color: 0x2e3438, roughness: 1 });
   const add = (m, cast = true, recv = true) => { m.castShadow = cast; m.receiveShadow = recv; scene.add(m); m.updateMatrixWorld(true); return m; };
+  const roundedPad = (w, h, d, r, material) => {
+    const s = new THREE.Shape();
+    s.moveTo(-w / 2 + r, -h / 2); s.lineTo(w / 2 - r, -h / 2);
+    s.quadraticCurveTo(w / 2, -h / 2, w / 2, -h / 2 + r);
+    s.lineTo(w / 2, h / 2 - r); s.quadraticCurveTo(w / 2, h / 2, w / 2 - r, h / 2);
+    s.lineTo(-w / 2 + r, h / 2); s.quadraticCurveTo(-w / 2, h / 2, -w / 2, h / 2 - r);
+    s.lineTo(-w / 2, -h / 2 + r); s.quadraticCurveTo(-w / 2, -h / 2, -w / 2 + r, -h / 2);
+    const g = new THREE.ExtrudeGeometry(s, { depth: d, bevelEnabled: true, bevelThickness: .008, bevelSize: .008, bevelSegments: 2, curveSegments: 6 });
+    g.translate(0, 0, -d / 2); return new THREE.Mesh(g, material);
+  };
   // front window frame
   const fb = new THREE.Vector3(0, -0.15, -0.95), ft = new THREE.Vector3(0, 0.40, -0.56);
   const slopeLen = fb.distanceTo(ft);
@@ -2935,6 +2945,7 @@ function buildCockpit() {
   // glareshield
   const gsTop = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.03, 0.30), glareM); gsTop.position.set(0.52, -0.152, -0.84); add(gsTop);
   const brow = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, 2.60, 14), glareM); brow.rotation.z = Math.PI / 2; brow.position.set(0.52, -0.13, -0.80); add(brow);
+  const browLip = roundedPad(2.62, .095, .032, .03, glareM); browLip.rotation.x = -Math.PI / 2; browLip.position.set(.52, -.14, -.665); add(browLip);
   const gsFace = new THREE.Mesh(new THREE.PlaneGeometry(2.62, 0.17), glareM); gsFace.position.set(0.52, -0.218, -0.648); gsFace.rotation.x = -0.3; add(gsFace);
   // standby compass hanging from the centre post
   const comp = new THREE.Group(); comp.position.set(0.52, 0.29, -0.59);
@@ -2947,17 +2958,20 @@ function buildCockpit() {
     g.fillStyle = '#c00'; g.fillRect(W / 2 - 1.5, 0, 3, H); g.fillStyle = 'rgba(0,0,0,.25)'; g.fillRect(0, 0, 30, H); g.fillRect(W - 30, 0, 30, H); } });
   add(comp);
   // first officer's seat (empty)
-  const seatM = new THREE.MeshStandardMaterial({ color: 0x48535a, roughness: 1 }), seatF = new THREE.MeshStandardMaterial({ color: 0x2a2e31, roughness: .7 });
+  const fabric = mkCanvas(128, 128), fg = fabric.getContext('2d'); fg.fillStyle = '#505b61'; fg.fillRect(0, 0, 128, 128);
+  for (let i = 0; i < 2300; i++) { fg.fillStyle = i % 3 ? 'rgba(255,255,255,.045)' : 'rgba(0,0,0,.055)'; fg.fillRect(Math.random() * 128, Math.random() * 128, 1, 2); }
+  const fabricT = new THREE.CanvasTexture(fabric); fabricT.wrapS = fabricT.wrapT = THREE.RepeatWrapping; fabricT.repeat.set(2, 3);
+  const seatM = new THREE.MeshStandardMaterial({ map: fabricT, roughness: 1 }), seatF = new THREE.MeshStandardMaterial({ color: 0x2a2e31, roughness: .78 });
   const seat = new THREE.Group(); seat.position.set(1.04, -0.95, 0.42);
-  const sp = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.12, 0.5), seatM); seat.add(sp);
-  const sb = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.78, 0.13), seatM); sb.position.set(0, 0.44, 0.26); sb.rotation.x = -0.14; seat.add(sb);
-  const hr = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.12), seatM); hr.position.set(0, 0.92, 0.33); seat.add(hr);
+  const sp = roundedPad(.5, .48, .12, .06, seatM); sp.rotation.x = -Math.PI / 2; seat.add(sp);
+  const sb = roundedPad(.48, .76, .13, .065, seatM); sb.position.set(0, .44, .26); sb.rotation.x = -.14; seat.add(sb);
+  const hr = roundedPad(.31, .18, .12, .045, seatM); hr.position.set(0, .92, .33); seat.add(hr);
   const seamM = new THREE.MeshStandardMaterial({ color: 0x665f55, roughness: 1 });
   for (const side of [-1, 1]) {
     const seam = new THREE.Mesh(new THREE.BoxGeometry(.006, .66, .009), seamM); seam.position.set(side * .18, .44, .332); seam.rotation.x = -.14; seat.add(seam);
-    const bolster = new THREE.Mesh(new THREE.BoxGeometry(.07, .62, .16), seatM); bolster.position.set(side * .24, .42, .25); bolster.rotation.x = -.14; seat.add(bolster);
+    const bolster = roundedPad(.07, .62, .12, .03, seatM); bolster.position.set(side * .24, .42, .25); bolster.rotation.x = -.14; seat.add(bolster);
   }
-  for (const s of [-1, 1]) { const ar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.06, 0.4), seatF); ar.position.set(s * 0.29, 0.25, 0.02); seat.add(ar); }
+  for (const s of [-1, 1]) { const ar = roundedPad(.09, .37, .045, .035, seatF); ar.rotation.x = -Math.PI / 2; ar.position.set(s * .29, .25, .02); seat.add(ar); }
   const base = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.22, 0.4), seatF); base.position.y = -0.16; seat.add(base);
   add(seat); CK.seat = seat;
   const knee = new THREE.Mesh(new THREE.PlaneGeometry(2.7, 0.42), new THREE.MeshStandardMaterial({ color: 0x3d474f, roughness: .9, side: THREE.DoubleSide })); knee.position.set(0.52, -0.99, -0.80); add(knee);
@@ -2994,6 +3008,13 @@ function buildCockpit() {
   const ohBox = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.06, 0.74), darkM); ohBox.rotation.x = -0.42; ohBox.position.copy(oh.mesh.position).add(new THREE.Vector3(0, Math.cos(0.42), -Math.sin(0.42)).multiplyScalar(0.036)); add(ohBox);
   // ---------------- pedestal ----------------
   const pedBody = new THREE.Mesh(new THREE.BoxGeometry(0.46, 0.4, 1.3), shellM); pedBody.position.set(0.52, -1.065, -0.15); add(pedBody);
+  const pedRailM = new THREE.MeshStandardMaterial({ color: 0x252c31, roughness: .82 });
+  for (const x of [.281, .759]) {
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(.018, .08, 1.24), pedRailM);
+    rail.position.set(x, -.84, -.12); add(rail);
+    const stitch = new THREE.Mesh(new THREE.BoxGeometry(.004, .004, 1.18), lightM);
+    stitch.position.set(x + (x < .5 ? -.011 : .011), -.795, -.12); add(stitch, false);
+  }
   const ped = new Panel('pedestal', 1024, 2304, 0.44, 0.99);
   ped.mesh.position.set(0.52, -0.858, -0.055); ped.mesh.rotation.x = -Math.PI / 2; add(ped.mesh, false);
   buildPedestal(ped);
@@ -3012,8 +3033,12 @@ function buildCockpit() {
   const con2 = con.clone(); con2.position.x = 1.66; add(con2);
   for (const x of [-0.62, 1.66]) {
     const ct = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 1.2), consoleTopM); ct.rotation.x = -Math.PI / 2; ct.position.set(x, -0.699, -0.1); add(ct, false);
-    const rest = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.035, 0.32), armrestM); rest.position.set(x, -0.67, 0.29); add(rest);
+    const rest = roundedPad(.24, .32, .035, .045, armrestM); rest.rotation.x = -Math.PI / 2; rest.position.set(x, -.66, .29); add(rest);
     const edge = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.98), darkM); edge.position.set(x < 0 ? x + 0.164 : x - 0.164, -0.688, -0.12); add(edge);
+    // Recessed service panels and a low padded rail break up the former slab sidewall.
+    const innerX = x + (x < 0 ? .174 : -.174);
+    for (const z of [-.47, .06]) { const hatch = roundedPad(.40, .19, .005, .018, consoleTopM); hatch.rotation.y = x < 0 ? Math.PI / 2 : -Math.PI / 2; hatch.position.set(innerX, -.91, z); add(hatch, false); }
+    const rail = new THREE.Mesh(new THREE.BoxGeometry(.038, .055, .95), armrestM); rail.position.set(innerX, -.69, -.10); add(rail);
   }
   const mkStick = (x) => {
     const ss = new THREE.Group(); ss.position.set(x, -0.70, -0.30);
@@ -3712,16 +3737,22 @@ const Audio2 = (() => {
   // Voice quality: browsers expose neural voices under names such as "(Natural)", "Online", "Premium", "Enhanced" or "Google UK English".
   const VPREF = { capt: 'auto', atc: 'auto', gpws: 'auto', rate: 1.0 };
   try { Object.assign(VPREF, JSON.parse(localStorage.getItem('a320.voices') || '{}')); } catch (e) { }
+  // System voice lists include character/novelty voices. Keep them available for an
+  // explicit choice, but never let "Best available" use one for a radio call.
+  function noveltyVoice(v) { return /bahh|bad news|good news|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|albert|jester|organ|superstar|wobble|fred|junior|ralph|kathy|grandma|grandpa|rocko|robot|novelty|compact|eloquence|espeak/i.test(v.name); }
   function quality(v) { let q = 0; const n = v.name;
     if (/natural|neural/i.test(n)) q += 100; if (/online/i.test(n)) q += 60; if (/premium/i.test(n)) q += 90; if (/enhanced/i.test(n)) q += 70; if (/^google/i.test(n)) q += 50;
-    if (/compact|eloquence|espeak|robot|novelty|bad news|bells|boing|bubbles|cellos|whisper|zarvox|trinoids|albert|jester|organ|superstar|wobble|fred|junior|ralph|kathy/i.test(n)) q -= 200;
+    if (/^(daniel|moira|karen|samantha|tessa|rishi)$/i.test(n)) q += 35;
+    if (noveltyVoice(v)) q -= 200;
     if (!v.localService) q += 5; return q; }
   function rank(vs, lang, male) { return vs.filter(v => /^en/i.test(v.lang)).map(v => ({ v, s: quality(v) + (lang.test(v.lang) ? 40 : 0) + (male && /male|daniel|arthur|oliver|george|ryan|thomas|alfie|elliot|guy|david|aaron|christopher|eric|andrew|brian|liam|noah|william/i.test(v.name) && !/female/i.test(v.name) ? 25 : 0) })).sort((a, b) => b.s - a.s).map(x => x.v); }
   function pickVoices() {
     if (!window.speechSynthesis) return; const vs = speechSynthesis.getVoices(); if (!vs.length) return;
     const byName = (n) => n && n !== 'auto' ? vs.find(v => v.name === n) : null;
-    const capt = rank(vs, /en-GB/i, true), atc = rank(vs, /en-(IE|AU|GB|US)/i, false), gp = rank(vs, /en-US/i, true);
+    const usable = vs.filter(v => !noveltyVoice(v));
+    const capt = rank(usable, /en-GB/i, true), atc = rank(usable, /en-IE/i, false), gp = rank(usable, /en-US/i, true);
     voices.capt = byName(VPREF.capt) || capt[0] || null;
+    // Give ATC a distinct, natural English voice where the platform has one.
     voices.atc = byName(VPREF.atc) || atc.find(v => v !== voices.capt) || voices.capt;
     voices.gpws = byName(VPREF.gpws) || gp.find(v => v !== voices.capt && v !== voices.atc) || gp[0] || voices.capt;
     Audio2.onVoices && Audio2.onVoices();
@@ -3847,11 +3878,12 @@ const Audio2 = (() => {
 
 // ---------- Captain's tutorial ----------
 const Tut = (() => {
-  let steps = [], idx = -1, active = false, stepT = 0, spoken = false, events = new Set(), onUI = null, calls = {};
+  let steps = [], idx = -1, active = false, stepT = 0, spoken = false, events = new Set(), onUI = null, calls = {}, entrySerial = 0;
   const near = (x, z, r) => dist2(S.pos.x, S.pos.z, x, z) < r;
   const hdgNear = (h, tol) => Math.abs(wrap180(S.psi * R2D - h)) < tol;
   const ev = (n) => events.has(n);
   const ST = (o) => steps.push(o);
+  function afterCurrentStep(ms, fn) { const serial = entrySerial; setTimeout(() => { if (active && entrySerial === serial) fn(); }, ms); }
   // phase: label shown in the checklist header
   // ===== COCKPIT PREPARATION =====
   ST({ ph: 'Cockpit preparation', title: 'Welcome aboard', text: "Good afternoon, I'm Captain Hughes, and I'll be your training captain today. We're operating Albion 324 from London Heathrow to Paris Charles de Gaulle in an Airbus A320. Review the flight briefing from the top bar if you haven't already: runway 27 right, FL250, and the ILS to runway 26 right. The aircraft is cold and dark, so we'll bring her to life together. I'll point at every switch. Look around by dragging with the mouse; scroll on a knob to turn it. When you're ready, press Continue.", manual: true });
@@ -3871,16 +3903,16 @@ const Tut = (() => {
   ST({ ph: 'Flight computer', title: 'Initial altitude', text: "Our clearance is the standard departure, climbing to 6000 feet. Scroll the ALT knob on the FCU until the ALT window above it reads 06000. Hold Shift to scroll faster.", hl: 'fcu_alt', done: () => S.fcu.alt === 6000, doit: () => S.fcu.alt = 6000 });
   ST({ ph: 'Flight computer', title: 'Take-off configuration', text: "Set flaps 1 with the flap lever on the right of the pedestal, or press F. Then arm the ground spoilers: lift the speed brake lever, or press slash. Finally press AUTO BRAKE MAX on the centre panel, in case we have to reject the take-off.", hl: () => S.flapLever !== 1 ? 'flaps' : !S.sbArmed ? 'spoilers' : 'ab_MAX', done: () => S.flapLever === 1 && S.sbArmed && S.autobrake === 3, items: [['FLAPS 1', () => S.flapLever === 1], ['GND SPLRS armed', () => S.sbArmed], ['AUTO BRK MAX', () => S.autobrake === 3]], doit: () => { S.flapLever = 1; S.sbArmed = true; S.autobrake = 3; } });
   // ===== PUSHBACK & START =====
-  ST({ ph: 'Pushback and start', title: 'Clearance', freq: 121905, who: 'Heathrow Ground', atc: ['Albion 324, Heathrow Ground, push and start approved, face east. Squawk 4 5 2 1.', 'Push and start approved, face east, squawk 4 5 2 1, Albion 324.'], text: "Ground has cleared us to push back and given us a squawk code. Doors are closed. Switch the BEACON on (front row of the overhead): the flashing red light warns the ground crew that engines are about to start. Then type 4521 on the ATC transponder keypad at the back of the pedestal.", hl: () => S.lt.beacon ? 'xpdr_4' : 'beacon', done: () => S.lt.beacon && S.xpdr.code === '4521', items: [['BEACON on', () => S.lt.beacon], ['Squawk 4521 (ATC panel keypad)', () => S.xpdr.code === '4521']], doit: () => { S.lt.beacon = true; S.xpdr.code = '4521'; S.xpdr.entry = ''; }, enter: () => { S.doorsClosed = true; setTimeout(() => { Audio2.ding(); Audio2.pa('Cabin crew, arm doors and cross check.'); showATC('Purser (PA)', 'Cabin crew, arm doors and cross check.'); }, 9000); } });
+  ST({ ph: 'Pushback and start', title: 'Clearance', freq: 121905, who: 'Heathrow Ground', atc: ['Albion 324, Heathrow Ground, push and start approved, face east. Squawk 4 5 2 1.', 'Push and start approved, face east, squawk 4 5 2 1, Albion 324.'], text: "Ground has cleared us to push back and given us a squawk code. Doors are closed. Switch the BEACON on (front row of the overhead): the flashing red light warns the ground crew that engines are about to start. Then type 4521 on the ATC transponder keypad at the back of the pedestal.", hl: () => S.lt.beacon ? 'xpdr_4' : 'beacon', done: () => S.lt.beacon && S.xpdr.code === '4521', items: [['BEACON on', () => S.lt.beacon], ['Squawk 4521 (ATC panel keypad)', () => S.xpdr.code === '4521']], doit: () => { S.lt.beacon = true; S.xpdr.code = '4521'; S.xpdr.entry = ''; }, enter: () => { S.doorsClosed = true; afterCurrentStep(9000, () => { Audio2.ding(); Audio2.pa('Cabin crew, arm doors and cross check.'); showATC('Purser (PA)', 'Cabin crew, arm doors and cross check.'); }); } });
   ST({ ph: 'Pushback and start', title: 'Release the parking brake', text: "The tug is connected. Release the parking brake, the red handle at the back of the pedestal, or press Shift B. The tug will push us back while we start the engines.", hl: 'parkbrk', done: () => !S.parkBrake, doit: () => S.parkBrake = false, exit: () => startPushback() });
   ST({ ph: 'Pushback and start', title: 'Ignition', text: "Turn the ENG MODE selector, between the two engine master switches, to IGN START.", hl: 'engmode', done: () => S.engMode === 2, doit: () => S.engMode = 2 });
   ST({ ph: 'Pushback and start', title: 'Start engine 2', text: "We start number 2 first. Set ENG 2 MASTER to ON. Watch the upper screen: N2 climbs, fuel and ignition come on at 16 percent, then EGT rises. Engine 2 will be stable in about 40 seconds.", hl: 'eng2', done: () => S.eng[1].run, items: [['ENG 2 MASTER ON', () => S.eng[1].master], ['ENG 2 stable', () => S.eng[1].run]], doit: () => S.eng[1].master = true });
   ST({ ph: 'Pushback and start', title: 'Start engine 1', text: "Engine 2 is stable. Now ENG 1 MASTER to ON.", hl: 'eng1', done: () => S.eng[0].run, items: [['ENG 1 MASTER ON', () => S.eng[0].master], ['ENG 1 stable', () => S.eng[0].run]], doit: () => S.eng[0].master = true });
   ST({ ph: 'Pushback and start', title: 'After start', text: "Both engines are running. Wait for the tug to finish, then set the parking brake. Turn ENG MODE back to NORM, and switch off APU BLEED and then the APU MASTER SW. The engines supply power and air now.", hl: () => S.pushback ? 'engmode' : !S.parkBrake ? 'parkbrk' : S.engMode !== 1 ? 'engmode' : S.apu.bleed ? 'apu_bleed' : 'apu_master', done: () => !S.pushback && S.parkBrake && S.engMode === 1 && !S.apu.bleed && !S.apu.master, items: [['Pushback complete', () => !S.pushback], ['PARK BRK set', () => S.parkBrake], ['ENG MODE NORM', () => S.engMode === 1], ['APU BLEED off', () => !S.apu.bleed], ['APU MASTER off', () => !S.apu.master]], doit: () => { if (!S.pushback) S.parkBrake = true; S.engMode = 1; S.apu.bleed = false; S.apu.master = false; } });
-  ST({ ph: 'Pushback and start', title: 'Take-off config test', text: "Press T.O CONFIG on the ECAM control panel, at the front of the pedestal. It checks flaps, armed spoilers, autobrake MAX, rudder trim and landing gear. Correct any fault it reports, then test again. Check the take-off memo on the upper screen too.", hl: 'toconfig', done: () => takeoffConfigNormal() && S.cabinReady, doit: () => { S.flapLever = S.flapPos = 1; S.sbArmed = true; S.sbLever = S.spoiler = 0; S.autobrake = 3; S.rudTrim = 0; S.gearLever = S.gearPos = 1; S.toConfigTested = true; S.cabinReady = true; }, enter: () => { setTimeout(() => { S.cabinReady = true; Audio2.ding(); showATC('Purser', 'Captain, cabin is secure and ready for departure.'); }, 9000); } });
+  ST({ ph: 'Pushback and start', title: 'Take-off config test', text: "Press T.O CONFIG on the ECAM control panel, at the front of the pedestal. It checks flaps, armed spoilers, autobrake MAX, rudder trim and landing gear. Correct any fault it reports, then test again. Check the take-off memo on the upper screen too.", hl: 'toconfig', done: () => takeoffConfigNormal() && S.cabinReady, doit: () => { S.flapLever = S.flapPos = 1; S.sbArmed = true; S.sbLever = S.spoiler = 0; S.autobrake = 3; S.rudTrim = 0; S.gearLever = S.gearPos = 1; S.toConfigTested = true; S.cabinReady = true; }, enter: () => { afterCurrentStep(9000, () => { S.cabinReady = true; Audio2.ding(); showATC('Purser', 'Captain, cabin is secure and ready for departure.'); }); } });
   // ===== TAXI =====
   ST({ ph: 'Taxi', title: 'Taxi to 27R', freq: 121905, who: 'Heathrow Ground', atc: ['Albion 324, taxi holding point A1, runway 27 right, via Alpha. Follow the greens.', 'Holding point A1, 27 right, via Alpha, Albion 324.'], text: "Set the NOSE light to TAXI and release the parking brake. Add a touch of thrust to get rolling, then back to idle. Steer with the tiller: comma and full stop keys, or the left and right arrows. Follow the green centreline lights to the holding point and keep the speed below 20 knots. Use B to brake.", hl: () => S.lt.nose < 1 ? 'nose' : S.parkBrake ? 'parkbrk' : null, done: () => near(HOLD_27R.x, HOLD_27R.z, 45) && S.gs < 5, items: [['NOSE light TAXI', () => S.lt.nose >= 1], ['PARK BRK off', () => !S.parkBrake], ['At holding point A1', () => near(HOLD_27R.x, HOLD_27R.z, 45)]], doit: () => { autoTaxi(); }, skipDo: () => { S.lt.nose = Math.max(S.lt.nose, 1); S.parkBrake = false; } });
-  ST({ ph: 'Before take-off', title: 'Line up', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, runway 27 right, line up and wait.', 'Line up and wait 27 right, Albion 324.'], text: "We're on Tower now. Lights for take-off: STROBE on, LAND lights on, NOSE light to T.O. Set the TCAS selector on the ATC panel to TA/RA so the transponder is fully on. Then taxi onto the runway and line up on the centreline, heading 270, close to the threshold markings.", hl: () => S.lt.strobe < 2 ? 'strobe' : !S.lt.land ? 'land' : S.lt.nose < 2 ? 'nose' : S.xpdr.tcas < 2 ? 'tcas' : null, done: () => S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(1560, -850, 70) && hdgNear(270, 6) && S.gs < 8, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 27R', () => near(1560, -850, 70) && hdgNear(270, 6)]], doit: () => { S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(1560, -850, 270); S.parkBrake = false; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, seats for take-off.'); showATC('Captain (PA)', 'Cabin crew, seats for take-off.'); }, 6000) });
+  ST({ ph: 'Before take-off', title: 'Line up', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, runway 27 right, line up and wait.', 'Line up and wait 27 right, Albion 324.'], text: "We're on Tower now. Lights for take-off: STROBE on, LAND lights on, NOSE light to T.O. Set the TCAS selector on the ATC panel to TA/RA so the transponder is fully on. Then taxi onto the runway and line up on the centreline, heading 270, close to the threshold markings.", hl: () => S.lt.strobe < 2 ? 'strobe' : !S.lt.land ? 'land' : S.lt.nose < 2 ? 'nose' : S.xpdr.tcas < 2 ? 'tcas' : null, done: () => S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(1560, -850, 70) && hdgNear(270, 6) && S.gs < 8, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 27R', () => near(1560, -850, 70) && hdgNear(270, 6)]], doit: () => { S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(1560, -850, 270); S.parkBrake = false; }, enter: () => afterCurrentStep(6000, () => { Audio2.pa('Cabin crew, seats for take-off.'); showATC('Captain (PA)', 'Cabin crew, seats for take-off.'); }) });
   // ===== TAKE-OFF =====
   ST({ ph: 'Take-off', title: 'Cleared for take-off', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, wind 250 degrees 8 knots, runway 27 right, cleared for take-off.', 'Cleared for take-off 27 right, Albion 324.'], text: "Hold the brakes, push the thrust levers to about 50 percent and let the engines stabilise, then all the way to the FLX MCT detent. Press Shift F, or drag the levers. Keep the centreline with the rudder: Z and X. I'll call the speeds.", hl: 'thrust', done: () => S.tl.every(t => t >= DET.FLX - 0.02) && !S.parkBrake, doit: () => { S.parkBrake = false; S.tl = [DET.FLX, DET.FLX]; } });
   ST({ ph: 'Take-off', title: 'Rotate', text: "At rotate, pull the sidestick back smoothly, about 3 degrees per second, towards 15 degrees nose up. Use the down arrow or S key. Keep gentle back pressure as we climb; releasing it immediately after lift-off can let the aircraft settle. Follow the green flight director bars on your PFD.", hl: 'sidestick', done: () => !S.onGround && S.ra > 35, quiet: true });
@@ -3901,12 +3933,12 @@ const Tut = (() => {
   ST({ ph: 'Approach', title: 'Flaps 1', text: "Speed is reducing towards green dot. Flaps 1, press F.", hl: 'flaps', done: () => S.flapLever >= 1, doit: () => S.flapLever = 1, wait: () => S.ias < 222 });
   ST({ ph: 'Approach', title: 'Flaps 2', text: "Below 200 knots, flaps 2.", hl: 'flaps', done: () => S.flapLever >= 2, doit: () => S.flapLever = 2, wait: () => S.ias < 205 || S.ap.lat.startsWith('LOC') });
   ST({ ph: 'Approach', title: 'Gear down', text: "Localiser alive. Gear down, press G. Hear the gear coming down and the extra wind noise.", hl: 'gear', done: () => S.gearLever === 1, doit: () => setGear(1), wait: () => S.ap.lat.startsWith('LOC') || S.ap.vert.startsWith('G/S') || S.ra < 3000 });
-  ST({ ph: 'Approach', title: 'Flaps 3 and FULL', text: "Flaps 3, then flaps FULL as the speed allows. Check the ground spoilers are armed and set AUTO BRAKE MED.", hl: () => S.flapLever < 4 ? 'flaps' : !S.sbArmed ? 'spoilers' : 'ab_MED', done: () => S.flapLever === 4 && S.sbArmed && S.autobrake === 2, items: [['FLAPS FULL', () => S.flapLever === 4], ['GND SPLRS armed', () => S.sbArmed], ['AUTO BRK MED', () => S.autobrake === 2]], doit: () => { S.flapLever = 4; S.sbArmed = true; S.autobrake = 2; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, seats for landing.'); showATC('Captain (PA)', 'Cabin crew, seats for landing.'); }, 4000) });
+  ST({ ph: 'Approach', title: 'Flaps 3 and FULL', text: "Flaps 3, then flaps FULL as the speed allows. Check the ground spoilers are armed and set AUTO BRAKE MED.", hl: () => S.flapLever < 4 ? 'flaps' : !S.sbArmed ? 'spoilers' : 'ab_MED', done: () => S.flapLever === 4 && S.sbArmed && S.autobrake === 2, items: [['FLAPS FULL', () => S.flapLever === 4], ['GND SPLRS armed', () => S.sbArmed], ['AUTO BRK MED', () => S.autobrake === 2]], doit: () => { S.flapLever = 4; S.sbArmed = true; S.autobrake = 2; }, enter: () => afterCurrentStep(4000, () => { Audio2.pa('Cabin crew, seats for landing.'); showATC('Captain (PA)', 'Cabin crew, seats for landing.'); }) });
   ST({ ph: 'Landing', title: 'Cleared to land', freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 324, Charles de Gaulle Tower, wind 250 degrees 8 knots, runway 26 right, cleared to land.', 'Cleared to land 26 right, Albion 324.'], text: "Landing memo all green. Stabilised. Your choice now: keep both autopilots in for an automatic landing, or press Q at 'minimum' and fly it yourself. To hand-fly, keep the flight path vector on the runway, and at 30 feet pull gently to flare and reduce the thrust to idle when you hear 'retard'.", done: () => S.onGround && S.touchdown, quiet: false, wait: () => S.gs_.valid && S.ap.vert.startsWith('G/S') || S.ra < 1500 });
   ST({ ph: 'Landing', title: 'Reverse thrust', text: "Touchdown! Thrust levers to idle and then reverse: hold Page Down or press R. Keep straight with the rudder.", hl: 'thrust', done: () => S.rev.some(r => r > 0.8) || S.gs < 50, doit: () => S.tl = [-1, -1] });
   ST({ ph: 'Landing', title: 'Slow down', text: "Seventy knots. Reverse idle, thrust levers back to idle with Page Up or I. Brake to walking pace with B.", hl: 'thrust', done: () => S.gs < 20 && S.tl.every(t => t >= -0.01), doit: () => S.tl = [0, 0], wait: () => S.gs < 75 });
   // ===== AFTER LANDING =====
-  ST({ ph: 'After landing', title: 'After landing', text: "Welcome to Paris. Bring the aircraft to a stop with the brakes. After landing: flaps up, disarm the spoilers, STROBE to AUTO, landing lights off.", hl: () => S.flapLever ? 'flaps' : S.sbArmed ? 'spoilers' : S.lt.strobe === 2 ? 'strobe' : 'land', done: () => S.gs < 1 && S.flapLever === 0 && !S.sbArmed && S.lt.strobe < 2 && !S.lt.land, items: [['Stopped', () => S.gs < 1], ['FLAPS 0', () => S.flapLever === 0], ['SPLRS disarmed', () => !S.sbArmed], ['STROBE AUTO', () => S.lt.strobe < 2], ['LAND lights off', () => !S.lt.land]], doit: () => { S.flapLever = 0; S.sbArmed = false; S.sbLever = 0; S.lt.strobe = 1; setLandingLights(1); }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, disarm doors and cross check.'); showATC('Captain (PA)', 'Cabin crew, disarm doors and cross check.'); }, 5000) });
+  ST({ ph: 'After landing', title: 'After landing', text: "Welcome to Paris. Bring the aircraft to a stop with the brakes. After landing: flaps up, disarm the spoilers, STROBE to AUTO, landing lights off.", hl: () => S.flapLever ? 'flaps' : S.sbArmed ? 'spoilers' : S.lt.strobe === 2 ? 'strobe' : 'land', done: () => S.gs < 1 && S.flapLever === 0 && !S.sbArmed && S.lt.strobe < 2 && !S.lt.land, items: [['Stopped', () => S.gs < 1], ['FLAPS 0', () => S.flapLever === 0], ['SPLRS disarmed', () => !S.sbArmed], ['STROBE AUTO', () => S.lt.strobe < 2], ['LAND lights off', () => !S.lt.land]], doit: () => { S.flapLever = 0; S.sbArmed = false; S.sbLever = 0; S.lt.strobe = 1; setLandingLights(1); }, enter: () => afterCurrentStep(5000, () => { Audio2.pa('Cabin crew, disarm doors and cross check.'); showATC('Captain (PA)', 'Cabin crew, disarm doors and cross check.'); }) });
   ST({ ph: 'Shutdown', title: 'Shutdown', text: "Ground will tow us to the stand. Parking brake on, both ENG MASTERS off, then BEACON off and SEAT BELTS off.", hl: () => !S.parkBrake ? 'parkbrk' : S.eng[0].master ? 'eng1' : S.eng[1].master ? 'eng2' : S.lt.beacon ? 'beacon' : 'belts', done: () => S.parkBrake && !S.eng[0].master && !S.eng[1].master && !S.lt.beacon && !S.lt.belts, items: [['PARK BRK on', () => S.parkBrake], ['ENG 1 off', () => !S.eng[0].master], ['ENG 2 off', () => !S.eng[1].master], ['BEACON off', () => !S.lt.beacon], ['SEAT BELTS off', () => !S.lt.belts]], doit: () => { S.parkBrake = true; S.eng[0].master = S.eng[1].master = false; S.lt.beacon = false; S.lt.belts = false; } });
   ST({ ph: 'Debrief', title: 'Debrief', text: "That's the end of the flight. Well done. Here's your debrief.", manual: false, done: () => false, enter: () => setTimeout(() => showDebrief(), 3500) });
 
@@ -3950,6 +3982,7 @@ const Tut = (() => {
   function hlOf(st) { if (!st || !st.hl) return null; return typeof st.hl === 'function' ? st.hl() : st.hl; }
   function goto(i) {
     Audio2.stopVoice();
+    entrySerial++;
     const prev = cur(); if (prev && prev.exit) prev.exit();
     idx = i; stepT = 0; spoken = false; events.clear();
     const st = cur(); if (!st) return;
@@ -3959,13 +3992,14 @@ const Tut = (() => {
   }
   function enterStep(st) {
     st._waiting = false; st._entered = true;
+    const serial = entrySerial;
     if (st.enter) st.enter();
     if (st.freq) { if (S.rmp.act !== st.freq) { S.rmp.stby = S.rmp.act; S.rmp.act = st.freq; } }
-    if (st.atc) { showATC(st.who || 'ATC', st.atc[0], st.freq); Audio2.say(st.atc[0], 'atc', () => { setTimeout(() => { Audio2.say(st.atc[1], 'capt', () => speak(st)); }, 300); }); }
+    if (st.atc) { showATC(st.who || 'ATC', st.atc[0], st.freq); Audio2.say(st.atc[0], 'atc', () => { if (serial !== entrySerial || !active) return; setTimeout(() => { if (serial !== entrySerial || !active) return; Audio2.say(st.atc[1], 'capt', () => speak(st)); }, 300); }); }
     else speak(st);
     onUI && onUI();
   }
-  function speak(st) { if (st !== cur()) return; Audio2.say(st.text, 'capt'); }
+  function speak(st) { if (st !== cur() || !active) return; Audio2.say(st.text, 'capt'); }
   function update(dt) {
     callouts();
     if (!active) return; const st = cur(); if (!st) return; stepT += dt;
@@ -3989,10 +4023,10 @@ const Tut = (() => {
     if (S.onGround && S.touchdown && !calls.s70 && S.gs < 72 && S.gs > 60) { calls.s70 = 1; Audio2.say('Seventy knots.', 'capt'); }
   }
   return {
-    setRoute(id) { steps = id === 'return' ? returnSteps : outboundSteps; idx = -1; active = false; calls = {}; events.clear(); CK.highlightId = null; onUI && onUI(); },
+    setRoute(id) { Audio2.stopVoice(); entrySerial++; steps = id === 'return' ? returnSteps : outboundSteps; idx = -1; active = false; calls = {}; events.clear(); CK.highlightId = null; onUI && onUI(); },
     get steps() { return steps; }, get idx() { return idx; }, get active() { return active; }, captainOn: true,
     start(i = 0) { active = true; calls = {}; goto(i); },
-    stop() { active = false; CK.highlightId = null; onUI && onUI(); },
+    stop() { Audio2.stopVoice(); entrySerial++; active = false; CK.highlightId = null; onUI && onUI(); },
     next() { jump(idx + 1); }, prev() { jump(idx - 1); }, jump,
     cont() { events.add('continue'); },
     doit() { const st = cur(); if (st && st._waiting) { setupAt(st.at); enterStep(st); return; } if (st && st.doit) { st.doit(); Audio2.click(); } else events.add('continue'); },
@@ -4420,6 +4454,7 @@ function setupInput() {
         h.wheel(d * (e.shiftKey ? 10 : 1)); Audio2.click(); h.panel.sig = ''; updateScreens(); showTip(h); return; }
       const fittedFov = VIEW.overview || VIEW.preset === 'instruments' ? fullPanelFov()
         : VIEW.preset === 'pedestal' ? pedestalFov()
+        : VIEW.preset === 'mcdu' ? 43
         : VIEW.preset === 'overhead' ? 76 : 22;
       if (dir > 0 && VIEW.fov <= fittedFov) {
         if (performance.now() - (VIEW._fitNotice || 0) > 3000) {
@@ -4684,6 +4719,10 @@ function setupUI() {
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
   VIEW.overview = false; VIEW.preset = null; VIEW.offset = null;
+  if (id.startsWith('mcdu_')) {
+    VIEW.lookTo = null; VIEW.preset = 'mcdu'; VIEW.offset = new THREE.Vector3(.52, -.34, -.05);
+    VIEW.tyaw = 0; VIEW.tpitch = -37; VIEW.fov = 43; syncCaptainPanel(); return;
+  }
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
   VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }

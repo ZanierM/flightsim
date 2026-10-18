@@ -376,6 +376,7 @@ function setupInput() {
         h.wheel(d * (e.shiftKey ? 10 : 1)); Audio2.click(); h.panel.sig = ''; updateScreens(); showTip(h); return; }
       const fittedFov = VIEW.overview || VIEW.preset === 'instruments' ? fullPanelFov()
         : VIEW.preset === 'pedestal' ? pedestalFov()
+        : VIEW.preset === 'mcdu' ? 43
         : VIEW.preset === 'overhead' ? 76 : 22;
       if (dir > 0 && VIEW.fov <= fittedFov) {
         if (performance.now() - (VIEW._fitNotice || 0) > 3000) {
@@ -640,6 +641,10 @@ function setupUI() {
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
   VIEW.overview = false; VIEW.preset = null; VIEW.offset = null;
+  if (id.startsWith('mcdu_')) {
+    VIEW.lookTo = null; VIEW.preset = 'mcdu'; VIEW.offset = new THREE.Vector3(.52, -.34, -.05);
+    VIEW.tyaw = 0; VIEW.tpitch = -37; VIEW.fov = 43; syncCaptainPanel(); return;
+  }
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
   VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }
