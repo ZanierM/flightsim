@@ -1,5 +1,39 @@
 // ---------- Main: renderer, views, input, UI, scenarios ----------
-let renderer, wScene, wCam, sky, clouds, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
+let renderer, wScene, wCam, sky, clouds, cities, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
+const GRAPHICS_PRESETS = {
+  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings and clouds, with cockpit shadows off. Best for slower devices.' },
+  balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows at a moderate render resolution.' },
+  high: { pixelRatio: 2, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows, with a sharper image on high-density displays.' }
+};
+const GRAPHICS_KEY = 'flightsim.graphicsQuality';
+function savedGraphicsQuality() {
+  try { const value = localStorage.getItem(GRAPHICS_KEY); if (Object.hasOwn(GRAPHICS_PRESETS, value)) return value; } catch (e) { }
+  return 'balanced';
+}
+let graphicsQuality = savedGraphicsQuality(), graphicsFrames = 0, graphicsTime = 0, graphicsFps = 0;
+function updateGraphicsPanel() {
+  if (!$('graphics')) return;
+  const preset = GRAPHICS_PRESETS[graphicsQuality];
+  $('graphicsPreset').value = graphicsQuality;
+  $('graphicsDescription').textContent = preset.description;
+  const ratio = Math.min(window.devicePixelRatio || 1, preset.pixelRatio);
+  $('graphicsStats').textContent = `${graphicsFps || '—'} FPS · ${Math.round(window.innerWidth * ratio)} × ${Math.round(window.innerHeight * ratio)} render pixels · ${cities ? cities.count.toLocaleString() : '—'} buildings · ${clouds ? clouds.geometry.instanceCount.toLocaleString() : '—'} cloud puffs`;
+}
+function applyGraphicsQuality(value) {
+  if (!Object.hasOwn(GRAPHICS_PRESETS, value)) return;
+  graphicsQuality = value;
+  try { localStorage.setItem(GRAPHICS_KEY, value); } catch (e) { }
+  const preset = GRAPHICS_PRESETS[value];
+  if (renderer) { renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, preset.pixelRatio)); onResize(); }
+  if (cities) cities.count = Math.min(cities.userData.fullCount, preset.cities);
+  if (clouds) { clouds.userData.density = preset.clouds; clouds.userData.sort(wCam.position); }
+  if (CK.sunLight && CK.sunLight.castShadow !== preset.shadows) {
+    CK.sunLight.castShadow = preset.shadows;
+    CK.scene.traverse(o => { if (o.isMesh) { const mats = Array.isArray(o.material) ? o.material : [o.material]; mats.forEach(m => { if (m) m.needsUpdate = true; }); } });
+    renderer.shadowMap.needsUpdate = true;
+  }
+  updateGraphicsPanel();
+}
 const VIEW = { mode: 'cockpit', yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
@@ -22,7 +56,7 @@ function closeDialog(id) {
   if (!$('menu').hidden) menuBackgroundInert(true);
   if (dialogPreviousFocus && dialogPreviousFocus.isConnected) dialogPreviousFocus.focus(); dialogPreviousFocus = null;
 }
-function activeDialog() { return ['help', 'voices', 'debrief'].find(id => !$(id).hidden); }
+function activeDialog() { return ['help', 'voices', 'graphics', 'debrief'].find(id => !$(id).hidden); }
 
 function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, ms); }
 function showATC(who, msg, freq) { const a = $('radio'); a.querySelector('.who').textContent = who + (freq ? ' · ' + (freq / 1000).toFixed(3) : ''); a.querySelector('.msg').textContent = msg; a.hidden = false; a.classList.remove('flash'); void a.offsetWidth; a.classList.add('flash'); clearTimeout(a._h); a._h = setTimeout(() => a.hidden = true, Math.max(6000, msg.length * 90)); }
@@ -33,7 +67,7 @@ async function boot() {
   prog('Loading cockpit fonts', 0.03); await nextFrame();
   try { await Promise.race([Promise.all([document.fonts.load('16px "B612 Mono"'), document.fonts.load('bold 16px "B612"')]), new Promise(r => setTimeout(r, 2500))]); } catch (e) { }
   renderer = new THREE.WebGLRenderer({ canvas: $('gl'), antialias: true, logarithmicDepthBuffer: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5)); renderer.autoClear = false; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.autoClear = false; renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   wScene = new THREE.Scene(); wCam = new THREE.PerspectiveCamera(62, 1, 0.3, 2.5e6);
   const el = 26 * D2R, az = 218 * D2R; W.sunDir.set(Math.sin(az) * Math.cos(el), Math.sin(el), -Math.cos(az) * Math.cos(el)).normalize();
   W.hazeCol.setRGB(0.70, 0.765, 0.84); W.skyCol.setRGB(0.42, 0.58, 0.86);
@@ -47,7 +81,7 @@ async function boot() {
   prog('Building Heathrow and Charles de Gaulle', 0.50); await nextFrame();
   sky = buildSky(wScene); buildAirports(wScene);
   prog('Building London and Paris', 0.62); await nextFrame();
-  buildCities(wScene);
+  cities = buildCities(wScene);
   prog('Forming cumulus clouds', 0.72); await nextFrame();
   clouds = buildClouds(wScene);
   prog('Rolling the A320 out of the hangar', 0.80); await nextFrame();
@@ -68,6 +102,7 @@ async function boot() {
   prog('Wiring the flight deck', 0.88); await nextFrame();
   ['pfd', 'nd', 'ewd', 'sd'].forEach(n => du(n, 512, 512)); DU.pfd2 = DU.pfd; DU.nd2 = DU.nd;
   buildCockpit(); CK.panels.forEach(p => p.redraw(true));
+  applyGraphicsQuality(graphicsQuality);
   prog('Ready', 1); await nextFrame();
   onResize(); window.addEventListener('resize', onResize);
   setupInput(); setupUI();
@@ -77,6 +112,7 @@ async function boot() {
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
   wCam.aspect = w / h; wCam.updateProjectionMatrix(); if (CK.cam) { CK.cam.aspect = w / h; CK.cam.updateProjectionMatrix(); }
+  updateGraphicsPanel();
 }
 
 // ---------------- scenarios ----------------
@@ -323,7 +359,9 @@ function readControls(dt) {
 const _q = new THREE.Quaternion(), _hq = new THREE.Quaternion(), _v = new THREE.Vector3(), _e2 = new THREE.Euler();
 function loop(t) {
   requestAnimationFrame(loop);
-  const dt = Math.min(0.05, (t - lastT) / 1000 || 0.016); lastT = t; frameN++;
+  const elapsed = (t - lastT) / 1000 || 0.016, dt = Math.min(0.05, elapsed); lastT = t; frameN++;
+  graphicsFrames++; graphicsTime += elapsed;
+  if (graphicsTime >= 1) { graphicsFps = Math.round(graphicsFrames / graphicsTime); graphicsFrames = 0; graphicsTime = 0; if (!$('graphics').hidden) updateGraphicsPanel(); }
   if (started && !paused) {
     readControls(dt);
     const H = 1 / 120; const tc = S.onGround ? 1 : timeComp; accum += dt * tc; let n = 0;
@@ -440,6 +478,10 @@ function setupUI() {
   document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
   $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
   $('btnHelp').onclick = () => openDialog('help');
+  $('btnGraphics').onclick = $('menuGraphics').onclick = () => { updateGraphicsPanel(); openDialog('graphics'); };
+  $('graphicsClose').onclick = () => closeDialog('graphics');
+  $('graphics').onclick = e => { if (e.target.id === 'graphics') closeDialog('graphics'); };
+  $('graphicsPreset').onchange = e => applyGraphicsQuality(e.target.value);
   $('help').onclick = (e) => { if (e.target.id === 'help' || e.target.classList.contains('close')) closeDialog('help'); };
   $('btnView').onclick = () => cycleView();
   $('btnCockpit').onclick = () => $('controlDrawer').hidden ? openControlDrawer() : closeControlDrawer();

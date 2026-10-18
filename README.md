@@ -38,6 +38,10 @@ Press **H** in the simulator for the full list. Press **F2** to search cockpit c
 
 The captain, ATC and callouts use your browser's speech voices. Open **Voices** in the top bar to choose them. Names containing Natural, Premium, Enhanced or Google sound the most human. On a Mac you can download better voices in System Settings → Accessibility → Spoken Content → System voice → Manage Voices.
 
+## Graphics quality
+
+Open **Graphics** from the start menu or the top bar. **Balanced** keeps the original scenery and cockpit shadows. **Performance** renders at up to 1× device resolution, draws fewer buildings and clouds, and disables cockpit shadows. **High** keeps full scenery and renders at up to 2× device resolution for sharper detail on high-density displays. Changes take effect immediately and the preset is saved in your browser. The panel shows the current frame rate and render size to help you choose.
+
 ## Source
 
 `src/` holds the modules, which `build.py` combines into the single `index.html`:

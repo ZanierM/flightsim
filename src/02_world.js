@@ -461,10 +461,18 @@ void main(){
   });
   const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; mesh.renderOrder = 5; scene.add(mesh);
   // depth sort (far to near) periodically
-  const dists = new Float32Array(N); const order = new Uint32Array(N);
+  const dists = new Float32Array(N);
+  mesh.userData.density = 1;
   mesh.userData.sort = (cam) => {
-    for (let i = 0; i < N; i++) { const p = puffs[i]; dists[i] = (p[0] - cam.x) ** 2 + (p[1] - cam.y) ** 2 + (p[2] - cam.z) ** 2; order[i] = i; }
-    const arr = Array.from(order).sort((a, b) => dists[b] - dists[a]); fill(arr); ia.needsUpdate = true; ic.needsUpdate = true;
+    const visible = Math.max(1, Math.round(N * mesh.userData.density));
+    const order = new Array(visible);
+    for (let i = 0; i < visible; i++) {
+      const pi = Math.floor(i * N / visible), p = puffs[pi];
+      dists[pi] = (p[0] - cam.x) ** 2 + (p[1] - cam.y) ** 2 + (p[2] - cam.z) ** 2;
+      order[i] = pi;
+    }
+    order.sort((a, b) => dists[b] - dists[a]); fill(order);
+    geo.instanceCount = visible; ia.needsUpdate = true; ic.needsUpdate = true;
   };
   return mesh;
 }
@@ -724,7 +732,7 @@ function buildCities(scene) {
     m.compose(p, q, s); mesh.setMatrixAt(n, m);
     const g = 0.62 + r() * 0.3; col.setRGB(g, g * (0.95 + r() * .05), g * (0.9 + r() * .1)); mesh.setColorAt(n, col); n++;
   }
-  mesh.count = n; mesh.frustumCulled = false; scene.add(mesh);
+  mesh.count = n; mesh.userData.fullCount = n; mesh.frustumCulled = false; scene.add(mesh);
   // the Eiffel Tower and a few landmarks as simple forms
   const ef = ll(48.8584, 2.2945); const eg = new THREE.Group(); const em = new THREE.MeshLambertMaterial({ color: 0x5a4a3a });
   const legs = new THREE.CylinderGeometry(6, 62, 115, 4, 1, true); const l1 = new THREE.Mesh(legs, em); l1.position.y = 57; l1.rotation.y = Math.PI / 4; eg.add(l1);
