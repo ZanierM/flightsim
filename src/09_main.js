@@ -44,6 +44,8 @@ function fullPanelFov() { return clamp(2 * Math.atan(1.45 / (1.43 * window.inner
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
 let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
+let captainManualSize = null, captainRenderedStep = null;
+let captainDockRight = (() => { try { return localStorage.getItem('flightsim.captainDock') === 'right'; } catch (e) { return false; } })();
 function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
 function routePreview() { return ROUTES[$('routeSelect').value] || activeRoute; }
 function routeText(route) { return route.plan.map((p, i) => i === 0 ? `${route.from.icao} ${route.depRwy.name}` : i === route.plan.length - 1 ? `${route.to.icao} ${route.arrRwy.name}` : p.name); }
@@ -81,7 +83,6 @@ function retryApproach() {
   if (window.speechSynthesis) speechSynthesis.cancel();
   Audio2.init(); Tut.setRoute(activeRoute.id); scenario('approach');
   started = true; paused = false; timeComp = 1; accum = 0; VIEW.mode = 'cockpit';
-  $('captain').classList.remove('min');
 }
 function openDialog(id) {
   if (id === 'briefing') { renderBriefing($('menu').hidden ? activeRoute : routePreview()); if (started) { briefingWasPaused = paused; paused = true; } }
@@ -153,7 +154,7 @@ function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
   if (VIEW.overview) VIEW.fov = fullPanelFov();
   wCam.aspect = w / h; wCam.updateProjectionMatrix(); if (CK.cam) { CK.cam.aspect = w / h; CK.cam.updateProjectionMatrix(); }
-  updateGraphicsPanel();
+  updateGraphicsPanel(); syncCaptainPanel();
 }
 
 // ---------------- scenarios ----------------
@@ -184,6 +185,7 @@ function scenario(name, tutorialFrom, quiet) {
   }
   updQuat(); stepSystems(0.001); updNav(); stepFlight(0.0001);
   if (quiet) return;
+  captainManualSize = null; captainRenderedStep = null;
   Tut.captainOn = name !== 'free';
   const startIdx = { cold: 0, runway: Tut.find('Cleared for take-off'), cruise: Tut.find('Cruise'), approach: Tut.find('Arm the approach') }[name];
   if (name === 'free') Tut.stop(); else Tut.start(tutorialFrom ?? startIdx ?? 0);
@@ -594,7 +596,8 @@ function setupUI() {
   $('tDo').onclick = () => Tut.doit();
   $('tRepeat').onclick = () => Tut.repeat();
   $('tNext').onclick = () => Tut.next(); $('tPrev').onclick = () => Tut.prev();
-  $('tMin').onclick = () => $('captain').classList.toggle('min');
+  $('tMin').onclick = () => { captainManualSize = !$('captain').classList.contains('min'); syncCaptainPanel(); };
+  $('tDock').onclick = () => { captainDockRight = !captainDockRight; try { localStorage.setItem('flightsim.captainDock', captainDockRight ? 'right' : 'left'); } catch (e) { } syncCaptainPanel(); };
   $('debriefClose').onclick = () => closeDialog('debrief');
   $('debriefMenu').onclick = () => { closeDialog('debrief'); openMenu(); };
   Tut.onUI = renderTutUI;
@@ -610,28 +613,98 @@ function lookAtHot(id) {
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
   VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }
+const CAPTAIN_ACTIONS = {
+  'Welcome aboard': () => 'Review the flight briefing, then continue when ready.',
+  'Batteries on': () => 'Switch BAT 1 and BAT 2 on.',
+  'APU master switch': () => 'Press APU MASTER SW on the overhead panel.',
+  'APU start': () => 'Press APU START after the intake flap opens.',
+  'Waiting for the APU': () => 'Wait for the green APU AVAIL light.',
+  'APU bleed': () => 'Switch APU BLEED on.',
+  'Align the inertial reference': () => 'Turn all three ADIRS selectors to NAV.',
+  'Lights and signs': () => 'Set NAV & LOGO lights and SEAT BELTS on.',
+  'MCDU: INIT page': () => 'Open the INIT page on the MCDU.',
+  'Load the company route': () => `Enter ${activeRoute.company} into CO RTE.`,
+  'Flight number and cruise level': () => `Enter ${activeRoute.flightNumber}, cost index 30 and FL250.`,
+  'Check the flight plan': () => `Review ${activeRoute.from.icao} to ${activeRoute.to.icao} on F-PLN.`,
+  'Take-off performance': () => 'Enter V1 142, VR 145, V2 149, flaps 1 and FLEX 55.',
+  'Altimeter setting': () => `Set departure QNH ${activeRoute.from.qnh}.`,
+  'Initial altitude': () => 'Set 6000 feet on the FCU altitude selector.',
+  'Take-off configuration': () => 'Set flaps 1, arm spoilers and AUTO BRK MAX.',
+  'Clearance': () => 'Switch on BEACON and set squawk 4521.',
+  'Release the parking brake': () => 'Release the parking brake for pushback.',
+  'Ignition': () => 'Set ENG MODE to IGN START.',
+  'Start engine 2': () => 'Set ENG 2 MASTER on and wait for stable indications.',
+  'Start engine 1': () => 'Set ENG 1 MASTER on and wait for stable indications.',
+  'After start': () => 'Set parking brake, ENG MODE NORM, then switch off APU BLEED and MASTER.',
+  'Take-off config test': () => 'Press T.O CONFIG and clear any reported fault.',
+  'Taxi to 27R': () => `Follow the green centreline lights to ${activeRoute.depRwy.name}.`,
+  'Taxi to 26R': () => `Follow the green centreline lights to ${activeRoute.depRwy.name}.`,
+  'Line up': () => `Set take-off lights and TCAS, then line up on ${activeRoute.depRwy.name}.`,
+  'Cleared for take-off': () => 'Advance both thrust levers to FLX MCT.',
+  'Rotate': () => 'At VR, pull back smoothly towards 15° nose up.',
+  'Gear up': () => 'With a positive climb, raise the landing gear.',
+  'Autopilot': () => 'Above 300 feet, engage AP1.',
+  'Thrust reduction': () => 'At thrust reduction altitude, move both levers to CL.',
+  'Flaps up': () => 'Above green S speed, retract flaps to zero.',
+  'Climb to FL250': () => 'Set FL250, push for managed climb and select BARO STD.',
+  'Passing 10,000 feet': () => 'Switch the landing lights off.',
+  'Cruise': () => 'Monitor FL250 and the route across the Channel.',
+  'Start descent': () => 'Set 11000 feet and push for managed descent.',
+  'Approach briefing': () => `Review the ILS briefing for ${activeRoute.to.icao} ${activeRoute.arrRwy.name}.`,
+  'Descend to 4000 feet': () => `Set 4000 feet, QNH ${activeRoute.to.qnh} and landing lights on.`,
+  'Arm the approach': () => 'Show LS scales, arm APPR and engage AP2.',
+  'Flaps 1': () => 'Set flaps 1 as the speed reduces.',
+  'Flaps 2': () => 'Below 200 knots, set flaps 2.',
+  'Gear down': () => 'Lower the landing gear.',
+  'Flaps 3 and FULL': () => 'Set flaps FULL, arm spoilers and AUTO BRK MED.',
+  'Cleared to land': () => `Monitor the ILS and land on ${activeRoute.arrRwy.name}.`,
+  'Reverse thrust': () => 'After touchdown, select reverse thrust.',
+  'Slow down': () => 'Return thrust to idle and brake to walking pace.',
+  'After landing': () => 'Stop, raise flaps, disarm spoilers and switch landing lights off.',
+  'Shutdown': () => 'Set parking brake, shut down both engines and switch off signs.',
+  'Debrief': () => 'Review your flight debrief.'
+};
+function captainAction(st) {
+  if (st._waiting) return waitingText(st);
+  const action = CAPTAIN_ACTIONS[st.title];
+  return action ? action() : st.text.split(/[.!?]/)[0] + '.';
+}
+function syncCaptainPanel() {
+  const box = $('captain'); if (!box) return;
+  box.classList.toggle('dock-right', captainDockRight); document.body.classList.toggle('captain-right', captainDockRight);
+  const compact = !$('controlDrawer').hidden || (captainManualSize === null ? window.innerWidth <= 600 && !S.onGround : captainManualSize);
+  box.classList.toggle('min', compact);
+  $('tMin').textContent = compact ? 'Expand' : 'Collapse'; $('tMin').setAttribute('aria-expanded', String(!compact));
+  $('tDock').textContent = captainDockRight ? 'Dock left' : 'Dock right';
+}
 function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
   if (!Tut.active || !st) { box.hidden = true; return; }
   box.hidden = false;
+  if (captainRenderedStep !== st) { $('tDetails').open = st.title === 'Welcome aboard' || st.title === 'Approach briefing'; captainRenderedStep = st; }
+  syncCaptainPanel();
   $('tPhase').textContent = st.ph; $('tStep').textContent = `${Tut.idx + 1} / ${Tut.steps.length}`;
   $('tTitle').textContent = st._waiting ? 'Stand by…' : st.title;
+  $('tCompactTitle').textContent = st._waiting ? `Stand by · ${st.title}` : st.title;
+  $('tCompactAction').textContent = captainAction(st);
+  $('tAction').textContent = captainAction(st);
   $('tText').textContent = st._waiting ? waitingText(st) : st.text;
+  $('tDetails').hidden = !!st._waiting;
   const items = $('tItems'); items.innerHTML = '';
   if (!st._waiting && st.items) st.items.forEach(([t, f]) => { const li = document.createElement('li'); li.textContent = t; if (f()) li.className = 'ok'; items.appendChild(li); });
   $('tContinue').hidden = !(st.manual && !st._waiting);
   $('tDo').hidden = !st.doit && !st._waiting; $('tDo').textContent = st._waiting ? 'Skip ahead' : 'Do it for me';
   $('tShow').hidden = !Tut.hlOf(st) || st._waiting;
-  const pct = (Tut.idx / (Tut.steps.length - 1)) * 100; $('tProg').style.width = pct + '%';
+  const pct = Tut.idx / (Tut.steps.length - 1); $('tProg').style.transform = `scaleX(${pct})`;
 }
 function waitingText(st) {
   if (st.title === 'Autopilot') return 'Climbing away. Keep the wings level and follow the flight director bars. We\'ll engage the autopilot above 300 feet.';
   if (st.title === 'Thrust reduction') return 'Keep climbing. At 1500 feet we\'ll reduce to climb thrust.';
   if (st.title === 'Flaps up') return 'Accelerating. Watch the speed tape for the green S.';
-  if (st.title === 'Passing 10,000 feet') return 'Climbing to flight level 250. Look out of the window: London is behind us on the left.';
+  if (st.title === 'Passing 10,000 feet') return 'Climbing to flight level 250. Watch the altitude tape for 10,000 feet.';
   if (st.title === 'Cruise') return 'Climbing to flight level 250.';
-  if (st.title === 'Descend to 4000 feet') return 'Descending to flight level 110. I\'ll tell you when Paris clears us lower.';
-  if (st.title === 'Arm the approach') return 'Following the arrival towards runway 26 right. Press T to speed up time.';
+  if (st.title === 'Descend to 4000 feet') return `Descending to flight level 110. I'll tell you when ${activeRoute.to.name} clears us lower.`;
+  if (st.title === 'Arm the approach') return `Following the arrival towards runway ${activeRoute.arrRwy.name}. Press T to speed up time.`;
   if (st.title === 'Cleared to land') return 'Established on the ILS. Monitor the speed and the glideslope.';
   return 'Monitoring. I\'ll call the next action.';
 }
