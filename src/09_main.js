@@ -1,9 +1,9 @@
 // ---------- Main: renderer, views, input, UI, scenarios ----------
 let renderer, wScene, wCam, sky, clouds, cities, vegetation, ground, model, shadowBlob, taxiLights, sunLight, hemiW;
 const GRAPHICS_PRESETS = {
-  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, shadows: false, description: 'Fewer buildings, trees and clouds, with cockpit shadows off. Best for slower devices.' },
-  balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows at a moderate render resolution.' },
-  high: { pixelRatio: 2, cities: 46000, clouds: 1, shadows: true, description: 'Full scenery and cockpit shadows, with a sharper image on high-density displays.' }
+  performance: { pixelRatio: 1, cities: 14000, clouds: 0.45, airportDetail: 1800, shadows: false, description: 'Fewer buildings and clouds; airport surface detail appears close to the aircraft. Best for slower devices.' },
+  balanced: { pixelRatio: 1.5, cities: 46000, clouds: 1, airportDetail: 5000, shadows: true, description: 'Full scenery and airport surface detail at a moderate render resolution.' },
+  high: { pixelRatio: 2, cities: 46000, clouds: 1, airportDetail: 10000, shadows: true, description: 'Full scenery and airport surface detail visible farther away, with a sharper image.' }
 };
 const GRAPHICS_KEY = 'flightsim.graphicsQuality';
 function savedGraphicsQuality() {
@@ -32,6 +32,7 @@ function applyGraphicsQuality(value) {
     vegetation.crowns.count = vegetation.trunks.count * 2;
   }
   if (clouds) { clouds.userData.density = preset.clouds; clouds.userData.sort(wCam.position); }
+  if (W.airportDetail && wCam) updateAirportDetail(wCam.position, preset.airportDetail);
   if (CK.sunLight && CK.sunLight.castShadow !== preset.shadows) {
     CK.sunLight.castShadow = preset.shadows;
     CK.scene.traverse(o => { if (o.isMesh) { const mats = Array.isArray(o.material) ? o.material : [o.material]; mats.forEach(m => { if (m) m.needsUpdate = true; }); } });
@@ -529,6 +530,7 @@ function render(dt) {
   wScene.fog.near = 1500 + camAlt * 0.6; wScene.fog.far = vis * 1.5 + camAlt * 2;
   sunLight.position.copy(cp).addScaledVector(W.sunDir, 1000); sunLight.target.position.copy(cp);
   if (frameN % 90 === 0) clouds.userData.sort(cp);
+  if (frameN % 30 === 0) updateAirportDetail(cp, GRAPHICS_PRESETS[graphicsQuality].airportDetail);
   taxiLights.visible = S.onGround && dist2(S.pos.x, S.pos.z, activeRoute.from.cx, activeRoute.from.cz) < 5500 && (!Tut.active || ['Taxi', 'Pushback and start', 'Before take-off'].includes((Tut.cur() || {}).ph));
   // PAPI colours
   for (const p of PAPIS) { const d = dist2(cp.x, cp.z, p.x, p.z); const ang = Math.atan2(cp.y - p.y, d) * R2D; p.lights.forEach(l => l.sp.material.color.setHex(ang > l.ang ? 0xffffff : 0xff2a1a)); }
