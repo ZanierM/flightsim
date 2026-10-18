@@ -62,6 +62,7 @@ button { font-family: var(--ui); }
 
 /* captain panel */
 #captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(400px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+@media (min-width: 601px) and (max-width: 1100px) { #looks { top: calc(52px + env(safe-area-inset-top, 0px)); } #captain { top: calc(92px + env(safe-area-inset-top, 0px)); } }
 #captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
 #captain .av { width: 34px; height: 34px; border-radius: 50%; background: #1d2a33; border: 1px solid var(--cyan); display: grid; place-items: center; font-weight: 700; color: var(--cyan); font-size: 13px; flex: none; }
 #captain .who { font-size: 12px; color: var(--dim); line-height: 1.2; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
@@ -129,7 +130,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #looks { display: none; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -159,6 +160,7 @@ button { font-family: var(--ui); }
 
 <div id="looks">
   <button class="btn look" data-look="0,-10">Forward</button>
+  <button class="btn look" data-view="full-panel">Full panel</button>
   <button class="btn look" data-look="-8,-34">Instruments</button>
   <button class="btn look" data-look="-18,-60">Pedestal</button>
   <button class="btn look" data-look="-22,58">Overhead</button>
