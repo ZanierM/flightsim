@@ -1,61 +1,61 @@
-# Flightdeck — Heathrow to Paris
+# A320 Heathrow to Paris
 
-A browser based, A320 inspired flight simulator prototype. Fly a guided training route from London Heathrow to Paris Charles de Gaulle with fourteen captain led lessons.
+A browser flight simulator. You fly an Airbus A320 from London Heathrow to Paris Charles de Gaulle, with a training captain who talks you through the whole flight, from cold and dark at the stand to engine shutdown in Paris.
 
-## Play locally
+## Play
 
-You need a modern browser with WebGL and Python 3. From the repository root:
+Open `index.html` in a modern desktop browser (Chrome, Edge, Safari or Firefox) with WebGL. Headphones and a keyboard are recommended. Three.js loads from cdnjs, so you need an internet connection.
 
-```sh
-python3 -m http.server 4173 --directory docs
-```
+To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `main` / root**. `index.html` is the entry point.
 
-Then visit <http://localhost:4173>. The simulator must be served over HTTP because it uses JavaScript modules. It has no build step or runtime API keys.
+## What's in it
 
-## Put this in a new GitHub repo
-
-1. Create an empty GitHub repository.
-2. Upload the **contents of this folder** to its root, keeping `docs/`, `tests/`, `.gitignore`, and this README at the top level. If uploading through GitHub's web UI, upload the unzipped files and preserve their folders. The archive itself is not the website.
-3. To host the simulator, open the repository's **Settings → Pages**, choose **Deploy from a branch**, then choose `main` and `/docs` and save. `docs/index.html` is the site's entry point. GitHub's instructions: <https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site>.
-
-GitHub Pages sites are public on the internet, including when the source repository is private on plans that support Pages for private repositories. Keep the repository private without enabling Pages if you want the simulator files private.
+- **3D flight deck**: working PFD, ND (LS, VOR, NAV, ARC and PLAN modes), upper and lower ECAM with 11 system pages, FCU with 7-segment windows, EFIS panels, MCDU, overhead panel, pedestal, standby horizon and clock. Every switch, knob and push button works.
+- **Systems**: APU, engine start sequence, electrics, hydraulics, bleed air, fuel pumps, fire test, flight-control computers and autobrake. Switching something off has a real effect and raises an amber ECAM caution.
+- **Flight model and automation**: fly-by-wire normal law with protections, autothrust, autopilot modes (SRS, CLB, DES, ALT, V/S, HDG, NAV, LOC, G/S), managed speeds and an automatic landing.
+- **Captain tutorial**: 48 step-locked lessons with voice, checklists and ATC. "Show me" turns your view to the control, "Do it for me" carries out the step, and skipping moves the aircraft to where that step happens.
+- **World**: scenery generated from real coastlines, rivers, towns and runway layouts for both airports. It is not satellite imagery.
 
 ## Controls
 
+Press **H** in the simulator for the full list.
+
 | Control | Action |
 | --- | --- |
-| ↑ / ↓ | Nose down / nose up |
-| ← / → | Roll, or steer while taxiing |
-| W / S | Increase / decrease thrust |
-| B | Hold wheel brakes |
-| G | Toggle landing gear |
-| F | Cycle flaps |
-| A | Toggle autopilot |
-| P | Pause |
-| H | Hide or show lesson panels |
-| 1–5 | Switch camera views |
+| ↑ ↓ ← → | Sidestick (W / S also pitch) |
+| Z / X | Rudder |
+| , / . | Nosewheel tiller |
+| PgUp / PgDn | Thrust levers |
+| Shift F / Shift T / Shift C / I | FLX, TOGA, CL, idle detents |
+| G, F / V, / | Gear, flaps, arm ground spoilers |
+| B, Shift B | Brakes, parking brake |
+| A, Q, Shift R | AP1, AP disconnect, autothrust |
+| Knobs | Scroll to turn, click to push, right-click to pull |
+| MCDU | Click its keys, or point at it and type |
+| C, T, P | Change view, time acceleration, pause |
 
-Drag to look around. On touch devices, open the **Controls** panel and use its flight buttons. **Flight plan** contains practice checkpoints and browser local save/resume.
+## Voices
 
-## Test
+The captain, ATC and callouts use your browser's speech voices. Open **Voices** in the top bar to choose them. Names containing Natural, Premium, Enhanced or Google sound the most human. On a Mac you can download better voices in System Settings → Accessibility → Spoken Content → System voice → Manage Voices.
 
-Node.js is needed only for the simulation checks:
+## Source
 
-```sh
-node tests/flight.mjs
-```
+`src/` holds the modules, which `build.py` combines into the single `index.html`:
 
-The checks cover assisted takeoff, climb, autopilot altitude capture, descent, approach, landing, gear up landing rejection, taxi, and pause. They verify the game's behavior, not real aircraft handling.
+| File | Contents |
+| --- | --- |
+| `00_util.js` | Maths, geodesy, noise, ISA atmosphere |
+| `01_data.js` | Coastlines, rivers, towns, airports, runways, flight plan |
+| `02_world.js` | Terrain, sky, clouds, airports, buildings |
+| `03_model.js` | Exterior A320 model |
+| `04_aircraft.js` | Flight model, systems, autopilot, warnings |
+| `05_displays.js` | PFD, ND, ECAM and MCDU rendering |
+| `06_cockpit.js` | 3D flight deck, panels and controls |
+| `07_audio.js` | Synthesised sound and speech |
+| `08_tutorial.js` | Captain tutorial |
+| `09_main.js` | Renderer, input, scenarios, UI |
+| `shell.html` | Page markup and styles |
 
-## What this prototype includes
+After editing anything in `src/`, run `python3 build.py`.
 
-- A real time Three.js cockpit with six instrument screens, an overhead panel, centre pedestal, five camera views, and clickable switches.
-- Captain guidance with state based checks and spoken instructions where browser voices are available.
-- Engine start interlocks, guided takeoff, route following autopilot, selected altitude and speed, approach, manual landing, rollout, shutdown, and debrief.
-- Synthesized engine and airflow sound, representative airports and terrain, and a CC0 photographic sky.
-
-## Scope and assets
-
-This is an entertainment prototype, not a certified flight training device or a study level A320. Cockpit geometry, avionics, aerodynamics, procedures, and airport scenery are approximate. The routing is fictional. Some transitions condense taxi, cruise, and arrival. There is no live ATC, real navigation database, or autoland. Voice quality depends on the browser and operating system.
-
-All browser dependencies are self hosted under `docs/vendor/`. See `docs/ASSET-CREDITS.txt` and the vendor license files. No credentials or existing hosting identity are included.
+No airline affiliation and no certified aircraft data. This is for learning and fun, not for training real pilots.
