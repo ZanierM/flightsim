@@ -333,7 +333,8 @@ function buildCockpit() {
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.6), floorM); floor.rotation.x = -Math.PI / 2; floor.position.set(0.52, -1.18, 0.2); add(floor, false);
   const back = new THREE.Mesh(new THREE.PlaneGeometry(3.0, 2.0), shellM); back.position.set(0.52, -0.3, 1.45); back.rotation.y = Math.PI; add(back);
   // glareshield
-  const gsTop = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.03, 0.30), glareM); gsTop.position.set(0.52, -0.152, -0.84); add(gsTop);
+  // The padded shelf should frame the FCU, not mask its top row at close angles.
+  const gsTop = new THREE.Mesh(new THREE.BoxGeometry(2.62, 0.03, 0.18), glareM); gsTop.position.set(0.52, -0.152, -0.90); add(gsTop);
   const brow = new THREE.Mesh(new THREE.CylinderGeometry(.034, .034, 2.60, 14), glareM); brow.rotation.z = Math.PI / 2; brow.position.set(0.52, -0.13, -0.80); add(brow);
   const gsFace = new THREE.Mesh(new THREE.PlaneGeometry(2.62, 0.17), glareM); gsFace.position.set(0.52, -0.218, -0.648); gsFace.rotation.x = -0.3; add(gsFace);
   // standby compass hanging from the centre post

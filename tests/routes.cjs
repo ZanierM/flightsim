@@ -5,7 +5,7 @@ const vm = require('node:vm');
 class Vector3 {}
 class Quaternion {}
 class Euler {}
-const context = vm.createContext({ THREE: { Vector3, Quaternion, Euler }, CK: {}, MCDU: { page: 'INIT', scratch: '' }, mcduClr() {}, fmsCheck() {} });
+const context = vm.createContext({ THREE: { Vector3, Quaternion, Euler }, CK: {}, Audio2: { stopVoice() {} }, MCDU: { page: 'INIT', scratch: '' }, mcduClr() {}, fmsCheck() {} });
 for (const file of ['src/00_util.js', 'src/01_data.js', 'src/04_aircraft.js', 'src/08_tutorial.js']) {
   vm.runInContext(fs.readFileSync(file, 'utf8'), context, { filename: file });
 }
