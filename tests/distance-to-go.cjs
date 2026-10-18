@@ -11,7 +11,7 @@ const evaluate = source => vm.runInContext(source, context);
 
 evaluate(`
   const NM = 1852;
-  const CDG = { rwys: [{ tx: 0, tz: 0 }] };
+  const activeRoute = { arrRwy: { tx: 0, tz: 0 } };
   const FPLAN = Array.from({ length: 10 }, (_, i) => ({ x: i === 8 ? -20000 : 0, z: 0 }));
   function dist2(x1, z1, x2, z2) { return Math.hypot(x2 - x1, z2 - z1); }
   S.pos.x = -10000; S.pos.z = 0; S.fms.wp = 8; S.ap.lat = 'NAV';

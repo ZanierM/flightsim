@@ -216,7 +216,7 @@ function drawND(d, dt, range) {
     txt(g, n.id, p[0] + 10, p[1] - 10, C.mag, 13, 'left');
   }
   // ILS course
-  if ((S.loc.dist < 40 * NM && S.fms.phase === 'APPROACH') || S.efisLS || mode === 'LS') { const r = ILS26R.rwy; const [a0, b0] = toScr(r.tx, r.tz), [a1, b1] = toScr(r.tx - r.dx * 25 * NM, r.tz - r.dz * 25 * NM); g.setLineDash([10, 6]); line(g, a0, b0, a1, b1, C.mag, 2); g.setLineDash([]); }
+  if ((S.loc.dist < 40 * NM && S.fms.phase === 'APPROACH') || S.efisLS || mode === 'LS') { const r = ACTIVE_ILS.rwy; const [a0, b0] = toScr(r.tx, r.tz), [a1, b1] = toScr(r.tx - r.dx * 25 * NM, r.tz - r.dz * 25 * NM); g.setLineDash([10, 6]); line(g, a0, b0, a1, b1, C.mag, 2); g.setLineDash([]); }
   // flight plan
   if (S.fms.coRte) {
     const fp = FPLAN; let px = null, py = null; const pts = []; fp.forEach((w, i) => { if (w.type !== 'ALT') pts.push([w, i]); });
@@ -236,7 +236,7 @@ function drawND(d, dt, range) {
     line(g, cx, cy - R - 16, cx, cy - R + 4, C.yellow, 4);
     const trkA = (S.trk - hdg) * D2R; g.strokeStyle = C.green; g.lineWidth = 2; const tx = cx + Math.sin(trkA) * (R - 6), ty = cy - Math.cos(trkA) * (R - 6); g.beginPath(); g.moveTo(tx, ty - 8); g.lineTo(tx - 5, ty); g.lineTo(tx, ty + 8); g.lineTo(tx + 5, ty); g.closePath(); g.stroke();
     if (S.fcu.hdgMan || S.ap.lat === 'HDG') { const a = wrap180(S.fcu.hdg - hdg) * D2R; if (rose || Math.abs(a) < 0.9) { g.save(); g.translate(cx + Math.sin(a) * R, cy - Math.cos(a) * R); g.rotate(a); g.fillStyle = C.cyan; g.beginPath(); g.moveTo(0, 0); g.lineTo(-7, -14); g.lineTo(7, -14); g.fill(); g.restore(); } }
-    if (mode === 'LS') { const a = wrap180(ILS26R.crs - hdg) * D2R; g.save(); g.translate(cx, cy); g.rotate(a); line(g, 0, -R + 10, 0, -R / 2, C.mag, 4); line(g, 0, R - 10, 0, R / 2, C.mag, 4); const dev = clamp(S.loc.dev / 0.8, -2.2, 2.2) * 34; line(g, dev, -R / 2 + 10, dev, R / 2 - 10, C.mag, 4); for (const k of [-2, -1, 1, 2]) { g.strokeStyle = C.white; g.beginPath(); g.arc(k * 34, 0, 4, 0, 7); g.stroke(); } g.restore(); }
+    if (mode === 'LS') { const a = wrap180(ACTIVE_ILS.crs - hdg) * D2R; g.save(); g.translate(cx, cy); g.rotate(a); line(g, 0, -R + 10, 0, -R / 2, C.mag, 4); line(g, 0, R - 10, 0, R / 2, C.mag, 4); const dev = clamp(S.loc.dev / 0.8, -2.2, 2.2) * 34; line(g, dev, -R / 2 + 10, dev, R / 2 - 10, C.mag, 4); for (const k of [-2, -1, 1, 2]) { g.strokeStyle = C.white; g.beginPath(); g.arc(k * 34, 0, 4, 0, 7); g.stroke(); } g.restore(); }
     line(g, cx, cy - 18, cx, cy + 22, C.yellow, 4); line(g, cx - 24, cy - 2, cx + 24, cy - 2, C.yellow, 4); line(g, cx - 9, cy + 18, cx + 9, cy + 18, C.yellow, 4);
   }
   if (S.fms.coRte) {
@@ -244,7 +244,7 @@ function drawND(d, dt, range) {
     if (w.type === 'ALT') txt(g, w.name, W - 10, 16, C.white, 16, 'right');
     else { const b = brg(S.pos.x, S.pos.z, w.x, w.z); const dnm = dist2(S.pos.x, S.pos.z, w.x, w.z) / NM; txt(g, w.name, W - 110, 16, C.white, 16, 'left'); txt(g, String(Math.round(b)).padStart(3, '0') + '°', W - 10, 16, C.green, 16, 'right'); txt(g, dnm.toFixed(dnm < 20 ? 1 : 0) + ' NM', W - 10, 38, C.green, 16, 'right'); const eta = S.gs > 30 ? dnm / S.gs * 3600 : 0; const tt = new Date(Date.UTC(2026, 9, 17, 13, 5) + (S.time + eta) * 1000); txt(g, `${String(tt.getUTCHours()).padStart(2, '0')}${String(tt.getUTCMinutes()).padStart(2, '0')}`, W - 10, 60, C.green, 16, 'right'); }
   }
-  if (mode === 'LS' || S.loc.dist < 30 * NM) { txt(g, 'ILS1 110.10', W - 10, H - 36, C.mag, 15, 'right'); txt(g, 'CRS 266°', W - 10, H - 16, C.mag, 15, 'right'); }
+  if (mode === 'LS' || S.loc.dist < 30 * NM) { txt(g, 'ILS1 ' + ACTIVE_ILS.freq, W - 10, H - 36, C.mag, 15, 'right'); txt(g, 'CRS ' + ACTIVE_ILS.crs + '°', W - 10, H - 16, C.mag, 15, 'right'); }
   if (mode === 'VOR') { txt(g, 'VOR1 BIG', 10, H - 36, C.white, 15, 'left'); }
   txt(g, mode, 10, H - 16, C.green, 14, 'left');
   if (S.chrono.run || S.chrono.t > 0) { const c = Math.floor(S.chrono.t); txt(g, `${String(Math.floor(c / 60)).padStart(2, '0')}'${String(c % 60).padStart(2, '0')}"`, 70, H - 16, C.white, 15, 'left'); }
@@ -447,7 +447,7 @@ const MCDU = { page: 'MENU', scratch: '', msg: '' };
 function mcduMsg(m) { MCDU.msg = m; }
 function mcduClr() { MCDU.scratch = ''; MCDU.msg = ''; }
 function fmsCheck() { const f = S.fms, e = f.ent; f.init = !!(f.coRte && f.fltNbr && f.ci != null && f.crz); f.perf = !!(e.v1 && e.vr && e.v2 && e.flaps && e.flex); }
-function fmsComplete() { const f = S.fms; Object.assign(f, { coRte: true, fromTo: true, fltNbr: 'ALB324', ci: 30, crz: CRZ_FL, v1: 142, vr: 145, v2: 149, flex: 55 }); f.ent = { v1: true, vr: true, v2: true, flaps: true, flex: true }; fmsCheck(); }
+function fmsComplete() { const f = S.fms; Object.assign(f, { coRte: true, fromTo: true, fltNbr: activeRoute.flightNumber, ci: 30, crz: CRZ_FL, v1: 142, vr: 145, v2: 149, flex: 55 }); f.ent = { v1: true, vr: true, v2: true, flaps: true, flex: true }; fmsCheck(); }
 function mcduLines() { // returns 14 lines [{t,c,a}] and LSK actions
   const L = Array.from({ length: 14 }, () => []); const act = { L: [], R: [] };
   const put = (row, t, c = C.white, a = 'left', sz = 'L') => L[row].push({ t, c, a, sz });
@@ -458,40 +458,40 @@ function mcduLines() { // returns 14 lines [{t,c,a}] and LSK actions
     const f = S.fms;
     put(0, 'INIT', C.white, 'center');
     put(1, ' CO RTE', C.white, 'left', 's'); put(1, 'FROM/TO  ', C.white, 'right', 's');
-    put(2, f.coRte ? 'EGLLLFPG1' : '[        ]', f.coRte ? C.cyan : C.amber); put(2, f.fromTo ? 'EGLL/LFPG' : '____/____', f.fromTo ? C.cyan : C.amber, 'right');
+    put(2, f.coRte ? activeRoute.company : '[        ]', f.coRte ? C.cyan : C.amber); put(2, f.fromTo ? activeRoute.from.icao + '/' + activeRoute.to.icao : '____/____', f.fromTo ? C.cyan : C.amber, 'right');
     put(3, 'ALTN/CO RTE', C.white, 'left', 's'); put(3, 'INIT ', C.white, 'right', 's');
     put(4, '----/---------', C.white); put(4, 'REQUEST*', C.amber, 'right');
     put(5, 'FLT NBR', C.white, 'left', 's'); put(6, f.fltNbr || '________', f.fltNbr ? C.cyan : C.amber);
     put(6, 'IRS INIT>', C.white, 'right');
-    put(7, 'LAT', C.white, 'left', 's'); put(8, '5128.2N', C.cyan); put(7, 'LONG ', C.white, 'right', 's'); put(8, '00027.3W', C.cyan, 'right');
+    put(7, 'LAT', C.white, 'left', 's'); put(8, activeRoute.id === 'outbound' ? '5128.2N' : '4900.6N', C.cyan); put(7, 'LONG ', C.white, 'right', 's'); put(8, activeRoute.id === 'outbound' ? '00027.3W' : '00232.9E', C.cyan, 'right');
     put(9, 'COST INDEX', C.white, 'left', 's'); put(10, f.ci != null ? String(f.ci) : f.fromTo ? '___' : '---', f.ci != null ? C.cyan : f.fromTo ? C.amber : C.white);
     put(11, 'CRZ FL/TEMP', C.white, 'left', 's'); put(11, 'TROPO ', C.white, 'right', 's'); put(12, f.crz ? 'FL' + f.crz + '/-35°' : f.fromTo ? '_____/___°' : '-----/---°', f.crz ? C.cyan : f.fromTo ? C.amber : C.white); put(12, '36090', C.cyan, 'right');
     const sc = MCDU.scratch;
-    act.L[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === 'EGLLLFPG1') { f.coRte = true; f.fromTo = true; mcduClr(); fmsCheck(); Tut.event('mcdu_init'); } else mcduMsg('NOT IN DATABASE'); };
-    act.R[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === 'EGLL/LFPG') { f.fromTo = true; f.coRte = true; mcduClr(); fmsCheck(); mcduMsg('CO RTE EGLLLFPG1 LOADED'); } else if (/^[A-Z]{4}\/[A-Z]{4}$/.test(sc)) mcduMsg('NOT IN DATABASE'); else mcduMsg('FORMAT ERROR'); };
+    act.L[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === activeRoute.company) { f.coRte = true; f.fromTo = true; mcduClr(); fmsCheck(); Tut.event('mcdu_init'); } else mcduMsg('NOT IN DATABASE'); };
+    act.R[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === activeRoute.from.icao + '/' + activeRoute.to.icao) { f.fromTo = true; f.coRte = true; mcduClr(); fmsCheck(); mcduMsg('CO RTE ' + activeRoute.company + ' LOADED'); } else if (/^[A-Z]{4}\/[A-Z]{4}$/.test(sc)) mcduMsg('NOT IN DATABASE'); else mcduMsg('FORMAT ERROR'); };
     act.L[2] = () => { if (/^[A-Z0-9]{1,8}$/.test(sc)) { f.fltNbr = sc; mcduClr(); fmsCheck(); } else mcduMsg('FORMAT ERROR'); };
     act.L[4] = () => { if (!f.fromTo) return mcduMsg('NOT ALLOWED'); if (/^\d{1,3}$/.test(sc) && +sc <= 999) { f.ci = +sc; mcduClr(); fmsCheck(); } else mcduMsg('FORMAT ERROR'); };
     act.L[5] = () => { if (!f.fromTo) return mcduMsg('NOT ALLOWED'); const m = sc.match(/^(?:FL)?(\d{2,3})(?:\/.*)?$/); if (m && +m[1] >= 100 && +m[1] <= 390) { f.crz = +m[1]; mcduClr(); fmsCheck(); } else mcduMsg('ENTRY OUT OF RANGE'); };
   }
   else if (p === 'F-PLN') {
-    put(0, 'FROM', C.white, 'left', 's'); put(0, 'ALB324 ', C.white, 'right', 's');
+    put(0, 'FROM', C.white, 'left', 's'); put(0, activeRoute.flightNumber + ' ', C.white, 'right', 's');
     if (!S.fms.coRte) { put(2, 'NO F-PLN', C.white, 'center'); }
     else {
       let row = 1; const start = Math.max(0, S.fms.wp - 1);
       for (let i = start; i < FPLAN.length && row < 12; i++) {
-        const w = FPLAN[i]; const nm = w.name === '27R' ? 'EGLL27R' : w.name === 'RW26R' ? 'LFPG26R' : w.name;
+        const w = FPLAN[i]; const nm = w.rwy ? (i === 0 ? activeRoute.from.icao : activeRoute.to.icao) + w.name.replace(/^RW/, '') : w.name;
         put(row, i === S.fms.wp ? nm : nm, i === S.fms.wp ? C.white : C.green); put(row, w.alt ? (w.alt >= 6000 && w.alt < 10000 ? String(w.alt) : w.alt >= 10000 ? 'FL' + Math.round(w.alt / 100) : String(w.alt)) : (i > 2 && i < 6 ? 'FL' + CRZ_FL : '-----'), w.alt ? C.mag : C.green, 'right');
         if (i > start) { const pw = FPLAN[i - 1]; if (pw.x != null && w.x != null) put(row - 0, '', C.green); }
         row += 2;
       }
-      put(12, 'DEST    TIME  DIST  EFOB', C.white, 'left', 's'); put(13, 'LFPG26R  ' + '----  ' + Math.round(distToGo()) + '  ' + (S.fuel / 1000 - 1.6).toFixed(1), C.green);
+      put(12, 'DEST    TIME  DIST  EFOB', C.white, 'left', 's'); put(13, activeRoute.to.icao + activeRoute.arrRwy.name + '  ' + '----  ' + Math.round(distToGo()) + '  ' + (S.fuel / 1000 - 1.6).toFixed(1), C.green);
     }
   }
   else if (p === 'PERF') {
     const f = S.fms, e = f.ent;
     put(0, 'TAKE OFF', S.fms.phase === 'TAKEOFF' ? C.green : C.white, 'center');
     put(1, ' V1   FLP RETR', C.white, 'left', 's'); put(1, 'RWY ', C.white, 'right', 's');
-    put(2, e.v1 ? String(f.v1) : '___', e.v1 ? C.cyan : C.amber); put(2, 'F=' + Math.round(speeds().F) , C.green, 'center'); put(2, '27R', C.green, 'right');
+    put(2, e.v1 ? String(f.v1) : '___', e.v1 ? C.cyan : C.amber); put(2, 'F=' + Math.round(speeds().F) , C.green, 'center'); put(2, activeRoute.depRwy.name, C.green, 'right');
     put(3, ' VR    SLT RETR', C.white, 'left', 's'); put(3, 'TO SHIFT ', C.white, 'right', 's');
     put(4, e.vr ? String(f.vr) : '___', e.vr ? C.cyan : C.amber); put(4, 'S=' + Math.round(speeds().S), C.green, 'center'); put(4, '[M]  [  ]*', C.cyan, 'right');
     put(5, ' V2     CLEAN', C.white, 'left', 's'); put(5, 'FLAPS/THS ', C.white, 'right', 's');
@@ -515,7 +515,7 @@ function mcduLines() { // returns 14 lines [{t,c,a}] and LSK actions
   }
   else if (p === 'RAD NAV') {
     put(0, 'RADIO NAV', C.white, 'center'); put(1, 'VOR1/FREQ', C.white, 'left', 's'); put(2, 'BIG/115.10', C.cyan); put(1, 'FREQ/VOR2', C.white, 'right', 's'); put(2, '117.00/OCK', C.cyan, 'right');
-    put(5, 'LS /FREQ', C.white, 'left', 's'); put(6, S.fms.phase === 'APPROACH' || S.fms.phase === 'DESCENT' ? 'GLE/110.10' : '[  ]/[   ]', C.mag); put(7, 'CRS', C.white, 'left', 's'); put(8, 'F266', C.mag);
+    put(5, 'LS /FREQ', C.white, 'left', 's'); put(6, S.fms.phase === 'APPROACH' || S.fms.phase === 'DESCENT' ? ACTIVE_ILS.ident + '/' + ACTIVE_ILS.freq : '[  ]/[   ]', C.mag); put(7, 'CRS', C.white, 'left', 's'); put(8, 'F' + ACTIVE_ILS.crs, C.mag);
   }
   return { L, act };
 }

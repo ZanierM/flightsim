@@ -63,9 +63,11 @@ Object.assign(LHR, { cx: -350, cz: -130, rx: 3500, rz: 1450 });
 const AIRPORTS = [LHR, CDG];
 const ILS26R = (() => { const r = CDG.rwys[0]; return { rwy: r, ident: 'GLE', freq: '110.10', crs: 266, gs: 3.0,
   locX: r.ex + r.dx * 300, locZ: r.ez + r.dz * 300, gsX: r.tx + r.dx * 300, gsZ: r.tz + r.dz * 300, elev: CDG.elev }; })();
+const ILS27R = (() => { const r = LHR.rwys[0]; return { rwy: r, ident: 'IRR', freq: '110.30', crs: 270, gs: 3.0,
+  locX: r.ex + r.dx * 300, locZ: r.ez + r.dz * 300, gsX: r.tx + r.dx * 300, gsZ: r.tz + r.dz * 300, elev: LHR.elev }; })();
 
 // Flight plan. type 'ALT' = fly runway heading until altitude (ft), else fly-to fix
-const FPLAN = (() => {
+const OUTBOUND_FPLAN = (() => {
   const P = (name, lat, lon, alt, spd) => { const p = ll(lat, lon); return { name, x: p.x, z: p.z, alt, spd }; };
   const cf = (() => { const r = CDG.rwys[0], d = 22224; return { name: 'CF26R', x: r.tx - r.dx * d, z: r.tz - r.dz * d, alt: 4000, spd: 180 }; })();
   const mop = { name: 'MOPAR', x: cf.x + 9500, z: cf.z - 12500, alt: 7000, spd: 220 };
@@ -78,6 +80,18 @@ const FPLAN = (() => {
     { name: 'RW26R', x: CDG.rwys[0].tx, z: CDG.rwys[0].tz, alt: 392, rwy: true }
   ];
 })();
+const RETURN_FPLAN = (() => {
+  const P = (name, lat, lon, alt, spd) => { const p = ll(lat, lon); return { name, x: p.x, z: p.z, alt, spd }; };
+  const dep = CDG.rwys[0], arr = LHR.rwys[0];
+  return [
+    { name: '26R', x: dep.tx, z: dep.tz, rwy: true },
+    { name: '(1500)', type: 'ALT', hdg: 266, alt: 1500 },
+    P('BVS', 49.4325, 2.1556, 6000), P('ABB', 50.1356, 1.8547, null),
+    P('DVR', 51.1625, 1.3597, null), P('DET', 51.3040, 0.5972, 11000),
+    { name: 'CF27R', x: arr.tx - arr.dx * 12 * NM, z: arr.tz - arr.dz * 12 * NM, alt: 4000, spd: 180 },
+    { name: 'RW27R', x: arr.tx, z: arr.tz, alt: 83, rwy: true }
+  ];
+})();
 const CRZ_FL = 250;
 
 // Taxi route at Heathrow: stand -> holding point 27R -> line-up
@@ -86,3 +100,23 @@ const LHR_STAND = { x: 900, z: -300, hdg: 180 };
 const PUSH_END = { x: 850, z: -350, hdg: 90 };
 const TAXI_LHR = [[850, -350], [1100, -350], [1680, -350], [1735, -375], [1760, -430], [1760, -700], [1760, -760], [1752, -810], [1715, -843], [1650, -850], [1600, -850]];
 const HOLD_27R = { x: 1760, z: -760 };
+const cdgAt = (along, side) => { const r = CDG.rwys[0], n = { x: r.dz, z: -r.dx }; return { x: r.tx + r.dx * along + n.x * side, z: r.tz + r.dz * along + n.z * side }; };
+const CDG_STAND = { ...cdgAt(2300, 1170), hdg: 176 };
+const CDG_PUSH_END = { ...cdgAt(2300, 850), hdg: 266 };
+const TAXI_CDG = [[2300, 850], [2300, 600], [2450, 600], [2300, 190], [1500, 190], [600, 190], [-50, 190]].map(([a, s]) => { const p = cdgAt(a, s); return [p.x, p.z]; });
+const HOLD_26R = cdgAt(-50, 190);
+
+const ROUTES = {
+  outbound: { id: 'outbound', from: LHR, to: CDG, depRwy: LHR.rwys[0], arrRwy: CDG.rwys[0], stand: LHR_STAND, pushEnd: PUSH_END, taxi: TAXI_LHR, hold: HOLD_27R,
+    plan: OUTBOUND_FPLAN, ils: ILS26R, company: 'EGLLLFPG1', flightNumber: 'ALB324', cruiseLeg: 5,
+    groundFreq: 121905, towerFreq: 118505, approachFreq: 125825, arrivalTowerFreq: 119250 },
+  return: { id: 'return', from: CDG, to: LHR, depRwy: CDG.rwys[0], arrRwy: LHR.rwys[0], stand: CDG_STAND, pushEnd: CDG_PUSH_END, taxi: TAXI_CDG, hold: HOLD_26R,
+    plan: RETURN_FPLAN, ils: ILS27R, company: 'LFPGEGLL1', flightNumber: 'ALB325', cruiseLeg: 4,
+    groundFreq: 121605, towerFreq: 119250, approachFreq: 120400, arrivalTowerFreq: 118505 }
+};
+let activeRoute = ROUTES.outbound, FPLAN = activeRoute.plan, ACTIVE_ILS = activeRoute.ils;
+function selectRouteData(id) {
+  if (!ROUTES[id]) return false;
+  activeRoute = ROUTES[id]; FPLAN = activeRoute.plan; ACTIVE_ILS = activeRoute.ils;
+  return true;
+}

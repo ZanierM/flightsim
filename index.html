@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A320 Heathrow to Paris</title>
+<title>A320 Channel flights</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400&family=B612+Mono:wght@400;700&display=swap">
 <style>
@@ -41,6 +41,8 @@ button { font-family: var(--ui); }
 #menu h1 { font-size: clamp(26px, 4vw, 40px); line-height: 1.08; margin: 6px 0 4px; font-weight: 700; text-wrap: balance; }
 #menu h1 .arrow { color: var(--cyan); }
 #menu .sub { color: var(--dim); max-width: 62ch; line-height: 1.5; font-size: 14px; margin: 0 0 20px; }
+.route-choice { display: grid; gap: 6px; margin: 16px 0; color: var(--dim); font-size: 13px; }
+.route-choice select { width: 100%; padding: 10px; color: var(--fg); background: #0b1013; border: 1px solid #788f9b; font: 14px var(--ui); }
 .route { display: flex; flex-wrap: wrap; gap: 6px 4px; font-family: var(--mono); font-size: 12px; color: var(--dim); margin-bottom: 22px; }
 .route span { padding: 2px 6px; border: 1px solid var(--line); }
 .route span.ap { color: var(--fg); border-color: var(--cyan); }
@@ -149,14 +151,15 @@ button { font-family: var(--ui); }
 </head>
 <body>
 <canvas id="gl"></canvas>
-<div id="loading"><div class="box"><div class="t">ALB324 · EGLL → LFPG</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
+<div id="loading"><div class="box"><div class="t">A320 · CHANNEL FLIGHTS</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
 
 <div id="menu" role="dialog" aria-modal="true" aria-labelledby="menuHeading" hidden>
   <div class="card">
-    <div class="flight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
+    <div class="flight" id="menuFlight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
+    <label class="route-choice" for="routeSelect">Flight route<select id="routeSelect"><option value="outbound">London Heathrow → Paris Charles de Gaulle</option><option value="return">Paris Charles de Gaulle → London Heathrow</option></select></label>
     <h1 id="menuHeading">London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
-    <p class="sub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
-    <div class="route"><span class="ap">EGLL 27R</span><span>(1500)</span><span>EPM</span><span>DET</span><span>DVR</span><span>ABB</span><span>BVS</span><span>MOPAR</span><span>CF26R</span><span class="ap">LFPG 26R</span></div>
+    <p class="sub" id="menuSub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
+    <div class="route" id="menuRoute"></div>
     <div class="briefing-teaser"><p><b>Flight briefing</b> · runways, climb, cruise, arrival and aircraft setup</p><button class="btn" id="menuBriefing">Review briefing</button></div>
     <div class="row" id="menuResumeRow" hidden><button class="btn primary" id="btnResume">Resume flight</button></div>
     <div class="scns">
@@ -218,20 +221,10 @@ button { font-family: var(--ui); }
 
 <div id="briefing" class="modal" role="dialog" aria-modal="true" aria-labelledby="briefingHeading" hidden>
   <div class="card">
-    <h2 id="briefingHeading">EGLL → LFPG flight briefing</h2>
-    <p class="vnote">Albion 324 · Airbus A320 · London Heathrow to Paris Charles de Gaulle. The captain will guide each checklist and callout during the flight.</p>
-    <div class="briefing-grid">
-      <section><h3>DEPARTURE · EGLL</h3><dl>
-        <div><dt>Runway</dt><dd>27R · 270°</dd></div><div><dt>QNH</dt><dd>1018 hPa</dd></div><div><dt>Initial climb</dt><dd>1500 ft, then 6000 ft</dd></div><div><dt>V1 / VR / V2</dt><dd>142 / 145 / 149 kt</dd></div>
-      </dl></section>
-      <section><h3>EN ROUTE</h3><dl>
-        <div><dt>Company route</dt><dd>EGLLLFPG1</dd></div><div><dt>Cruise</dt><dd>FL250</dd></div><div><dt>Fuel loaded</dt><dd>7800 kg</dd></div><div><dt>Channel crossing</dt><dd>DVR → ABB</dd></div>
-      </dl></section>
-      <section><h3>ARRIVAL · LFPG</h3><dl>
-        <div><dt>Runway</dt><dd>26R · 266°</dd></div><div><dt>ILS</dt><dd>GLE · 110.10 MHz</dd></div><div><dt>Final course</dt><dd>266° / 3.0°</dd></div><div><dt>QNH</dt><dd>1015 hPa</dd></div>
-      </dl></section>
-    </div>
-    <p class="briefing-route">EGLL 27R → (1500) → EPM → DET → DVR → ABB → BVS → MOPAR → CF26R → LFPG 26R</p>
+    <h2 id="briefingHeading"></h2>
+    <p class="vnote" id="briefingIntro"></p>
+    <div class="briefing-grid" id="briefingGrid"></div>
+    <p class="briefing-route" id="briefingRoute"></p>
     <p class="vnote">This is the simulator’s planned route and weather. Follow the captain’s live instructions for configuration and clearances.</p>
     <div class="row"><button class="btn primary" id="briefingClose">Close briefing</button></div>
   </div>
@@ -422,9 +415,11 @@ Object.assign(LHR, { cx: -350, cz: -130, rx: 3500, rz: 1450 });
 const AIRPORTS = [LHR, CDG];
 const ILS26R = (() => { const r = CDG.rwys[0]; return { rwy: r, ident: 'GLE', freq: '110.10', crs: 266, gs: 3.0,
   locX: r.ex + r.dx * 300, locZ: r.ez + r.dz * 300, gsX: r.tx + r.dx * 300, gsZ: r.tz + r.dz * 300, elev: CDG.elev }; })();
+const ILS27R = (() => { const r = LHR.rwys[0]; return { rwy: r, ident: 'IRR', freq: '110.30', crs: 270, gs: 3.0,
+  locX: r.ex + r.dx * 300, locZ: r.ez + r.dz * 300, gsX: r.tx + r.dx * 300, gsZ: r.tz + r.dz * 300, elev: LHR.elev }; })();
 
 // Flight plan. type 'ALT' = fly runway heading until altitude (ft), else fly-to fix
-const FPLAN = (() => {
+const OUTBOUND_FPLAN = (() => {
   const P = (name, lat, lon, alt, spd) => { const p = ll(lat, lon); return { name, x: p.x, z: p.z, alt, spd }; };
   const cf = (() => { const r = CDG.rwys[0], d = 22224; return { name: 'CF26R', x: r.tx - r.dx * d, z: r.tz - r.dz * d, alt: 4000, spd: 180 }; })();
   const mop = { name: 'MOPAR', x: cf.x + 9500, z: cf.z - 12500, alt: 7000, spd: 220 };
@@ -437,6 +432,18 @@ const FPLAN = (() => {
     { name: 'RW26R', x: CDG.rwys[0].tx, z: CDG.rwys[0].tz, alt: 392, rwy: true }
   ];
 })();
+const RETURN_FPLAN = (() => {
+  const P = (name, lat, lon, alt, spd) => { const p = ll(lat, lon); return { name, x: p.x, z: p.z, alt, spd }; };
+  const dep = CDG.rwys[0], arr = LHR.rwys[0];
+  return [
+    { name: '26R', x: dep.tx, z: dep.tz, rwy: true },
+    { name: '(1500)', type: 'ALT', hdg: 266, alt: 1500 },
+    P('BVS', 49.4325, 2.1556, 6000), P('ABB', 50.1356, 1.8547, null),
+    P('DVR', 51.1625, 1.3597, null), P('DET', 51.3040, 0.5972, 11000),
+    { name: 'CF27R', x: arr.tx - arr.dx * 12 * NM, z: arr.tz - arr.dz * 12 * NM, alt: 4000, spd: 180 },
+    { name: 'RW27R', x: arr.tx, z: arr.tz, alt: 83, rwy: true }
+  ];
+})();
 const CRZ_FL = 250;
 
 // Taxi route at Heathrow: stand -> holding point 27R -> line-up
@@ -445,6 +452,26 @@ const LHR_STAND = { x: 900, z: -300, hdg: 180 };
 const PUSH_END = { x: 850, z: -350, hdg: 90 };
 const TAXI_LHR = [[850, -350], [1100, -350], [1680, -350], [1735, -375], [1760, -430], [1760, -700], [1760, -760], [1752, -810], [1715, -843], [1650, -850], [1600, -850]];
 const HOLD_27R = { x: 1760, z: -760 };
+const cdgAt = (along, side) => { const r = CDG.rwys[0], n = { x: r.dz, z: -r.dx }; return { x: r.tx + r.dx * along + n.x * side, z: r.tz + r.dz * along + n.z * side }; };
+const CDG_STAND = { ...cdgAt(2300, 1170), hdg: 176 };
+const CDG_PUSH_END = { ...cdgAt(2300, 850), hdg: 266 };
+const TAXI_CDG = [[2300, 850], [2300, 600], [2450, 600], [2300, 190], [1500, 190], [600, 190], [-50, 190]].map(([a, s]) => { const p = cdgAt(a, s); return [p.x, p.z]; });
+const HOLD_26R = cdgAt(-50, 190);
+
+const ROUTES = {
+  outbound: { id: 'outbound', from: LHR, to: CDG, depRwy: LHR.rwys[0], arrRwy: CDG.rwys[0], stand: LHR_STAND, pushEnd: PUSH_END, taxi: TAXI_LHR, hold: HOLD_27R,
+    plan: OUTBOUND_FPLAN, ils: ILS26R, company: 'EGLLLFPG1', flightNumber: 'ALB324', cruiseLeg: 5,
+    groundFreq: 121905, towerFreq: 118505, approachFreq: 125825, arrivalTowerFreq: 119250 },
+  return: { id: 'return', from: CDG, to: LHR, depRwy: CDG.rwys[0], arrRwy: LHR.rwys[0], stand: CDG_STAND, pushEnd: CDG_PUSH_END, taxi: TAXI_CDG, hold: HOLD_26R,
+    plan: RETURN_FPLAN, ils: ILS27R, company: 'LFPGEGLL1', flightNumber: 'ALB325', cruiseLeg: 4,
+    groundFreq: 121605, towerFreq: 119250, approachFreq: 120400, arrivalTowerFreq: 118505 }
+};
+let activeRoute = ROUTES.outbound, FPLAN = activeRoute.plan, ACTIVE_ILS = activeRoute.ils;
+function selectRouteData(id) {
+  if (!ROUTES[id]) return false;
+  activeRoute = ROUTES[id]; FPLAN = activeRoute.plan; ACTIVE_ILS = activeRoute.ils;
+  return true;
+}
 
 // ---------- World: mask, terrain, sky, clouds, airports, buildings ----------
 const W = { sunDir: new THREE.Vector3(), hazeCol: new THREE.Color(), skyCol: new THREE.Color() };
@@ -1165,10 +1192,13 @@ function buildAirports(scene, mats) {
   const at = (along, side) => [r0.tx + dd.x * along + nn.x * side, r0.tz + dd.z * along + nn.z * side];
   const taxiC = (a) => { const g = ribbon(a, 23, yC, 25); scene.add(new THREE.Mesh(g, matTaxi)); };
   taxiC([at(-50, 190), at(4300, 190)]); taxiC([at(-50, 2810), at(4300, 2810)]);
+  taxiC(TAXI_CDG.slice(0, 4));
+  taxiC([at(-50, 190), at(-50, 0), at(40, 0)]);
   for (const a of [600, 1500, 2300, 3200, 4000]) taxiC([at(a, 0), at(a, 190), at(a + 150, 600)]);
   for (const a of [800, 2000, 3400]) taxiC([at(a, 2810), at(a, 2400)]);
   const [tcx, tcz] = at(2300, 1500);
   scene.add(new THREE.Mesh(quadXZ(tcx, tcz, 3200, 1200, 266, yC - 0.03), matConc));
+  scene.add(new THREE.Mesh(quadXZ(CDG_STAND.x, CDG_STAND.z, 0.5, 200, 176, yC + 0.03), yel));
   const bC = (along, side, w, d, h, mat = mGlass) => { const [x, z] = at(along, side); const m = building(x, z, w, d, h, -266 * D2R, mat); m.position.y = yC + h / 2; };
   bC(1300, 1500, 1100, 70, 20); bC(2700, 1300, 800, 60, 18); bC(2700, 1700, 800, 60, 18); bC(3500, 1500, 600, 90, 22, mOff); bC(1800, 1000, 300, 100, 16, mOff);
   const [t1x, t1z] = at(500, 1500); const t1 = new THREE.Mesh(new THREE.CylinderGeometry(95, 95, 32, 32), new THREE.MeshLambertMaterial({ color: 0x8b8680 })); t1.position.set(t1x, yC + 16, t1z); scene.add(t1);
@@ -1768,7 +1798,7 @@ function flightControlsGround(dt, V, qbar, L, m) {
 
 // ---------- navigation sources ----------
 function updNav() {
-  const ils = ILS26R;
+  const ils = ACTIVE_ILS;
   const dLoc = dist2(S.pos.x, S.pos.z, ils.locX, ils.locZ);
   const b = brg(ils.locX, ils.locZ, S.pos.x, S.pos.z);
   const dev = wrap180(b - wrap360(ils.crs + 180));
@@ -1861,7 +1891,7 @@ function stepAP(dt) {
       case 'ALT': { if (ap.holdAlt == null) ap.holdAlt = tgtAlt; const err = ap.holdAlt - altFt; const vs = clamp(err * 2.2, -1200, 1200); ap.gammaC = approach(ap.gammaC, vsToGamma(vs), dt * 1.2); break; }
       case 'V/S': { const vs = fcu.vs; ap.gammaC = approach(ap.gammaC, vsToGamma(vs), dt * 1.0); break; }
       case 'G/S*': case 'G/S': case 'LAND': {
-        const herr = S.gs_.herr; const gs = -ILS26R.gs - clamp(herr * 0.045, -1.8, 1.8) - 0.0;
+        const herr = S.gs_.herr; const gs = -ACTIVE_ILS.gs - clamp(herr * 0.045, -1.8, 1.8) - 0.0;
         // compensate wind: use air path
         ap.gammaC = approach(ap.gammaC, gs, dt * 0.8); break; }
       case 'FLARE': { const vsT = -Math.min(800, 230 + Math.max(0, S.ra) * 14); ap.gammaC = approach(ap.gammaC, Math.max(vsToGamma(vsT), -3.2), dt * 1.5); break; }
@@ -1884,7 +1914,7 @@ function stepAP(dt) {
       case 'LOC*': case 'LOC': case 'LAND': {
         const xte = S.loc.xte; const xteRate = (xte - (ap._xtePrev ?? xte)) / dt; ap._xtePrev = xte;
         const kx = ap.lat === 'LOC*' ? 0.018 : 0.03; const corr = clamp(xte * kx + xteRate * 0.6, -30, 30);
-        trkCmd = wrap360(ILS26R.crs + corr); break; }
+        trkCmd = wrap360(ACTIVE_ILS.crs + corr); break; }
       default: hdgCmd = S.psi * R2D;
     }
     let err;
@@ -1894,7 +1924,7 @@ function stepAP(dt) {
     if (ap.lat === 'FLARE' || S.ra < 30) ap.bankC = clamp(ap.bankC, -5, 5);
   } else {
     ap.bankC = 0;
-    if (ap.lat === 'ROLL OUT' && (fcu.ap1 || fcu.ap2)) { const corr = clamp(S.loc.xte * 0.05, -6, 6); const err = wrap180(ILS26R.crs + corr - S.psi * R2D); S.rudder = clamp(err * 0.3, -1, 1); }
+    if (ap.lat === 'ROLL OUT' && (fcu.ap1 || fcu.ap2)) { const corr = clamp(S.loc.xte * 0.05, -6, 6); const err = wrap180(ACTIVE_ILS.crs + corr - S.psi * R2D); S.rudder = clamp(err * 0.3, -1, 1); }
   }
   // ---------- autothrust ----------
   if (fcu.athr) {
@@ -1938,7 +1968,7 @@ function lnav() {
   // sequencing with turn anticipation
   const nxt = fp[i + 1];
   let antic = 300;
-  if (nxt && !nxt.rwy || (nxt && nxt.name === 'RW26R')) { const b2 = brg(w.x, w.z, nxt.x, nxt.z); const dA = Math.abs(wrap180(b2 - legBrg)); const R = Math.pow(S.tas, 2) / (G * Math.tan(25 * D2R)); antic = Math.min(R * Math.tan(dA / 2 * D2R), 9000) + 200; }
+  if (nxt) { const b2 = brg(w.x, w.z, nxt.x, nxt.z); const dA = Math.abs(wrap180(b2 - legBrg)); const R = Math.pow(S.tas, 2) / (G * Math.tan(25 * D2R)); antic = Math.min(R * Math.tan(dA / 2 * D2R), 9000) + 200; }
   if (legLen - along < antic && i < fp.length - 1) { S.fms.wp++; if (fp[i].type === 'ALT') { } }
   if (w.type !== 'ALT' && prev && fp[i - 1].type === 'ALT' && S.fms.altLegX == null) { S.fms.altLegX = S.pos.x; S.fms.altLegZ = S.pos.z; }
   return wrap360(legBrg - clamp(xr * 0.012, -45, 45));
@@ -1948,7 +1978,7 @@ function distToGo() { // nm along remaining route to destination
   // Once established on the ILS, the course-fix is behind us. Continuing to
   // route through it makes the MCDU distance grow again on short final.
   if (S.fms.wp >= fp.length - 1 || /^(LOC|LAND|ROLL OUT)/.test(S.ap.lat)) {
-    const r = CDG.rwys[0];
+    const r = activeRoute.arrRwy;
     return dist2(S.pos.x, S.pos.z, r.tx, r.tz) / NM;
   }
   let i = Math.max(S.fms.wp, 1); let d = 0, px = S.pos.x, pz = S.pos.z;
@@ -2223,7 +2253,7 @@ function drawND(d, dt, range) {
     txt(g, n.id, p[0] + 10, p[1] - 10, C.mag, 13, 'left');
   }
   // ILS course
-  if ((S.loc.dist < 40 * NM && S.fms.phase === 'APPROACH') || S.efisLS || mode === 'LS') { const r = ILS26R.rwy; const [a0, b0] = toScr(r.tx, r.tz), [a1, b1] = toScr(r.tx - r.dx * 25 * NM, r.tz - r.dz * 25 * NM); g.setLineDash([10, 6]); line(g, a0, b0, a1, b1, C.mag, 2); g.setLineDash([]); }
+  if ((S.loc.dist < 40 * NM && S.fms.phase === 'APPROACH') || S.efisLS || mode === 'LS') { const r = ACTIVE_ILS.rwy; const [a0, b0] = toScr(r.tx, r.tz), [a1, b1] = toScr(r.tx - r.dx * 25 * NM, r.tz - r.dz * 25 * NM); g.setLineDash([10, 6]); line(g, a0, b0, a1, b1, C.mag, 2); g.setLineDash([]); }
   // flight plan
   if (S.fms.coRte) {
     const fp = FPLAN; let px = null, py = null; const pts = []; fp.forEach((w, i) => { if (w.type !== 'ALT') pts.push([w, i]); });
@@ -2243,7 +2273,7 @@ function drawND(d, dt, range) {
     line(g, cx, cy - R - 16, cx, cy - R + 4, C.yellow, 4);
     const trkA = (S.trk - hdg) * D2R; g.strokeStyle = C.green; g.lineWidth = 2; const tx = cx + Math.sin(trkA) * (R - 6), ty = cy - Math.cos(trkA) * (R - 6); g.beginPath(); g.moveTo(tx, ty - 8); g.lineTo(tx - 5, ty); g.lineTo(tx, ty + 8); g.lineTo(tx + 5, ty); g.closePath(); g.stroke();
     if (S.fcu.hdgMan || S.ap.lat === 'HDG') { const a = wrap180(S.fcu.hdg - hdg) * D2R; if (rose || Math.abs(a) < 0.9) { g.save(); g.translate(cx + Math.sin(a) * R, cy - Math.cos(a) * R); g.rotate(a); g.fillStyle = C.cyan; g.beginPath(); g.moveTo(0, 0); g.lineTo(-7, -14); g.lineTo(7, -14); g.fill(); g.restore(); } }
-    if (mode === 'LS') { const a = wrap180(ILS26R.crs - hdg) * D2R; g.save(); g.translate(cx, cy); g.rotate(a); line(g, 0, -R + 10, 0, -R / 2, C.mag, 4); line(g, 0, R - 10, 0, R / 2, C.mag, 4); const dev = clamp(S.loc.dev / 0.8, -2.2, 2.2) * 34; line(g, dev, -R / 2 + 10, dev, R / 2 - 10, C.mag, 4); for (const k of [-2, -1, 1, 2]) { g.strokeStyle = C.white; g.beginPath(); g.arc(k * 34, 0, 4, 0, 7); g.stroke(); } g.restore(); }
+    if (mode === 'LS') { const a = wrap180(ACTIVE_ILS.crs - hdg) * D2R; g.save(); g.translate(cx, cy); g.rotate(a); line(g, 0, -R + 10, 0, -R / 2, C.mag, 4); line(g, 0, R - 10, 0, R / 2, C.mag, 4); const dev = clamp(S.loc.dev / 0.8, -2.2, 2.2) * 34; line(g, dev, -R / 2 + 10, dev, R / 2 - 10, C.mag, 4); for (const k of [-2, -1, 1, 2]) { g.strokeStyle = C.white; g.beginPath(); g.arc(k * 34, 0, 4, 0, 7); g.stroke(); } g.restore(); }
     line(g, cx, cy - 18, cx, cy + 22, C.yellow, 4); line(g, cx - 24, cy - 2, cx + 24, cy - 2, C.yellow, 4); line(g, cx - 9, cy + 18, cx + 9, cy + 18, C.yellow, 4);
   }
   if (S.fms.coRte) {
@@ -2251,7 +2281,7 @@ function drawND(d, dt, range) {
     if (w.type === 'ALT') txt(g, w.name, W - 10, 16, C.white, 16, 'right');
     else { const b = brg(S.pos.x, S.pos.z, w.x, w.z); const dnm = dist2(S.pos.x, S.pos.z, w.x, w.z) / NM; txt(g, w.name, W - 110, 16, C.white, 16, 'left'); txt(g, String(Math.round(b)).padStart(3, '0') + '°', W - 10, 16, C.green, 16, 'right'); txt(g, dnm.toFixed(dnm < 20 ? 1 : 0) + ' NM', W - 10, 38, C.green, 16, 'right'); const eta = S.gs > 30 ? dnm / S.gs * 3600 : 0; const tt = new Date(Date.UTC(2026, 9, 17, 13, 5) + (S.time + eta) * 1000); txt(g, `${String(tt.getUTCHours()).padStart(2, '0')}${String(tt.getUTCMinutes()).padStart(2, '0')}`, W - 10, 60, C.green, 16, 'right'); }
   }
-  if (mode === 'LS' || S.loc.dist < 30 * NM) { txt(g, 'ILS1 110.10', W - 10, H - 36, C.mag, 15, 'right'); txt(g, 'CRS 266°', W - 10, H - 16, C.mag, 15, 'right'); }
+  if (mode === 'LS' || S.loc.dist < 30 * NM) { txt(g, 'ILS1 ' + ACTIVE_ILS.freq, W - 10, H - 36, C.mag, 15, 'right'); txt(g, 'CRS ' + ACTIVE_ILS.crs + '°', W - 10, H - 16, C.mag, 15, 'right'); }
   if (mode === 'VOR') { txt(g, 'VOR1 BIG', 10, H - 36, C.white, 15, 'left'); }
   txt(g, mode, 10, H - 16, C.green, 14, 'left');
   if (S.chrono.run || S.chrono.t > 0) { const c = Math.floor(S.chrono.t); txt(g, `${String(Math.floor(c / 60)).padStart(2, '0')}'${String(c % 60).padStart(2, '0')}"`, 70, H - 16, C.white, 15, 'left'); }
@@ -2454,7 +2484,7 @@ const MCDU = { page: 'MENU', scratch: '', msg: '' };
 function mcduMsg(m) { MCDU.msg = m; }
 function mcduClr() { MCDU.scratch = ''; MCDU.msg = ''; }
 function fmsCheck() { const f = S.fms, e = f.ent; f.init = !!(f.coRte && f.fltNbr && f.ci != null && f.crz); f.perf = !!(e.v1 && e.vr && e.v2 && e.flaps && e.flex); }
-function fmsComplete() { const f = S.fms; Object.assign(f, { coRte: true, fromTo: true, fltNbr: 'ALB324', ci: 30, crz: CRZ_FL, v1: 142, vr: 145, v2: 149, flex: 55 }); f.ent = { v1: true, vr: true, v2: true, flaps: true, flex: true }; fmsCheck(); }
+function fmsComplete() { const f = S.fms; Object.assign(f, { coRte: true, fromTo: true, fltNbr: activeRoute.flightNumber, ci: 30, crz: CRZ_FL, v1: 142, vr: 145, v2: 149, flex: 55 }); f.ent = { v1: true, vr: true, v2: true, flaps: true, flex: true }; fmsCheck(); }
 function mcduLines() { // returns 14 lines [{t,c,a}] and LSK actions
   const L = Array.from({ length: 14 }, () => []); const act = { L: [], R: [] };
   const put = (row, t, c = C.white, a = 'left', sz = 'L') => L[row].push({ t, c, a, sz });
@@ -2465,40 +2495,40 @@ function mcduLines() { // returns 14 lines [{t,c,a}] and LSK actions
     const f = S.fms;
     put(0, 'INIT', C.white, 'center');
     put(1, ' CO RTE', C.white, 'left', 's'); put(1, 'FROM/TO  ', C.white, 'right', 's');
-    put(2, f.coRte ? 'EGLLLFPG1' : '[        ]', f.coRte ? C.cyan : C.amber); put(2, f.fromTo ? 'EGLL/LFPG' : '____/____', f.fromTo ? C.cyan : C.amber, 'right');
+    put(2, f.coRte ? activeRoute.company : '[        ]', f.coRte ? C.cyan : C.amber); put(2, f.fromTo ? activeRoute.from.icao + '/' + activeRoute.to.icao : '____/____', f.fromTo ? C.cyan : C.amber, 'right');
     put(3, 'ALTN/CO RTE', C.white, 'left', 's'); put(3, 'INIT ', C.white, 'right', 's');
     put(4, '----/---------', C.white); put(4, 'REQUEST*', C.amber, 'right');
     put(5, 'FLT NBR', C.white, 'left', 's'); put(6, f.fltNbr || '________', f.fltNbr ? C.cyan : C.amber);
     put(6, 'IRS INIT>', C.white, 'right');
-    put(7, 'LAT', C.white, 'left', 's'); put(8, '5128.2N', C.cyan); put(7, 'LONG ', C.white, 'right', 's'); put(8, '00027.3W', C.cyan, 'right');
+    put(7, 'LAT', C.white, 'left', 's'); put(8, activeRoute.id === 'outbound' ? '5128.2N' : '4900.6N', C.cyan); put(7, 'LONG ', C.white, 'right', 's'); put(8, activeRoute.id === 'outbound' ? '00027.3W' : '00232.9E', C.cyan, 'right');
     put(9, 'COST INDEX', C.white, 'left', 's'); put(10, f.ci != null ? String(f.ci) : f.fromTo ? '___' : '---', f.ci != null ? C.cyan : f.fromTo ? C.amber : C.white);
     put(11, 'CRZ FL/TEMP', C.white, 'left', 's'); put(11, 'TROPO ', C.white, 'right', 's'); put(12, f.crz ? 'FL' + f.crz + '/-35°' : f.fromTo ? '_____/___°' : '-----/---°', f.crz ? C.cyan : f.fromTo ? C.amber : C.white); put(12, '36090', C.cyan, 'right');
     const sc = MCDU.scratch;
-    act.L[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === 'EGLLLFPG1') { f.coRte = true; f.fromTo = true; mcduClr(); fmsCheck(); Tut.event('mcdu_init'); } else mcduMsg('NOT IN DATABASE'); };
-    act.R[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === 'EGLL/LFPG') { f.fromTo = true; f.coRte = true; mcduClr(); fmsCheck(); mcduMsg('CO RTE EGLLLFPG1 LOADED'); } else if (/^[A-Z]{4}\/[A-Z]{4}$/.test(sc)) mcduMsg('NOT IN DATABASE'); else mcduMsg('FORMAT ERROR'); };
+    act.L[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === activeRoute.company) { f.coRte = true; f.fromTo = true; mcduClr(); fmsCheck(); Tut.event('mcdu_init'); } else mcduMsg('NOT IN DATABASE'); };
+    act.R[0] = () => { if (!sc) return mcduMsg('FORMAT ERROR'); if (sc === activeRoute.from.icao + '/' + activeRoute.to.icao) { f.fromTo = true; f.coRte = true; mcduClr(); fmsCheck(); mcduMsg('CO RTE ' + activeRoute.company + ' LOADED'); } else if (/^[A-Z]{4}\/[A-Z]{4}$/.test(sc)) mcduMsg('NOT IN DATABASE'); else mcduMsg('FORMAT ERROR'); };
     act.L[2] = () => { if (/^[A-Z0-9]{1,8}$/.test(sc)) { f.fltNbr = sc; mcduClr(); fmsCheck(); } else mcduMsg('FORMAT ERROR'); };
     act.L[4] = () => { if (!f.fromTo) return mcduMsg('NOT ALLOWED'); if (/^\d{1,3}$/.test(sc) && +sc <= 999) { f.ci = +sc; mcduClr(); fmsCheck(); } else mcduMsg('FORMAT ERROR'); };
     act.L[5] = () => { if (!f.fromTo) return mcduMsg('NOT ALLOWED'); const m = sc.match(/^(?:FL)?(\d{2,3})(?:\/.*)?$/); if (m && +m[1] >= 100 && +m[1] <= 390) { f.crz = +m[1]; mcduClr(); fmsCheck(); } else mcduMsg('ENTRY OUT OF RANGE'); };
   }
   else if (p === 'F-PLN') {
-    put(0, 'FROM', C.white, 'left', 's'); put(0, 'ALB324 ', C.white, 'right', 's');
+    put(0, 'FROM', C.white, 'left', 's'); put(0, activeRoute.flightNumber + ' ', C.white, 'right', 's');
     if (!S.fms.coRte) { put(2, 'NO F-PLN', C.white, 'center'); }
     else {
       let row = 1; const start = Math.max(0, S.fms.wp - 1);
       for (let i = start; i < FPLAN.length && row < 12; i++) {
-        const w = FPLAN[i]; const nm = w.name === '27R' ? 'EGLL27R' : w.name === 'RW26R' ? 'LFPG26R' : w.name;
+        const w = FPLAN[i]; const nm = w.rwy ? (i === 0 ? activeRoute.from.icao : activeRoute.to.icao) + w.name.replace(/^RW/, '') : w.name;
         put(row, i === S.fms.wp ? nm : nm, i === S.fms.wp ? C.white : C.green); put(row, w.alt ? (w.alt >= 6000 && w.alt < 10000 ? String(w.alt) : w.alt >= 10000 ? 'FL' + Math.round(w.alt / 100) : String(w.alt)) : (i > 2 && i < 6 ? 'FL' + CRZ_FL : '-----'), w.alt ? C.mag : C.green, 'right');
         if (i > start) { const pw = FPLAN[i - 1]; if (pw.x != null && w.x != null) put(row - 0, '', C.green); }
         row += 2;
       }
-      put(12, 'DEST    TIME  DIST  EFOB', C.white, 'left', 's'); put(13, 'LFPG26R  ' + '----  ' + Math.round(distToGo()) + '  ' + (S.fuel / 1000 - 1.6).toFixed(1), C.green);
+      put(12, 'DEST    TIME  DIST  EFOB', C.white, 'left', 's'); put(13, activeRoute.to.icao + activeRoute.arrRwy.name + '  ' + '----  ' + Math.round(distToGo()) + '  ' + (S.fuel / 1000 - 1.6).toFixed(1), C.green);
     }
   }
   else if (p === 'PERF') {
     const f = S.fms, e = f.ent;
     put(0, 'TAKE OFF', S.fms.phase === 'TAKEOFF' ? C.green : C.white, 'center');
     put(1, ' V1   FLP RETR', C.white, 'left', 's'); put(1, 'RWY ', C.white, 'right', 's');
-    put(2, e.v1 ? String(f.v1) : '___', e.v1 ? C.cyan : C.amber); put(2, 'F=' + Math.round(speeds().F) , C.green, 'center'); put(2, '27R', C.green, 'right');
+    put(2, e.v1 ? String(f.v1) : '___', e.v1 ? C.cyan : C.amber); put(2, 'F=' + Math.round(speeds().F) , C.green, 'center'); put(2, activeRoute.depRwy.name, C.green, 'right');
     put(3, ' VR    SLT RETR', C.white, 'left', 's'); put(3, 'TO SHIFT ', C.white, 'right', 's');
     put(4, e.vr ? String(f.vr) : '___', e.vr ? C.cyan : C.amber); put(4, 'S=' + Math.round(speeds().S), C.green, 'center'); put(4, '[M]  [  ]*', C.cyan, 'right');
     put(5, ' V2     CLEAN', C.white, 'left', 's'); put(5, 'FLAPS/THS ', C.white, 'right', 's');
@@ -2522,7 +2552,7 @@ function mcduLines() { // returns 14 lines [{t,c,a}] and LSK actions
   }
   else if (p === 'RAD NAV') {
     put(0, 'RADIO NAV', C.white, 'center'); put(1, 'VOR1/FREQ', C.white, 'left', 's'); put(2, 'BIG/115.10', C.cyan); put(1, 'FREQ/VOR2', C.white, 'right', 's'); put(2, '117.00/OCK', C.cyan, 'right');
-    put(5, 'LS /FREQ', C.white, 'left', 's'); put(6, S.fms.phase === 'APPROACH' || S.fms.phase === 'DESCENT' ? 'GLE/110.10' : '[  ]/[   ]', C.mag); put(7, 'CRS', C.white, 'left', 's'); put(8, 'F266', C.mag);
+    put(5, 'LS /FREQ', C.white, 'left', 's'); put(6, S.fms.phase === 'APPROACH' || S.fms.phase === 'DESCENT' ? ACTIVE_ILS.ident + '/' + ACTIVE_ILS.freq : '[  ]/[   ]', C.mag); put(7, 'CRS', C.white, 'left', 's'); put(8, 'F' + ACTIVE_ILS.crs, C.mag);
   }
   return { L, act };
 }
@@ -3822,6 +3852,27 @@ const Tut = (() => {
     'Approach briefing': 'tod', 'Descend to 4000 feet': 'desc12', 'Arm the approach': 'appr', 'Flaps 1': 'appr', 'Flaps 2': 'appr', 'Gear down': 'appr10', 'Flaps 3 and FULL': 'appr10',
     'Cleared to land': 'final', 'Reverse thrust': 'touchdown', 'Slow down': 'rollout', 'After landing': 'stopped', 'Shutdown': 'stopped', 'Debrief': 'stopped' };
   { let last = 'stand'; steps.forEach(st => { st.at = AT[st.title] || last; last = st.at; }); }
+  // Keep the same systems checks for both sectors, with route-specific clearances and targets.
+  const outboundSteps = steps;
+  const returnSteps = outboundSteps.map(st => ({ ...st }));
+  const revise = (title, changes) => Object.assign(returnSteps.find(st => st.title === title), changes);
+  revise('Welcome aboard', { text: "Good afternoon, I'm Captain Hughes. Today we're flying Albion 325 from Paris Charles de Gaulle to London Heathrow in our A320. We'll prepare the aircraft from cold and dark, depart runway 26 right, cross the Channel at FL250 and fly the ILS to Heathrow 27 right. I'll guide each check and callout. Drag to look around and scroll on a knob to turn it. Review the flight briefing, then press Continue." });
+  revise('Load the company route', { text: "On the INIT page, type company route LFPGEGLL1, then press the top-left line-select key beside CO RTE. CLR deletes a character.", hl: () => MCDU.scratch === 'LFPGEGLL1' ? 'mcdu_L1' : 'mcdu_' + ('LFPGEGLL1'[MCDU.scratch.length] || 'CLR'), items: [['Scratchpad shows LFPGEGLL1', () => MCDU.scratch === 'LFPGEGLL1' || S.fms.coRte], ['CO RTE loaded (L1)', () => S.fms.coRte]] });
+  revise('Flight number and cruise level', { text: "Enter ALB325 in FLT NBR (L3), 30 in COST INDEX (L5), and 250 in CRZ FL (L6) for flight level 250.", hl: () => { const f = S.fms; const want = !f.fltNbr ? ['ALB325', 'L3'] : f.ci == null ? ['30', 'L5'] : ['250', 'L6']; return MCDU.page !== 'INIT' ? 'mcdu_INIT' : MCDU.scratch === want[0] ? 'mcdu_' + want[1] : 'mcdu_' + (want[0][MCDU.scratch.length] || 'CLR'); }, items: [['FLT NBR ALB325', () => S.fms.fltNbr === 'ALB325'], ['COST INDEX 30', () => S.fms.ci === 30], ['CRZ FL 250', () => S.fms.crz === 250]], doit: () => { Object.assign(S.fms, { fltNbr: 'ALB325', ci: 30, crz: 250 }); mcduClr(); fmsCheck(); } });
+  revise('Check the flight plan', { text: "Press F-PLN and check runway 26 right, climb to 1500 feet, Beauvais, Abbeville, Dover, Detling and the ILS for Heathrow runway 27 right. The navigation display will show the route after IRS alignment. Press Continue when ready." });
+  revise('Altimeter setting', { text: "Paris QNH is 1015. Scroll the BARO knob until its window reads 1015; clicking pushes it to STD, so just scroll.", done: () => S.baro.qnh === 1015 && !S.baro.std, doit: () => { S.baro.qnh = 1015; S.baro.std = false; } });
+  revise('Clearance', { freq: 121605, who: 'De Gaulle Ground', atc: ['Albion 325, De Gaulle Ground, push and start approved, face west. Squawk 4 5 2 1.', 'Push and start approved, face west, squawk 4 5 2 1, Albion 325.'] });
+  revise('Taxi to 27R', { title: 'Taxi to 26R', freq: 121605, who: 'De Gaulle Ground', atc: ['Albion 325, taxi to holding point runway 26 right. Follow the greens.', 'Holding point 26 right, Albion 325.'], text: "Set the NOSE light to TAXI and release the parking brake. Follow the green centreline lights to the runway 26R holding point, below 20 knots. Steer with comma and full stop or the arrow keys; B brakes.", done: () => near(HOLD_26R.x, HOLD_26R.z, 45) && S.gs < 5, items: [['NOSE light TAXI', () => S.lt.nose >= 1], ['PARK BRK off', () => !S.parkBrake], ['At 26R holding point', () => near(HOLD_26R.x, HOLD_26R.z, 45)]] });
+  revise('Line up', { freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 325, runway 26 right, line up and wait.', 'Line up and wait 26 right, Albion 325.'], text: "On Tower now. Set STROBE on, LAND lights on, NOSE light to T.O and TCAS to TA/RA. Taxi onto runway 26R and align with the centreline, heading 266.", done: () => { const r = activeRoute.depRwy; return S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(r.tx + r.dx * 40, r.tz + r.dz * 40, 70) && hdgNear(r.hdg, 6) && S.gs < 8; }, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 26R', () => { const r = activeRoute.depRwy; return near(r.tx + r.dx * 40, r.tz + r.dz * 40, 70) && hdgNear(r.hdg, 6); }]], doit: () => { const r = activeRoute.depRwy; S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(r.tx + r.dx * 40, r.tz + r.dz * 40, r.hdg); S.parkBrake = false; } });
+  revise('Cleared for take-off', { freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 325, wind 250 degrees 8 knots, runway 26 right, cleared for take-off.', 'Cleared for take-off 26 right, Albion 325.'] });
+  revise('Climb to FL250', { freq: 128280, who: 'Paris Control', atc: ['Albion 325, Paris Control, climb flight level 250.', 'Climb flight level 250, Albion 325.'] });
+  revise('Cruise', { text: "We're levelling at flight level 250. France will fall behind us and we'll cross the Channel near Dover, then continue into Kent. Press T to speed up time. I'll call the descent." });
+  revise('Start descent', { freq: 128405, who: 'London Control', atc: ['Albion 325, London Control, descend flight level 110.', 'Descend flight level 110, Albion 325.'] });
+  revise('Approach briefing', { text: "Briefing: Heathrow runway 27 right ILS, course 270, frequency 110.30. Decision height 200 feet. Flaps FULL, autobrake MED. If we go around, TOGA thrust and climb to 5000 feet. Press Continue when ready." });
+  revise('Descend to 4000 feet', { freq: 120400, who: 'Heathrow Approach', atc: ['Albion 325, descend altitude 4000 feet, QNH 1018.', 'Descend 4000 feet, QNH 1018, Albion 325.'], text: "Set 4000 feet on the FCU and push for descent. Pull the BARO knob out of Std, then scroll to Heathrow QNH 1018. Below 10,000 feet, switch the landing lights on.", hl: () => S.fcu.alt !== 4000 ? 'fcu_alt' : S.baro.std || S.baro.qnh !== 1018 ? 'baro' : 'land', done: () => S.fcu.alt === 4000 && !S.baro.std && S.baro.qnh === 1018 && S.lt.land, items: [['ALT 4000 pushed', () => S.fcu.alt === 4000], ['QNH 1018', () => !S.baro.std && S.baro.qnh === 1018], ['LAND lights on', () => S.lt.land]], doit: () => { S.fcu.alt = 4000; S.ap.vert = 'DES'; S.baro.std = false; S.baro.qnh = 1018; setLandingLights(0); } });
+  revise('Arm the approach', { freq: 120400, who: 'Heathrow Approach', atc: ['Albion 325, cleared ILS approach runway 27 right.', 'Cleared ILS 27 right, Albion 325.'] });
+  revise('Cleared to land', { freq: 118505, who: 'Heathrow Tower', atc: ['Albion 325, Heathrow Tower, wind 250 degrees 8 knots, runway 27 right, cleared to land.', 'Cleared to land 27 right, Albion 325.'] });
+  revise('After landing', { text: "Welcome to London. Brake to a stop. After landing: flaps up, disarm spoilers, STROBE to AUTO and landing lights off." });
   function applyDone(k) { const st = steps[k]; try { if (st.skipDo) st.skipDo(); else if (st.doit) st.doit(); } catch (e) { console.warn(e); } }
   function jump(j) {
     j = clamp(j, 0, steps.length - 1); if (j === idx) return;
@@ -3873,6 +3924,7 @@ const Tut = (() => {
     if (S.onGround && S.touchdown && !calls.s70 && S.gs < 72 && S.gs > 60) { calls.s70 = 1; Audio2.say('Seventy knots.', 'capt'); }
   }
   return {
+    setRoute(id) { steps = id === 'return' ? returnSteps : outboundSteps; idx = -1; active = false; calls = {}; events.clear(); CK.highlightId = null; onUI && onUI(); },
     get steps() { return steps; }, get idx() { return idx; }, get active() { return active; }, captainOn: true,
     start(i = 0) { active = true; calls = {}; goto(i); },
     stop() { active = false; CK.highlightId = null; onUI && onUI(); },
@@ -3894,6 +3946,13 @@ function stepPushback(dt) {
   const pb = S.pushback; if (!pb) return;
   if (S.parkBrake && pb.t < 3) { return; }
   pb.t += dt; const k = clamp(pb.t / pb.dur, 0, 1); const s = k * k * (3 - 2 * k);
+  if (activeRoute.id === 'return') {
+    const a = activeRoute.stand, b = activeRoute.pushEnd;
+    S.pos.x = lerp(a.x, b.x, s); S.pos.z = lerp(a.z, b.z, s); S.pos.y = groundH(S.pos.x, S.pos.z);
+    S.psi = lerp(a.hdg, b.hdg, s) * D2R; S.vel.set(0, 0, 0); pb.v = 0;
+    if (k >= 1) { S.pushback = null; showATC('Ground crew', 'Pushback complete. Set parking brake, disconnecting the tug. Bye bye.'); }
+    return;
+  }
   const P0 = { x: LHR_STAND.x, z: LHR_STAND.z }, P1 = { x: LHR_STAND.x, z: PUSH_END.z }, P2 = { x: PUSH_END.x, z: PUSH_END.z };
   const bz = (t) => ({ x: (1 - t) ** 2 * P0.x + 2 * (1 - t) * t * P1.x + t * t * P2.x, z: (1 - t) ** 2 * P0.z + 2 * (1 - t) * t * P1.z + t * t * P2.z });
   const p = bz(s), p2 = bz(Math.min(1, s + 0.01)), p1 = bz(Math.max(0, s - 0.01));
@@ -3906,12 +3965,12 @@ let _autoTaxi = false;
 function autoTaxi() { _autoTaxi = true; S.parkBrake = false; S.lt.nose = Math.max(S.lt.nose, 1); }
 function stepAutoTaxi(dt) {
   if (!_autoTaxi) return;
-  // follow TAXI_LHR to the holding point using a pure-pursuit steering law
-  const path = TAXI_LHR; let best = 0, bd = 1e9; path.forEach((p, i) => { const d = dist2(S.pos.x, S.pos.z, p[0], p[1]); if (d < bd) { bd = d; best = i; } });
-  const tgtI = Math.min(best + 1, 6); const tgt = path[tgtI];
+  // follow the selected departure taxiway to its holding point
+  const path = activeRoute.taxi; let best = 0, bd = 1e9; path.forEach((p, i) => { const d = dist2(S.pos.x, S.pos.z, p[0], p[1]); if (d < bd) { bd = d; best = i; } });
+  const tgtI = Math.min(best + 1, path.length - 1); const tgt = path[tgtI];
   const b = brg(S.pos.x, S.pos.z, tgt[0], tgt[1]); const err = wrap180(b - S.psi * R2D);
   S.tiller = clamp(err / 25, -1, 1);
-  const dh = dist2(S.pos.x, S.pos.z, HOLD_27R.x, HOLD_27R.z);
+  const dh = dist2(S.pos.x, S.pos.z, activeRoute.hold.x, activeRoute.hold.z);
   const tgtSpd = dh < 60 ? 0 : Math.abs(err) > 25 ? 8 : 16;
   const tl = S.gs < tgtSpd - 2 ? 0.18 : 0; S.tl = [tl, tl];
   S.brakeL = S.brakeR = S.gs > tgtSpd + 2 ? 0.5 : 0;
@@ -3965,15 +4024,38 @@ const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, a
 const $ = (id) => document.getElementById(id);
 let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
 function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
+function routePreview() { return ROUTES[$('routeSelect').value] || activeRoute; }
+function routeText(route) { return route.plan.map((p, i) => i === 0 ? `${route.from.icao} ${route.depRwy.name}` : i === route.plan.length - 1 ? `${route.to.icao} ${route.arrRwy.name}` : p.name); }
+function renderBriefing(route) {
+  $('briefingHeading').textContent = `${route.from.icao} → ${route.to.icao} flight briefing`;
+  $('briefingIntro').textContent = `Albion ${route.flightNumber.slice(3)} · Airbus A320 · ${route.from.name} to ${route.to.name}. The captain guides the checklists and callouts.`;
+  const section = (title, entries) => `<section><h3>${title}</h3><dl>${entries.map(([label, value]) => `<div><dt>${label}</dt><dd>${value}</dd></div>`).join('')}</dl></section>`;
+  const channel = route.id === 'return' ? 'ABB → DVR' : 'DVR → ABB';
+  $('briefingGrid').innerHTML = section(`DEPARTURE · ${route.from.icao}`, [['Runway', `${route.depRwy.name} · ${route.depRwy.hdg}°`], ['QNH', `${route.from.qnh} hPa`], ['Initial climb', '1500 ft, then 6000 ft'], ['V1 / VR / V2', '142 / 145 / 149 kt']])
+    + section('EN ROUTE', [['Company route', route.company], ['Cruise', 'FL250'], ['Fuel loaded', '7800 kg'], ['Channel crossing', channel]])
+    + section(`ARRIVAL · ${route.to.icao}`, [['Runway', `${route.arrRwy.name} · ${route.arrRwy.hdg}°`], ['ILS', `${route.ils.ident} · ${route.ils.freq} MHz`], ['Final course', `${route.ils.crs}° / ${route.ils.gs.toFixed(1)}°`], ['QNH', `${route.to.qnh} hPa`]]);
+  $('briefingRoute').textContent = routeText(route).join(' → ');
+}
+function renderRouteMenu() {
+  const route = routePreview();
+  $('menuFlight').textContent = `ALBION ${route.flightNumber.slice(3)} · AIRBUS A320 · G-ALBN`;
+  $('menuHeading').innerHTML = `${route.from.name} <span class="arrow">→</span> ${route.to.name}`;
+  $('menuSub').textContent = `A full line flight with a training captain beside you. Start cold and dark, run the checks, push back, taxi, take off from ${route.depRwy.name}, cross the Channel on autopilot and fly the ILS into ${route.arrRwy.name}.`;
+  $('menuRoute').replaceChildren(...routeText(route).map((name, i) => { const span = document.createElement('span'); span.textContent = name; if (i === 0 || i === route.plan.length - 1) span.className = 'ap'; return span; }));
+  const labels = { cold: [`Cold and dark at ${route.from.icao}`, `Every check from batteries on to engines off at ${route.to.name}. The captain explains each switch.`], runway: [`Lined up on ${route.depRwy.name}`, 'Engines running, checks done, cleared for take-off.'], cruise: ['Over the Channel', 'FL250, autopilot on.'], approach: [`17 miles from ${route.arrRwy.name}`, `4000 ft, ready for the ILS into ${route.to.name}.`], free: ['Free flight', `Lined up on ${route.depRwy.name}. You're on your own.`] };
+  document.querySelectorAll('[data-scn]').forEach(button => { const [title, detail] = labels[button.dataset.scn]; button.querySelector('b').textContent = title; button.querySelector('small').textContent = detail; });
+  renderBriefing(route);
+}
 function openMenu() {
   if (!$('menu').hidden) return;
   closeControlDrawer(); menuWasPaused = paused; if (started) paused = true;
+  $('routeSelect').value = activeRoute.id; renderRouteMenu();
   $('menuResumeRow').hidden = !started; $('menu').hidden = false; menuBackgroundInert(true);
   (started ? $('btnResume') : $('menu').querySelector('[data-scn]')).focus();
 }
 function resumeMenu() { if (!started) return; $('menu').hidden = true; menuBackgroundInert(false); paused = menuWasPaused; $('btnMenu').focus(); }
 function openDialog(id) {
-  if (id === 'briefing' && started) { briefingWasPaused = paused; paused = true; }
+  if (id === 'briefing') { renderBriefing($('menu').hidden ? activeRoute : routePreview()); if (started) { briefingWasPaused = paused; paused = true; } }
   closeControlDrawer(); dialogPreviousFocus = document.activeElement; $(id).hidden = false;
   for (const child of document.body.children) if (child !== $(id)) child.inert = true;
   $(id).querySelector('button').focus();
@@ -4025,7 +4107,7 @@ async function boot() {
   const sc = mkCanvas(128, 128); const sg = sc.getContext('2d'); const gr = sg.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
   shadowBlob = new THREE.Mesh(new THREE.PlaneGeometry(36, 40), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 })); shadowBlob.rotation.x = -Math.PI / 2; wScene.add(shadowBlob);
   // taxiway centreline green lights
-  const tl = []; for (let i = 0; i < TAXI_LHR.length - 1; i++) { const [a, b] = [TAXI_LHR[i], TAXI_LHR[i + 1]]; const L = dist2(a[0], a[1], b[0], b[1]); for (let d = 0; d < L; d += 12) { const x = lerp(a[0], b[0], d / L), z = lerp(a[1], b[1], d / L); tl.push(x, LHR.elev + PAVE + 0.3, z); } }
+  const tl = []; for (const [path, elev] of [[TAXI_LHR, LHR.elev], [TAXI_CDG, CDG.elev]]) for (let i = 0; i < path.length - 1; i++) { const [a, b] = [path[i], path[i + 1]]; const L = dist2(a[0], a[1], b[0], b[1]); for (let d = 0; d < L; d += 12) { const x = lerp(a[0], b[0], d / L), z = lerp(a[1], b[1], d / L); tl.push(x, elev + PAVE + 0.3, z); } }
   const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tl, 3));
   taxiLights = new THREE.Points(tg, new THREE.PointsMaterial({ map: W.lightTex, color: 0x30ff60, size: 2.4, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); wScene.add(taxiLights);
   prog('Wiring the flight deck', 0.88); await nextFrame();
@@ -4049,26 +4131,27 @@ function onResize() {
 function engRun(e) { e.master = true; e.run = true; e.starting = false; e.N1 = 19.5; e.N2 = 58.5; e.EGT = 420; e.FF = 290; }
 function scenario(name, tutorialFrom, quiet) {
   S = newState(); MCDU.page = 'MENU'; MCDU.scratch = ''; S.ndRange = 2; S.efisLS = false; S.fcu.alt = 100; S.doorsClosed = false; _autoTaxi = false;
+  S.baroActual = activeRoute.from.qnh;
   Tut.resetCalls();
-  if (name === 'cold') { placeAt(LHR_STAND.x, LHR_STAND.z, LHR_STAND.hdg); S.parkBrake = true; S.cabinReady = false; }
+  if (name === 'cold') { const s = activeRoute.stand; placeAt(s.x, s.z, s.hdg); S.parkBrake = true; S.cabinReady = false; }
   else {
     // a prepared aircraft
     S.elec.bat1 = S.elec.bat2 = true; S.adirs = [1, 1, 1]; S.adirsT = [1, 1, 1]; S.aligned = true; engRun(S.eng[0]); engRun(S.eng[1]); S.elec.ac = true;
     S.lt.nav = true; S.lt.beacon = true; S.lt.belts = true; fmsComplete(); S.cabinReady = true; S.toConfigTested = true; S.doorsClosed = true;
-    S.dcOnT = -999; S.xpdr.code = '4521'; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.rmp.act = 118505; S.rmp.stby = 121905;
-    S.baro.qnh = 1018; S.fcu.alt = 6000;
+    S.dcOnT = -999; S.xpdr.code = '4521'; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.rmp.act = activeRoute.towerFreq; S.rmp.stby = activeRoute.groundFreq;
+    S.baro.qnh = activeRoute.from.qnh; S.fcu.alt = 6000;
     Object.values(DU).forEach(d => d.boot = 5);
   }
   if (name === 'runway' || name === 'free') {
-    placeAt(1560, -850, 270); S.parkBrake = false; S.flapLever = 1; S.flapPos = 1; S.sbArmed = true; S.autobrake = 3; S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.fcu.athr = false;
+    const r = activeRoute.depRwy; placeAt(r.tx + r.dx * 40, r.tz + r.dz * 40, r.hdg); S.parkBrake = false; S.flapLever = 1; S.flapPos = 1; S.sbArmed = true; S.autobrake = 3; S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.fcu.athr = false;
   }
   if (name === 'cruise') {
-    const a = FPLAN[4], b = FPLAN[5]; const x = lerp(a.x, b.x, 0.35), z = lerp(a.z, b.z, 0.35); const h = brg(a.x, a.z, b.x, b.z);
-    airborne(x, z, 25000 * FT, h, 290); S.baro.std = true; S.fcu.alt = 25000; S.fms.wp = 5; S.fms.phase = 'CRUISE'; S.ap.vert = 'ALT'; S.ap.lat = 'NAV'; S.fms.altLegX = 0;
+    const k = activeRoute.cruiseLeg, a = FPLAN[k - 1], b = FPLAN[k]; const x = lerp(a.x, b.x, 0.35), z = lerp(a.z, b.z, 0.35); const h = brg(a.x, a.z, b.x, b.z);
+    airborne(x, z, 25000 * FT, h, 290); S.baro.std = true; S.fcu.alt = 25000; S.fms.wp = k; S.fms.phase = 'CRUISE'; S.ap.vert = 'ALT'; S.ap.lat = 'NAV'; S.fms.altLegX = 0;
   }
   if (name === 'approach') {
-    const r = CDG.rwys[0]; const d = 17 * NM; const x = r.tx - r.dx * d, z = r.tz - r.dz * d;
-    airborne(x, z, 4000 * FT, 266, 210); S.baro.qnh = 1015; S.fcu.alt = 4000; S.fms.wp = FPLAN.length - 1; S.fms.phase = 'APPROACH'; S.ap.vert = 'ALT'; S.ap.lat = 'HDG'; S.fcu.hdg = 266; S.fcu.hdgMan = true; setLandingLights(0); S.lt.strobe = 1;
+    const r = activeRoute.arrRwy; const d = 17 * NM; const x = r.tx - r.dx * d, z = r.tz - r.dz * d;
+    airborne(x, z, 4000 * FT, r.hdg, 210); S.baroActual = activeRoute.to.qnh; S.baro.qnh = activeRoute.to.qnh; S.fcu.alt = 4000; S.fms.wp = FPLAN.length - 1; S.fms.phase = 'APPROACH'; S.ap.vert = 'ALT'; S.ap.lat = 'HDG'; S.fcu.hdg = r.hdg; S.fcu.hdgMan = true; setLandingLights(0); S.lt.strobe = 1;
   }
   updQuat(); stepSystems(0.001); updNav(); stepFlight(0.0001);
   if (quiet) return;
@@ -4084,7 +4167,7 @@ function prepAircraft() {
   S.eng.forEach(e => { if (!e.run) engRun(e); }); S.elec.ac = true; S.engMode = 1;
   S.apu.master = false; S.apu.start = false; S.apu.avail = false; S.apu.N = 0; S.apu.bleed = false;
   fmsComplete(); S.doorsClosed = true; S.cabinReady = true; S.toConfigTested = true; S.pushback = null; _autoTaxi = false;
-  S.lt.nav = S.lt.beacon = S.lt.belts = true; S.xpdr.code = '4521'; S.xpdr.entry = ''; S.baro.qnh = S.baro.qnh || 1018;
+  S.lt.nav = S.lt.beacon = S.lt.belts = true; S.xpdr.code = '4521'; S.xpdr.entry = ''; S.baro.qnh = S.baro.qnh || activeRoute.from.qnh;
   Object.values(DU).forEach(d => d.boot = 5); timeComp = 1; accum = 0;
 }
 function trimPitch() { const a = isa(S.pos.y); const v = S.vel.clone().sub(S.wind || new THREE.Vector3()).length(); const c = CONF[Math.round(S.flapPos)]; const CL = S.mass * G / (0.5 * a.rho * v * v * AC.S); S.theta = (CL - c.CL0) / CLA + Math.asin(clamp(S.vel.y / Math.max(v, 1), -0.3, 0.3)); S.gammaT = Math.asin(clamp(S.vel.y / Math.max(v, 1), -0.3, 0.3)); S.ap.gammaC = S.gammaT * R2D; updQuat(); }
@@ -4092,7 +4175,7 @@ function fly(x, z, altFt, hdg, ias, o = {}) {
   prepAircraft(); airborne(x, z, altFt * FT, hdg, ias);
   Object.assign(S.ap, { lat: o.lat || 'NAV', vert: o.vert || 'ALT', latArm: o.latArm || '', vertArm: o.vertArm || '', exped: false });
   S.fcu.alt = o.fcuAlt ?? Math.round(altFt / 100) * 100; if (o.wp != null) S.fms.wp = o.wp; S.fms.phase = o.phase || 'CLIMB';
-  S.baro.std = !!o.std; if (!o.std) S.baro.qnh = o.qnh || 1018;
+  S.baro.std = !!o.std; if (!o.std) S.baro.qnh = o.qnh || activeRoute.from.qnh;
   S.flapLever = S.flapPos = o.flaps || 0; S.flapAngle = CONF[S.flapLever].angle; if (o.gear) { S.gearLever = 1; S.gearPos = 1; }
   if (o.tl != null) S.tl = [o.tl, o.tl]; S.fcu.ap1 = o.ap !== false; S.fcu.ap2 = !!o.ap2; S.fcu.athr = true;
   if (o.tl > DET.CL) S.ap.athrMode = ''; S.fcu.spdMan = false; S.fcu.hdgMan = !!o.hdgMan; if (o.hdgMan) S.fcu.hdg = Math.round(hdg);
@@ -4107,12 +4190,13 @@ function routePoint(dtgNm) {
   for (let i = 3; i < fp.length; i++) { const a = fp[i - 1], b = fp[i];
     for (let t = 0; t <= 1.0001; t += 0.01) { const x = lerp(a.x, b.x, t), z = lerp(a.z, b.z, t); let d = dist2(x, z, b.x, b.z); for (let k = i + 1; k < fp.length; k++) d += dist2(fp[k - 1].x, fp[k - 1].z, fp[k].x, fp[k].z);
       if (d / NM <= dtgNm) return { x, z, hdg: brg(a.x, a.z, b.x, b.z), wp: i }; } }
-  return { x: fp[fp.length - 2].x, z: fp[fp.length - 2].z, hdg: 266, wp: fp.length - 1 };
+  return { x: fp[fp.length - 2].x, z: fp[fp.length - 2].z, hdg: activeRoute.arrRwy.hdg, wp: fp.length - 1 };
 }
 function onGroundAt(x, z, hdg, kt) { prepAircraft(); placeAt(x, z, hdg); const v = hdgVec(hdg); S.vel.set(v.x * kt * KT, 0, v.z * kt * KT); S.airborneT = 0; S.flareMode = false; stepSystems(0.001); updNav(); stepFlight(0.0001); }
 function setupAt(kind) {
+  if (activeRoute.id === 'return') return setupReturnAt(kind);
   const r27 = LHR.rwys[0], c = CDG.rwys[0], elevL = LHR.elev / FT, elevC = CDG.elev / FT;
-  const ils = (dNm) => { const x = ILS26R.gsX - c.dx * dNm * NM, z = ILS26R.gsZ - c.dz * dNm * NM; return { x, z, alt: elevC + dNm * NM / FT * Math.tan(3 * D2R) }; };
+  const ils = (dNm) => { const x = ACTIVE_ILS.gsX - c.dx * dNm * NM, z = ACTIVE_ILS.gsZ - c.dz * dNm * NM; return { x, z, alt: elevC + dNm * NM / FT * Math.tan(3 * D2R) }; };
   const cdgRoll = (along, kt, done) => { onGroundAt(c.tx + c.dx * along, c.tz + c.dz * along, 266, kt); Object.assign(S, { flapLever: 4, flapPos: 4, gearLever: 1, gearPos: 1, sbArmed: !done, autobrake: 2, groundSpoilersOut: !done, spoiler: done ? 0 : 1 });
     S.touchdown = { fpm: -160, x: c.tx + c.dx * 420, z: c.tz + c.dz * 420, t: S.time - 5, ias: 132, pitch: 4.5 }; S.baro.qnh = 1015; S.fms.wp = FPLAN.length - 1; S.fms.phase = done ? 'DONE' : 'APPROACH';
     S.ap.lat = S.ap.vert = 'ROLL OUT'; S.fcu.ap1 = S.fcu.ap2 = false; S.fcu.athr = false; S.tl = [0, 0]; setLandingLights(done ? 1 : 0); S.lt.strobe = done ? 1 : 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; S.rmp.act = 119250; };
@@ -4137,6 +4221,39 @@ function setupAt(kind) {
     case 'touchdown': cdgRoll(520, 122, false); break;
     case 'rollout': cdgRoll(1500, 64, false); break;
     case 'stopped': cdgRoll(2100, 0, true); S.parkBrake = false; break;
+  }
+  VIEW.mode = 'cockpit'; updQuat();
+}
+function setupReturnAt(kind) {
+  const dep = activeRoute.depRwy, arr = activeRoute.arrRwy, elevD = activeRoute.from.elev / FT, elevA = activeRoute.to.elev / FT;
+  const fromRwy = (r, along, side = 0) => ({ x: r.tx + r.dx * along + r.dz * side, z: r.tz + r.dz * along - r.dx * side });
+  const ils = (dNm) => ({ ...fromRwy(arr, -dNm * NM), alt: elevA + dNm * NM / FT * Math.tan(3 * D2R) });
+  const roll = (along, kt, done) => { const p = fromRwy(arr, along); onGroundAt(p.x, p.z, arr.hdg, kt);
+    Object.assign(S, { flapLever: 4, flapPos: 4, gearLever: 1, gearPos: 1, sbArmed: !done, autobrake: 2, groundSpoilersOut: !done, spoiler: done ? 0 : 1 });
+    const td = fromRwy(arr, 420); S.touchdown = { fpm: -180, x: td.x, z: td.z, t: S.time - 5, ias: 132, pitch: 4.5 };
+    S.baroActual = S.baro.qnh = activeRoute.to.qnh; S.fms.wp = FPLAN.length - 1; S.fms.phase = done ? 'DONE' : 'APPROACH';
+    S.ap.lat = S.ap.vert = 'ROLL OUT'; S.fcu.ap1 = S.fcu.ap2 = S.fcu.athr = false; S.tl = [0, 0]; setLandingLights(done ? 1 : 0); S.lt.strobe = done ? 1 : 2; S.rmp.act = activeRoute.arrivalTowerFreq; };
+  switch (kind) {
+    case 'stand': { const s = activeRoute.stand; if (dist2(S.pos.x, S.pos.z, s.x, s.z) > 20) { placeAt(s.x, s.z, s.hdg); S.parkBrake = true; } break; }
+    case 'pushed': onGroundAt(CDG_PUSH_END.x, CDG_PUSH_END.z, CDG_PUSH_END.hdg, 0); S.parkBrake = true; S.rmp.act = activeRoute.groundFreq; break;
+    case 'hold': onGroundAt(HOLD_26R.x, HOLD_26R.z, 86, 0); S.lt.nose = 1; S.rmp.act = activeRoute.towerFreq; break;
+    case 'runway': { const p = fromRwy(dep, 40); onGroundAt(p.x, p.z, dep.hdg, 0); S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.parkBrake = false; S.rmp.act = activeRoute.towerFreq; break; }
+    case 'roll': { const p = fromRwy(dep, 1200); onGroundAt(p.x, p.z, dep.hdg, 138); S.lt.strobe = 2; setLandingLights(0); S.tl = [DET.FLX, DET.FLX]; S.fms.phase = 'TAKEOFF'; Object.assign(S.ap, { vert: 'SRS', lat: 'RWY', vertArm: 'CLB', latArm: 'NAV' }); S.fcu.athr = true; S.fcu.alt = 6000; break; }
+    case 'liftoff': { const p = fromRwy(dep, 2300); fly(p.x, p.z, elevD + 60, dep.hdg, 158, { lat: 'RWY TRK', vert: 'SRS', vertArm: 'CLB', latArm: 'NAV', gear: true, flaps: 1, tl: DET.FLX, ap: false, phase: 'TAKEOFF', vs: 1500, fcuAlt: 6000, wp: 1 }); S.ap.trk = dep.hdg; break; }
+    case 'climb400': { const p = fromRwy(dep, 3400); fly(p.x, p.z, elevD + 420, dep.hdg, 162, { lat: 'NAV', vert: 'SRS', vertArm: 'CLB', flaps: 1, tl: DET.FLX, ap: false, phase: 'TAKEOFF', vs: 1800, fcuAlt: 6000, wp: 1 }); break; }
+    case 'climb1500': { const p = fromRwy(dep, 6500); fly(p.x, p.z, elevD + 1450, dep.hdg, 165, { lat: 'NAV', vert: 'SRS', vertArm: 'CLB', flaps: 1, tl: DET.FLX, phase: 'TAKEOFF', vs: 1800, fcuAlt: 6000, wp: 1 }); break; }
+    case 'climb2000': { const p = fromRwy(dep, 8000); fly(p.x, p.z, elevD + 2000, dep.hdg, 195, { vert: 'CLB', flaps: 1, tl: DET.CL, phase: 'CLIMB', vs: 1500, fcuAlt: 6000, wp: 1 }); break; }
+    case 'climb6000': { const a = fromRwy(dep, 9000), b = FPLAN[2]; fly(lerp(a.x, b.x, .55), lerp(a.z, b.z, .55), 6000, brg(a.x, a.z, b.x, b.z), 250, { vert: 'ALT', tl: DET.CL, phase: 'CLIMB', fcuAlt: 6000, wp: 2, altLeg: a }); break; }
+    case 'climb10k': { const a = FPLAN[2], b = FPLAN[3]; fly(lerp(a.x, b.x, .5), lerp(a.z, b.z, .5), 10200, brg(a.x, a.z, b.x, b.z), 255, { vert: 'CLB', tl: DET.CL, phase: 'CLIMB', fcuAlt: 25000, std: true, wp: 3, vs: 2000 }); break; }
+    case 'cruise': { const a = FPLAN[3], b = FPLAN[4]; fly(lerp(a.x, b.x, .3), lerp(a.z, b.z, .3), 25000, brg(a.x, a.z, b.x, b.z), 290, { vert: 'ALT', tl: DET.CL, phase: 'CRUISE', fcuAlt: 25000, std: true, wp: 4 }); break; }
+    case 'tod': { const p = routePoint(89); fly(p.x, p.z, 25000, p.hdg, 290, { vert: 'ALT', tl: DET.CL, phase: 'CRUISE', fcuAlt: 25000, std: true, wp: p.wp }); break; }
+    case 'desc12': { const p = routePoint(46); fly(p.x, p.z, 12300, p.hdg, 290, { vert: 'DES', tl: DET.CL, phase: 'DESCENT', fcuAlt: 11000, std: true, wp: p.wp, vs: -1800 }); break; }
+    case 'appr': { const p = ils(17); fly(p.x, p.z, 4000, arr.hdg, 210, { lat: 'HDG', hdgMan: true, vert: 'ALT', tl: DET.CL, phase: 'APPROACH', fcuAlt: 4000, qnh: activeRoute.to.qnh, wp: FPLAN.length - 1 }); S.baroActual = activeRoute.to.qnh; break; }
+    case 'appr10': { const p = ils(10); fly(p.x, p.z, p.alt, arr.hdg, 185, { lat: 'LOC', vert: 'G/S', tl: DET.CL, phase: 'APPROACH', fcuAlt: 4000, qnh: activeRoute.to.qnh, flaps: 2, ap2: true, ls: true, vs: -950, wp: FPLAN.length - 1 }); S.baroActual = activeRoute.to.qnh; break; }
+    case 'final': { const p = ils(4.2); fly(p.x, p.z, p.alt, arr.hdg, 140, { lat: 'LOC', vert: 'G/S', tl: DET.CL, phase: 'APPROACH', fcuAlt: 5000, qnh: activeRoute.to.qnh, flaps: 4, gear: true, ap2: true, ls: true, spl: true, ab: 2, vs: -720, wp: FPLAN.length - 1 }); S.baroActual = activeRoute.to.qnh; break; }
+    case 'touchdown': roll(520, 122, false); break;
+    case 'rollout': roll(1500, 64, false); break;
+    case 'stopped': roll(2100, 0, true); S.parkBrake = false; break;
   }
   VIEW.mode = 'cockpit'; updQuat();
 }
@@ -4355,7 +4472,7 @@ function render(dt) {
   wScene.fog.near = 1500 + camAlt * 0.6; wScene.fog.far = vis * 1.5 + camAlt * 2;
   sunLight.position.copy(cp).addScaledVector(W.sunDir, 1000); sunLight.target.position.copy(cp);
   if (frameN % 90 === 0) clouds.userData.sort(cp);
-  taxiLights.visible = S.onGround && dist2(S.pos.x, S.pos.z, 0, 0) < 5000 && (!Tut.active || ['Taxi', 'Pushback and start', 'Before take-off'].includes((Tut.cur() || {}).ph));
+  taxiLights.visible = S.onGround && dist2(S.pos.x, S.pos.z, activeRoute.from.cx, activeRoute.from.cz) < 5500 && (!Tut.active || ['Taxi', 'Pushback and start', 'Before take-off'].includes((Tut.cur() || {}).ph));
   // PAPI colours
   for (const p of PAPIS) { const d = dist2(cp.x, cp.z, p.x, p.z); const ang = Math.atan2(cp.y - p.y, d) * R2D; p.lights.forEach(l => l.sp.material.color.setHex(ang > l.ang ? 0xffffff : 0xff2a1a)); }
   // ----- draw -----
@@ -4406,7 +4523,8 @@ function operateControl(action) {
   h.panel.sig = ''; updateScreens(); updateControlState();
 }
 function setupUI() {
-  document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
+  $('routeSelect').onchange = renderRouteMenu;
+  document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); selectRouteData($('routeSelect').value); Tut.setRoute(activeRoute.id); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
   $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
   $('menuBriefing').onclick = $('btnBriefing').onclick = () => openDialog('briefing');
   $('briefingClose').onclick = () => closeDialog('briefing');
@@ -4496,7 +4614,7 @@ function updateHUD() {
   if (!x.hidden) x.innerHTML = `<span>IAS <b>${Math.round(S.ias)}</b></span><span>ALT <b>${Math.round(indicatedAlt())}</b></span><span>HDG <b>${String(Math.round(S.psi * R2D) % 360).padStart(3, '0')}</b></span><span>V/S <b>${Math.round(S.vs / 10) * 10}</b></span><span>${S.ap.lat || ''} ${S.ap.vert || ''}</span>`;
 }
 function showDebrief(crash) {
-  const d = $('debrief'); const td = S.touchdown; const r = CDG.rwys[0];
+  const d = $('debrief'); const td = S.touchdown; const r = activeRoute.arrRwy;
   let rows = [];
   if (crash) rows.push(['Outcome', 'The aircraft was damaged on landing', 'bad']);
   if (td) {

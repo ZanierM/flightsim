@@ -717,10 +717,13 @@ function buildAirports(scene, mats) {
   const at = (along, side) => [r0.tx + dd.x * along + nn.x * side, r0.tz + dd.z * along + nn.z * side];
   const taxiC = (a) => { const g = ribbon(a, 23, yC, 25); scene.add(new THREE.Mesh(g, matTaxi)); };
   taxiC([at(-50, 190), at(4300, 190)]); taxiC([at(-50, 2810), at(4300, 2810)]);
+  taxiC(TAXI_CDG.slice(0, 4));
+  taxiC([at(-50, 190), at(-50, 0), at(40, 0)]);
   for (const a of [600, 1500, 2300, 3200, 4000]) taxiC([at(a, 0), at(a, 190), at(a + 150, 600)]);
   for (const a of [800, 2000, 3400]) taxiC([at(a, 2810), at(a, 2400)]);
   const [tcx, tcz] = at(2300, 1500);
   scene.add(new THREE.Mesh(quadXZ(tcx, tcz, 3200, 1200, 266, yC - 0.03), matConc));
+  scene.add(new THREE.Mesh(quadXZ(CDG_STAND.x, CDG_STAND.z, 0.5, 200, 176, yC + 0.03), yel));
   const bC = (along, side, w, d, h, mat = mGlass) => { const [x, z] = at(along, side); const m = building(x, z, w, d, h, -266 * D2R, mat); m.position.y = yC + h / 2; };
   bC(1300, 1500, 1100, 70, 20); bC(2700, 1300, 800, 60, 18); bC(2700, 1700, 800, 60, 18); bC(3500, 1500, 600, 90, 22, mOff); bC(1800, 1000, 300, 100, 16, mOff);
   const [t1x, t1z] = at(500, 1500); const t1 = new THREE.Mesh(new THREE.CylinderGeometry(95, 95, 32, 32), new THREE.MeshLambertMaterial({ color: 0x8b8680 })); t1.position.set(t1x, yC + 16, t1z); scene.add(t1);

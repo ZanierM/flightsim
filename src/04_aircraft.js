@@ -356,7 +356,7 @@ function flightControlsGround(dt, V, qbar, L, m) {
 
 // ---------- navigation sources ----------
 function updNav() {
-  const ils = ILS26R;
+  const ils = ACTIVE_ILS;
   const dLoc = dist2(S.pos.x, S.pos.z, ils.locX, ils.locZ);
   const b = brg(ils.locX, ils.locZ, S.pos.x, S.pos.z);
   const dev = wrap180(b - wrap360(ils.crs + 180));
@@ -449,7 +449,7 @@ function stepAP(dt) {
       case 'ALT': { if (ap.holdAlt == null) ap.holdAlt = tgtAlt; const err = ap.holdAlt - altFt; const vs = clamp(err * 2.2, -1200, 1200); ap.gammaC = approach(ap.gammaC, vsToGamma(vs), dt * 1.2); break; }
       case 'V/S': { const vs = fcu.vs; ap.gammaC = approach(ap.gammaC, vsToGamma(vs), dt * 1.0); break; }
       case 'G/S*': case 'G/S': case 'LAND': {
-        const herr = S.gs_.herr; const gs = -ILS26R.gs - clamp(herr * 0.045, -1.8, 1.8) - 0.0;
+        const herr = S.gs_.herr; const gs = -ACTIVE_ILS.gs - clamp(herr * 0.045, -1.8, 1.8) - 0.0;
         // compensate wind: use air path
         ap.gammaC = approach(ap.gammaC, gs, dt * 0.8); break; }
       case 'FLARE': { const vsT = -Math.min(800, 230 + Math.max(0, S.ra) * 14); ap.gammaC = approach(ap.gammaC, Math.max(vsToGamma(vsT), -3.2), dt * 1.5); break; }
@@ -472,7 +472,7 @@ function stepAP(dt) {
       case 'LOC*': case 'LOC': case 'LAND': {
         const xte = S.loc.xte; const xteRate = (xte - (ap._xtePrev ?? xte)) / dt; ap._xtePrev = xte;
         const kx = ap.lat === 'LOC*' ? 0.018 : 0.03; const corr = clamp(xte * kx + xteRate * 0.6, -30, 30);
-        trkCmd = wrap360(ILS26R.crs + corr); break; }
+        trkCmd = wrap360(ACTIVE_ILS.crs + corr); break; }
       default: hdgCmd = S.psi * R2D;
     }
     let err;
@@ -482,7 +482,7 @@ function stepAP(dt) {
     if (ap.lat === 'FLARE' || S.ra < 30) ap.bankC = clamp(ap.bankC, -5, 5);
   } else {
     ap.bankC = 0;
-    if (ap.lat === 'ROLL OUT' && (fcu.ap1 || fcu.ap2)) { const corr = clamp(S.loc.xte * 0.05, -6, 6); const err = wrap180(ILS26R.crs + corr - S.psi * R2D); S.rudder = clamp(err * 0.3, -1, 1); }
+    if (ap.lat === 'ROLL OUT' && (fcu.ap1 || fcu.ap2)) { const corr = clamp(S.loc.xte * 0.05, -6, 6); const err = wrap180(ACTIVE_ILS.crs + corr - S.psi * R2D); S.rudder = clamp(err * 0.3, -1, 1); }
   }
   // ---------- autothrust ----------
   if (fcu.athr) {
@@ -526,7 +526,7 @@ function lnav() {
   // sequencing with turn anticipation
   const nxt = fp[i + 1];
   let antic = 300;
-  if (nxt && !nxt.rwy || (nxt && nxt.name === 'RW26R')) { const b2 = brg(w.x, w.z, nxt.x, nxt.z); const dA = Math.abs(wrap180(b2 - legBrg)); const R = Math.pow(S.tas, 2) / (G * Math.tan(25 * D2R)); antic = Math.min(R * Math.tan(dA / 2 * D2R), 9000) + 200; }
+  if (nxt) { const b2 = brg(w.x, w.z, nxt.x, nxt.z); const dA = Math.abs(wrap180(b2 - legBrg)); const R = Math.pow(S.tas, 2) / (G * Math.tan(25 * D2R)); antic = Math.min(R * Math.tan(dA / 2 * D2R), 9000) + 200; }
   if (legLen - along < antic && i < fp.length - 1) { S.fms.wp++; if (fp[i].type === 'ALT') { } }
   if (w.type !== 'ALT' && prev && fp[i - 1].type === 'ALT' && S.fms.altLegX == null) { S.fms.altLegX = S.pos.x; S.fms.altLegZ = S.pos.z; }
   return wrap360(legBrg - clamp(xr * 0.012, -45, 45));
@@ -536,7 +536,7 @@ function distToGo() { // nm along remaining route to destination
   // Once established on the ILS, the course-fix is behind us. Continuing to
   // route through it makes the MCDU distance grow again on short final.
   if (S.fms.wp >= fp.length - 1 || /^(LOC|LAND|ROLL OUT)/.test(S.ap.lat)) {
-    const r = CDG.rwys[0];
+    const r = activeRoute.arrRwy;
     return dist2(S.pos.x, S.pos.z, r.tx, r.tz) / NM;
   }
   let i = Math.max(S.fms.wp, 1); let d = 0, px = S.pos.x, pz = S.pos.z;

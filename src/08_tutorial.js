@@ -69,6 +69,27 @@ const Tut = (() => {
     'Approach briefing': 'tod', 'Descend to 4000 feet': 'desc12', 'Arm the approach': 'appr', 'Flaps 1': 'appr', 'Flaps 2': 'appr', 'Gear down': 'appr10', 'Flaps 3 and FULL': 'appr10',
     'Cleared to land': 'final', 'Reverse thrust': 'touchdown', 'Slow down': 'rollout', 'After landing': 'stopped', 'Shutdown': 'stopped', 'Debrief': 'stopped' };
   { let last = 'stand'; steps.forEach(st => { st.at = AT[st.title] || last; last = st.at; }); }
+  // Keep the same systems checks for both sectors, with route-specific clearances and targets.
+  const outboundSteps = steps;
+  const returnSteps = outboundSteps.map(st => ({ ...st }));
+  const revise = (title, changes) => Object.assign(returnSteps.find(st => st.title === title), changes);
+  revise('Welcome aboard', { text: "Good afternoon, I'm Captain Hughes. Today we're flying Albion 325 from Paris Charles de Gaulle to London Heathrow in our A320. We'll prepare the aircraft from cold and dark, depart runway 26 right, cross the Channel at FL250 and fly the ILS to Heathrow 27 right. I'll guide each check and callout. Drag to look around and scroll on a knob to turn it. Review the flight briefing, then press Continue." });
+  revise('Load the company route', { text: "On the INIT page, type company route LFPGEGLL1, then press the top-left line-select key beside CO RTE. CLR deletes a character.", hl: () => MCDU.scratch === 'LFPGEGLL1' ? 'mcdu_L1' : 'mcdu_' + ('LFPGEGLL1'[MCDU.scratch.length] || 'CLR'), items: [['Scratchpad shows LFPGEGLL1', () => MCDU.scratch === 'LFPGEGLL1' || S.fms.coRte], ['CO RTE loaded (L1)', () => S.fms.coRte]] });
+  revise('Flight number and cruise level', { text: "Enter ALB325 in FLT NBR (L3), 30 in COST INDEX (L5), and 250 in CRZ FL (L6) for flight level 250.", hl: () => { const f = S.fms; const want = !f.fltNbr ? ['ALB325', 'L3'] : f.ci == null ? ['30', 'L5'] : ['250', 'L6']; return MCDU.page !== 'INIT' ? 'mcdu_INIT' : MCDU.scratch === want[0] ? 'mcdu_' + want[1] : 'mcdu_' + (want[0][MCDU.scratch.length] || 'CLR'); }, items: [['FLT NBR ALB325', () => S.fms.fltNbr === 'ALB325'], ['COST INDEX 30', () => S.fms.ci === 30], ['CRZ FL 250', () => S.fms.crz === 250]], doit: () => { Object.assign(S.fms, { fltNbr: 'ALB325', ci: 30, crz: 250 }); mcduClr(); fmsCheck(); } });
+  revise('Check the flight plan', { text: "Press F-PLN and check runway 26 right, climb to 1500 feet, Beauvais, Abbeville, Dover, Detling and the ILS for Heathrow runway 27 right. The navigation display will show the route after IRS alignment. Press Continue when ready." });
+  revise('Altimeter setting', { text: "Paris QNH is 1015. Scroll the BARO knob until its window reads 1015; clicking pushes it to STD, so just scroll.", done: () => S.baro.qnh === 1015 && !S.baro.std, doit: () => { S.baro.qnh = 1015; S.baro.std = false; } });
+  revise('Clearance', { freq: 121605, who: 'De Gaulle Ground', atc: ['Albion 325, De Gaulle Ground, push and start approved, face west. Squawk 4 5 2 1.', 'Push and start approved, face west, squawk 4 5 2 1, Albion 325.'] });
+  revise('Taxi to 27R', { title: 'Taxi to 26R', freq: 121605, who: 'De Gaulle Ground', atc: ['Albion 325, taxi to holding point runway 26 right. Follow the greens.', 'Holding point 26 right, Albion 325.'], text: "Set the NOSE light to TAXI and release the parking brake. Follow the green centreline lights to the runway 26R holding point, below 20 knots. Steer with comma and full stop or the arrow keys; B brakes.", done: () => near(HOLD_26R.x, HOLD_26R.z, 45) && S.gs < 5, items: [['NOSE light TAXI', () => S.lt.nose >= 1], ['PARK BRK off', () => !S.parkBrake], ['At 26R holding point', () => near(HOLD_26R.x, HOLD_26R.z, 45)]] });
+  revise('Line up', { freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 325, runway 26 right, line up and wait.', 'Line up and wait 26 right, Albion 325.'], text: "On Tower now. Set STROBE on, LAND lights on, NOSE light to T.O and TCAS to TA/RA. Taxi onto runway 26R and align with the centreline, heading 266.", done: () => { const r = activeRoute.depRwy; return S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(r.tx + r.dx * 40, r.tz + r.dz * 40, 70) && hdgNear(r.hdg, 6) && S.gs < 8; }, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 26R', () => { const r = activeRoute.depRwy; return near(r.tx + r.dx * 40, r.tz + r.dz * 40, 70) && hdgNear(r.hdg, 6); }]], doit: () => { const r = activeRoute.depRwy; S.lt.strobe = 2; setLandingLights(0); S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(r.tx + r.dx * 40, r.tz + r.dz * 40, r.hdg); S.parkBrake = false; } });
+  revise('Cleared for take-off', { freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 325, wind 250 degrees 8 knots, runway 26 right, cleared for take-off.', 'Cleared for take-off 26 right, Albion 325.'] });
+  revise('Climb to FL250', { freq: 128280, who: 'Paris Control', atc: ['Albion 325, Paris Control, climb flight level 250.', 'Climb flight level 250, Albion 325.'] });
+  revise('Cruise', { text: "We're levelling at flight level 250. France will fall behind us and we'll cross the Channel near Dover, then continue into Kent. Press T to speed up time. I'll call the descent." });
+  revise('Start descent', { freq: 128405, who: 'London Control', atc: ['Albion 325, London Control, descend flight level 110.', 'Descend flight level 110, Albion 325.'] });
+  revise('Approach briefing', { text: "Briefing: Heathrow runway 27 right ILS, course 270, frequency 110.30. Decision height 200 feet. Flaps FULL, autobrake MED. If we go around, TOGA thrust and climb to 5000 feet. Press Continue when ready." });
+  revise('Descend to 4000 feet', { freq: 120400, who: 'Heathrow Approach', atc: ['Albion 325, descend altitude 4000 feet, QNH 1018.', 'Descend 4000 feet, QNH 1018, Albion 325.'], text: "Set 4000 feet on the FCU and push for descent. Pull the BARO knob out of Std, then scroll to Heathrow QNH 1018. Below 10,000 feet, switch the landing lights on.", hl: () => S.fcu.alt !== 4000 ? 'fcu_alt' : S.baro.std || S.baro.qnh !== 1018 ? 'baro' : 'land', done: () => S.fcu.alt === 4000 && !S.baro.std && S.baro.qnh === 1018 && S.lt.land, items: [['ALT 4000 pushed', () => S.fcu.alt === 4000], ['QNH 1018', () => !S.baro.std && S.baro.qnh === 1018], ['LAND lights on', () => S.lt.land]], doit: () => { S.fcu.alt = 4000; S.ap.vert = 'DES'; S.baro.std = false; S.baro.qnh = 1018; setLandingLights(0); } });
+  revise('Arm the approach', { freq: 120400, who: 'Heathrow Approach', atc: ['Albion 325, cleared ILS approach runway 27 right.', 'Cleared ILS 27 right, Albion 325.'] });
+  revise('Cleared to land', { freq: 118505, who: 'Heathrow Tower', atc: ['Albion 325, Heathrow Tower, wind 250 degrees 8 knots, runway 27 right, cleared to land.', 'Cleared to land 27 right, Albion 325.'] });
+  revise('After landing', { text: "Welcome to London. Brake to a stop. After landing: flaps up, disarm spoilers, STROBE to AUTO and landing lights off." });
   function applyDone(k) { const st = steps[k]; try { if (st.skipDo) st.skipDo(); else if (st.doit) st.doit(); } catch (e) { console.warn(e); } }
   function jump(j) {
     j = clamp(j, 0, steps.length - 1); if (j === idx) return;
@@ -120,6 +141,7 @@ const Tut = (() => {
     if (S.onGround && S.touchdown && !calls.s70 && S.gs < 72 && S.gs > 60) { calls.s70 = 1; Audio2.say('Seventy knots.', 'capt'); }
   }
   return {
+    setRoute(id) { steps = id === 'return' ? returnSteps : outboundSteps; idx = -1; active = false; calls = {}; events.clear(); CK.highlightId = null; onUI && onUI(); },
     get steps() { return steps; }, get idx() { return idx; }, get active() { return active; }, captainOn: true,
     start(i = 0) { active = true; calls = {}; goto(i); },
     stop() { active = false; CK.highlightId = null; onUI && onUI(); },
@@ -141,6 +163,13 @@ function stepPushback(dt) {
   const pb = S.pushback; if (!pb) return;
   if (S.parkBrake && pb.t < 3) { return; }
   pb.t += dt; const k = clamp(pb.t / pb.dur, 0, 1); const s = k * k * (3 - 2 * k);
+  if (activeRoute.id === 'return') {
+    const a = activeRoute.stand, b = activeRoute.pushEnd;
+    S.pos.x = lerp(a.x, b.x, s); S.pos.z = lerp(a.z, b.z, s); S.pos.y = groundH(S.pos.x, S.pos.z);
+    S.psi = lerp(a.hdg, b.hdg, s) * D2R; S.vel.set(0, 0, 0); pb.v = 0;
+    if (k >= 1) { S.pushback = null; showATC('Ground crew', 'Pushback complete. Set parking brake, disconnecting the tug. Bye bye.'); }
+    return;
+  }
   const P0 = { x: LHR_STAND.x, z: LHR_STAND.z }, P1 = { x: LHR_STAND.x, z: PUSH_END.z }, P2 = { x: PUSH_END.x, z: PUSH_END.z };
   const bz = (t) => ({ x: (1 - t) ** 2 * P0.x + 2 * (1 - t) * t * P1.x + t * t * P2.x, z: (1 - t) ** 2 * P0.z + 2 * (1 - t) * t * P1.z + t * t * P2.z });
   const p = bz(s), p2 = bz(Math.min(1, s + 0.01)), p1 = bz(Math.max(0, s - 0.01));
@@ -153,12 +182,12 @@ let _autoTaxi = false;
 function autoTaxi() { _autoTaxi = true; S.parkBrake = false; S.lt.nose = Math.max(S.lt.nose, 1); }
 function stepAutoTaxi(dt) {
   if (!_autoTaxi) return;
-  // follow TAXI_LHR to the holding point using a pure-pursuit steering law
-  const path = TAXI_LHR; let best = 0, bd = 1e9; path.forEach((p, i) => { const d = dist2(S.pos.x, S.pos.z, p[0], p[1]); if (d < bd) { bd = d; best = i; } });
-  const tgtI = Math.min(best + 1, 6); const tgt = path[tgtI];
+  // follow the selected departure taxiway to its holding point
+  const path = activeRoute.taxi; let best = 0, bd = 1e9; path.forEach((p, i) => { const d = dist2(S.pos.x, S.pos.z, p[0], p[1]); if (d < bd) { bd = d; best = i; } });
+  const tgtI = Math.min(best + 1, path.length - 1); const tgt = path[tgtI];
   const b = brg(S.pos.x, S.pos.z, tgt[0], tgt[1]); const err = wrap180(b - S.psi * R2D);
   S.tiller = clamp(err / 25, -1, 1);
-  const dh = dist2(S.pos.x, S.pos.z, HOLD_27R.x, HOLD_27R.z);
+  const dh = dist2(S.pos.x, S.pos.z, activeRoute.hold.x, activeRoute.hold.z);
   const tgtSpd = dh < 60 ? 0 : Math.abs(err) > 25 ? 8 : 16;
   const tl = S.gs < tgtSpd - 2 ? 0.18 : 0; S.tl = [tl, tl];
   S.brakeL = S.brakeR = S.gs > tgtSpd + 2 ? 0.5 : 0;
