@@ -18,7 +18,7 @@ To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `m
 
 ## Controls
 
-Press **H** in the simulator for the full list.
+Press **H** in the simulator for the full list. Press **F2** to search cockpit controls, read their current settings, focus the camera on them, and operate them with keyboard buttons. Opening **Menu** pauses the flight; choose **Resume flight** to continue.
 
 | Control | Action |
 | --- | --- |
@@ -57,5 +57,7 @@ The captain, ATC and callouts use your browser's speech voices. Open **Voices** 
 | `shell.html` | Page markup and styles |
 
 After editing anything in `src/`, run `python3 build.py`. It rewrites both `index.html` and `docs/index.html`.
+
+Run `node tests/smoke.cjs` to check the take-off configuration and dual-autopilot tutorial requirements.
 
 No airline affiliation and no certified aircraft data. This is for learning and fun, not for training real pilots.

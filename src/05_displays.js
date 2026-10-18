@@ -300,7 +300,7 @@ function drawEWD(d, dt) {
     if (S.onGround && e2run && !S.tl.some(t => t > DET.CL) && (!S.touchdown)) {
       left.push(['T.O', C.white]);
       const it = (ok, a, b) => left.push([(ok ? a : a + ' ' + '.'.repeat(Math.max(1, 15 - a.length - b.length)) + b), ok ? C.green : C.cyan]);
-      it(S.autobrake === 3, 'AUTO BRK MAX', 'MAX'); it(S.lt.belts, 'SIGNS ON', 'ON'); it(S.cabinReady, 'CABIN READY', 'CHECK'); it(S.sbArmed, 'SPLRS ARM', 'ARM'); it(S.flapLever >= 1 && S.flapLever <= 3, 'FLAPS T.O', 'T.O'); it(S.toConfigOK, 'T.O CONFIG NORMAL', 'TEST');
+      it(S.autobrake === 3, 'AUTO BRK MAX', 'MAX'); it(S.lt.belts, 'SIGNS ON', 'ON'); it(S.cabinReady, 'CABIN READY', 'CHECK'); it(S.sbArmed && S.sbLever <= 0.05, 'SPLRS ARM', 'ARM'); it(S.flapLever >= 1 && S.flapLever <= 3 && Math.abs(S.flapPos - S.flapLever) <= 0.05, 'FLAPS T.O', 'T.O'); it(takeoffConfigNormal(), 'T.O CONFIG NORMAL', 'TEST');
     } else if (!S.onGround && S.ra < 2000 && S.fms.phase === 'APPROACH') {
       left.push(['LDG', C.white]);
       const it = (ok, a, b) => left.push([(ok ? a : a + ' ' + '.'.repeat(Math.max(1, 15 - a.length - b.length)) + b), ok ? C.green : C.cyan]);

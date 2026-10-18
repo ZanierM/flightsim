@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A320 Heathrow to Paris</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400&family=B612+Mono:wght@400;700&display=swap">
@@ -10,6 +15,7 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--fg); font-family: var(--ui); overflow: hidden; -webkit-font-smoothing: antialiased; }
 #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
@@ -82,6 +88,19 @@ button { font-family: var(--ui); }
 #radio.flash { animation: rf .5s; } @keyframes rf { from { border-color: var(--green); } }
 
 #tip { position: fixed; z-index: 30; pointer-events: none; background: rgba(4,8,10,.94); border: 1px solid var(--line); color: var(--fg); font-size: 12.5px; padding: 6px 9px; width: max-content; max-width: min(320px, calc(100vw - 16px)); line-height: 1.4; }
+#controlDrawer { position: fixed; z-index: 32; top: calc(52px + env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); width: min(370px, calc(100vw - 24px)); max-height: calc(100vh - 70px); overflow-y: auto; background: #111a20; border: 1px solid #667a84; padding: 16px; box-sizing: border-box; }
+#controlDrawer h2 { font-size: 17px; margin: 0; }
+#controlDrawer .drawerHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#controlDrawer p { color: var(--dim); font-size: 13px; line-height: 1.45; margin: 10px 0; }
+#controlSearch { box-sizing: border-box; width: 100%; padding: 10px; background: #071014; color: var(--fg); border: 1px solid #788f9b; font: 14px var(--ui); }
+#controlList { display: grid; gap: 4px; max-height: 170px; overflow-y: auto; margin: 8px 0 12px; }
+#controlList button { text-align: left; white-space: normal; }
+#controlList button[aria-current="true"] { border-color: var(--cyan); color: var(--cyan); }
+#controlName { font-size: 15px; font-weight: 700; margin: 0 0 6px; }
+#controlState { min-height: 2.8em; }
+#controlActions { display: flex; flex-wrap: wrap; gap: 6px; }
+#controlActions .btn { min-height: 38px; }
+#controlActions .btn:disabled { opacity: .4; cursor: default; }
 #toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); background: rgba(4,8,10,.92); border-left: 3px solid var(--amber); padding: 8px 14px; font-family: var(--mono); font-size: 13px; z-index: 25; max-width: calc(100vw - 32px); }
 #xhud { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 16px; font-family: var(--mono); font-size: 13px; color: var(--dim); background: rgba(4,8,10,.75); padding: 6px 14px; z-index: 18; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
 #xhud b { color: var(--green); font-weight: 400; }
@@ -91,8 +110,8 @@ button { font-family: var(--ui); }
 .modal .card { background: var(--panel-solid); border: 1px solid var(--line); padding: 22px; width: min(720px, 100%); }
 .modal h2 { margin: 0 0 12px; font-size: 20px; }
 .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 24px; font-size: 13px; }
-.keys div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-.keys kbd { font-family: var(--mono); color: var(--cyan); font-size: 12px; white-space: nowrap; }
+.keys div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.keys kbd { font-family: var(--mono); color: var(--cyan); font-size: 12px; white-space: normal; overflow-wrap: anywhere; text-align: right; }
 .keys h3 { grid-column: 1 / -1; font-size: 11px; color: var(--green); font-family: var(--mono); letter-spacing: .1em; margin: 12px 0 2px; text-transform: uppercase; }
 #debrief table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 #debrief th { text-align: left; font-weight: 400; color: var(--dim); padding: 7px 0; border-bottom: 1px solid var(--line); }
@@ -106,17 +125,21 @@ button { font-family: var(--ui); }
 #vRateV { font-family: var(--mono); font-size: 13px; color: var(--cyan); min-width: 3em; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { #looks { display: none; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
+</head>
+<body>
 <canvas id="gl"></canvas>
 <div id="loading"><div class="box"><div class="t">ALB324 · EGLL → LFPG</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
 
-<div id="menu" hidden>
+<div id="menu" role="dialog" aria-modal="true" aria-labelledby="menuHeading" hidden>
   <div class="card">
     <div class="flight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
-    <h1>London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
+    <h1 id="menuHeading">London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
     <p class="sub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
     <div class="route"><span class="ap">EGLL 27R</span><span>(1500)</span><span>EPM</span><span>DET</span><span>DVR</span><span>ABB</span><span>BVS</span><span>MOPAR</span><span>CF26R</span><span class="ap">LFPG 26R</span></div>
+    <div class="row" id="menuResumeRow" hidden><button class="btn primary" id="btnResume">Resume flight</button></div>
     <div class="scns">
       <button class="scn main" data-scn="cold"><span class="tag">FULL TUTORIAL · ABOUT 60 MIN</span><b>Cold and dark at the stand</b><small>Every check from batteries on to engines off in Paris. The captain explains each switch.</small></button>
       <button class="scn" data-scn="runway"><span class="tag">FROM TAKE-OFF</span><b>Lined up on 27R</b><small>Engines running, checks done, cleared for take-off.</small></button>
@@ -124,7 +147,7 @@ button { font-family: var(--ui); }
       <button class="scn" data-scn="approach"><span class="tag">FROM APPROACH</span><b>17 miles from 26R</b><small>4000 ft east of Charles de Gaulle, ready for the ILS.</small></button>
       <button class="scn" data-scn="free"><span class="tag">NO CAPTAIN</span><b>Free flight</b><small>Lined up on 27R. You're on your own.</small></button>
     </div>
-    <p class="note">Best with headphones and a keyboard. Press H at any time for the controls. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
+    <p class="note">Best with headphones and a keyboard. Press H for the controls or F2 for a searchable, keyboard-operable cockpit control list. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
   </div>
 </div>
 
@@ -135,7 +158,19 @@ button { font-family: var(--ui); }
   <button class="btn look" data-look="-22,58">Overhead</button>
   <button class="btn look" data-look="70,-5">Left window</button>
 </div>
-<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnCockpit">Cockpit controls (F2)</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+
+<aside id="controlDrawer" aria-labelledby="controlHeading" hidden>
+  <div class="drawerHead"><h2 id="controlHeading">Cockpit controls</h2><button class="btn" id="controlClose">Close</button></div>
+  <p>Search a switch, knob or button. Select it to see its state, focus the camera and operate it with the keyboard.</p>
+  <button class="btn" id="controlCurrent">Find captain’s next control</button>
+  <label for="controlSearch" class="sr-only">Search cockpit controls</label>
+  <input id="controlSearch" type="search" placeholder="Search, e.g. battery or altitude" autocomplete="off">
+  <div id="controlList" aria-label="Matching cockpit controls"></div>
+  <div id="controlName" aria-live="polite">Select a control</div>
+  <p id="controlState" aria-live="polite"></p>
+  <div id="controlActions"><button class="btn primary" data-control-action="press">Press / toggle</button><button class="btn" data-control-action="pull">Pull / alternate</button><button class="btn" data-control-action="decrease">Decrease</button><button class="btn" data-control-action="increase">Increase</button></div>
+</aside>
 
 <div id="captain" hidden>
   <div class="head"><div class="av">CH</div><div class="who"><b>Capt. Hughes</b>Training captain</div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><button id="tMin" title="Collapse">▾</button></div>
@@ -160,9 +195,9 @@ button { font-family: var(--ui); }
 <div id="toast" hidden></div>
 <div id="xhud" hidden></div>
 
-<div id="help" class="modal" hidden>
+<div id="help" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpHeading" hidden>
   <div class="card">
-    <h2>Controls</h2>
+    <h2 id="helpHeading">Controls</h2>
     <div class="keys">
       <h3>Flying</h3>
       <div>Pitch / roll (sidestick)<kbd>↑ ↓ ← →  (W / S pitch)</kbd></div>
@@ -197,9 +232,9 @@ button { font-family: var(--ui); }
     <div class="row"><button class="btn primary close">Close</button></div>
   </div>
 </div>
-<div id="voices" class="modal" hidden>
+<div id="voices" class="modal" role="dialog" aria-modal="true" aria-labelledby="voicesHeading" hidden>
   <div class="card">
-    <h2>Voices</h2>
+    <h2 id="voicesHeading">Voices</h2>
     <p class="vnote">These are the voices built into your browser and computer. Look for names with <b>Natural</b>, <b>Premium</b>, <b>Enhanced</b> or <b>Google</b>: they sound far more human. On a Mac you can download better ones in System Settings → Accessibility → Spoken Content → System voice → Manage Voices (try "Daniel (Premium)" or "Jamie (Premium)"), then reload this page.</p>
     <div class="vrow"><label for="vCapt">Captain</label><select id="vCapt"></select><button class="btn" data-test="capt">Test</button></div>
     <div class="vrow"><label for="vAtc">ATC and cabin</label><select id="vAtc"></select><button class="btn" data-test="atc">Test</button></div>
@@ -209,9 +244,9 @@ button { font-family: var(--ui); }
     <div class="row"><button class="btn primary" id="voicesClose">Done</button></div>
   </div>
 </div>
-<div id="debrief" class="modal" hidden>
+<div id="debrief" class="modal" role="dialog" aria-modal="true" aria-labelledby="debriefHeading" hidden>
   <div class="card">
-    <h2>Flight debrief · ALB324</h2>
+    <h2 id="debriefHeading">Flight debrief · ALB324</h2>
     <table><tbody id="debriefRows"></tbody></table>
     <div class="row"><button class="btn" id="debriefClose">Keep looking around</button><button class="btn primary" id="debriefMenu">Fly again</button></div>
   </div>
@@ -1296,7 +1331,7 @@ function newState() {
     // derived
     ias: 0, tas: 0, gs: 0, mach: 0, alt: 0, ra: 0, vs: 0, alpha: 0, gamma: 0, trk: 0, iasTrend: 0, nz: 1,
     loc: { dev: 0, valid: false, dist: 0, xte: 0 }, gs_: { dev: 0, valid: false, herr: 0 },
-    tailStrike: false, touchdown: null, crashed: false, hardLanding: false,
+    tailStrike: false, touchdown: null, crashed: false, hardLanding: false, toConfigTested: false,
     time: 0, airborneT: 0, warn: { master: false, caution: false, msgs: [] }, wind: new THREE.Vector3(), windDir: 250, windKt: 8,
     stats: { maxBank: 0, overspeed: 0, maxG: 1, tdFpm: 0, tdDist: 0, tdCl: 0, flown: 0 },
     pushback: null,
@@ -1307,6 +1342,17 @@ function newState() {
 function mkEng() { return { master: false, N1: 0, N2: 0, EGT: 25, FF: 0, run: false, starting: false, ign: false, startFail: '' }; }
 
 let S = newState();
+
+function takeoffConfigFaults() {
+  const faults = [];
+  if (S.flapLever < 1 || S.flapLever > 3 || Math.abs(S.flapPos - S.flapLever) > 0.05) faults.push('FLAPS');
+  if (!S.sbArmed || S.sbLever > 0.05 || S.spoiler > 0.05) faults.push('SPOILERS');
+  if (S.autobrake !== 3) faults.push('AUTO BRK MAX');
+  if (Math.abs(S.rudTrim) > 0.3) faults.push('RUDDER TRIM');
+  if (S.gearPos < 0.95) faults.push('LANDING GEAR');
+  return faults;
+}
+function takeoffConfigNormal() { return S.toConfigTested && takeoffConfigFaults().length === 0; }
 
 function placeAt(x, z, hdg) {
   S.pos.set(x, groundH(x, z), z); S.psi = hdg * D2R; S.theta = 0; S.phi = 0; S.vel.set(0, 0, 0); S.onGround = true;
@@ -2139,7 +2185,7 @@ function drawEWD(d, dt) {
     if (S.onGround && e2run && !S.tl.some(t => t > DET.CL) && (!S.touchdown)) {
       left.push(['T.O', C.white]);
       const it = (ok, a, b) => left.push([(ok ? a : a + ' ' + '.'.repeat(Math.max(1, 15 - a.length - b.length)) + b), ok ? C.green : C.cyan]);
-      it(S.autobrake === 3, 'AUTO BRK MAX', 'MAX'); it(S.lt.belts, 'SIGNS ON', 'ON'); it(S.cabinReady, 'CABIN READY', 'CHECK'); it(S.sbArmed, 'SPLRS ARM', 'ARM'); it(S.flapLever >= 1 && S.flapLever <= 3, 'FLAPS T.O', 'T.O'); it(S.toConfigOK, 'T.O CONFIG NORMAL', 'TEST');
+      it(S.autobrake === 3, 'AUTO BRK MAX', 'MAX'); it(S.lt.belts, 'SIGNS ON', 'ON'); it(S.cabinReady, 'CABIN READY', 'CHECK'); it(S.sbArmed && S.sbLever <= 0.05, 'SPLRS ARM', 'ARM'); it(S.flapLever >= 1 && S.flapLever <= 3 && Math.abs(S.flapPos - S.flapLever) <= 0.05, 'FLAPS T.O', 'T.O'); it(takeoffConfigNormal(), 'T.O CONFIG NORMAL', 'TEST');
     } else if (!S.onGround && S.ra < 2000 && S.fms.phase === 'APPROACH') {
       left.push(['LDG', C.white]);
       const it = (ok, a, b) => left.push([(ok ? a : a + ' ' + '.'.repeat(Math.max(1, 15 - a.length - b.length)) + b), ok ? C.green : C.cyan]);
@@ -2422,7 +2468,7 @@ function drawPB(g, x, y, w, h, top, bot) {
   const half = (lg, yy) => {
     if (!lg || !lg.t) return; const on = (lg.on && pw) || test; const fs = Math.max(9, Math.round(h * (lg.t.length > 5 ? 0.21 : 0.26)));
     const font = `bold ${fs}px Arial, sans-serif`;
-    if (!on) { g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(80,86,90,.9)'; g.fillText(lg.t, x + w / 2, yy); return; }
+    if (!on) { g.font = font; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#9ba8af'; g.fillText(lg.t, x + w / 2, yy); return; }
     both(g, gg => { gg.font = font; gg.textAlign = 'center'; gg.textBaseline = 'middle'; gg.fillStyle = lg.c; gg.shadowColor = lg.c; gg.shadowBlur = 6;
       if (lg.box) { gg.strokeStyle = lg.c; gg.lineWidth = 2; gg.strokeRect(x + 5, yy - h * 0.17, w - 10, h * 0.34); }
       gg.fillText(lg.t, x + w / 2, yy); gg.shadowBlur = 0; });
@@ -2440,7 +2486,7 @@ function drawLight(g, x, y, w, h, t, col, on, size) {
   const lit = on && S.elec.dc || (S.annTest && S.elec.dc);
   const f = `bold ${size || Math.round(h * 0.42)}px Arial, sans-serif`;
   if (lit) both(g, gg => { gg.font = f; gg.textAlign = 'center'; gg.textBaseline = 'middle'; gg.fillStyle = col; gg.shadowColor = col; gg.shadowBlur = 8; t.split('\n').forEach((l, i, a) => gg.fillText(l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (h * 0.4))); gg.shadowBlur = 0; });
-  else { g.font = f; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = 'rgba(70,72,74,.9)'; t.split('\n').forEach((l, i, a) => g.fillText(l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (h * 0.4))); }
+  else { g.font = f; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillStyle = '#8f9da4'; t.split('\n').forEach((l, i, a) => g.fillText(l, x + w / 2, y + h / 2 + (i - (a.length - 1) / 2) * (h * 0.4))); }
 }
 function drawToggle(g, x, y, idx, labels) {
   const n = labels.length, sp = 26;
@@ -3127,8 +3173,8 @@ function buildOverhead(p) {
   // ---- ELEC ----
   addScreen(p, 610, 668, 108, 48, 2.5, (g, W, H) => scrVolt(g, W, H, S.elec.bat1), () => `${S.elec.dc}|${S.elec.bat1}`);
   addScreen(p, 760, 668, 108, 48, 2.5, (g, W, H) => scrVolt(g, W, H, S.elec.bat2), () => `${S.elec.dc}|${S.elec.bat2}`);
-  pbHot(p, 'bat1', 640, 730, 'BAT 1', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat1 && (S.elec.bat2 || S.elec.ac)), () => { S.elec.bat1 = !S.elec.bat1; Audio2.click(); Tut.event('bat'); }, 'BAT 1: battery 1');
-  pbHot(p, 'bat2', 790, 730, 'BAT 2', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat2 && (S.elec.bat1 || S.elec.ac)), () => { S.elec.bat2 = !S.elec.bat2; Audio2.click(); Tut.event('bat'); }, 'BAT 2: battery 2');
+  pbHot(p, 'bat1', 640, 730, 'BAT 1', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat1 && (S.elec.bat2 || S.elec.ac)), () => { S.elec.bat1 = !S.elec.bat1; Audio2.click(); Tut.event('bat'); }, () => `BAT 1: ${S.elec.bat1 ? 'ON' : 'OFF'}`);
+  pbHot(p, 'bat2', 790, 730, 'BAT 2', () => T('FAULT', ANN.amber, false), () => T('OFF', ANN.white, !S.elec.bat2 && (S.elec.bat1 || S.elec.ac)), () => { S.elec.bat2 = !S.elec.bat2; Audio2.click(); Tut.event('bat'); }, () => `BAT 2: ${S.elec.bat2 ? 'ON' : 'OFF'}`);
   gpb(p, 'bustie', 1040, 730, 'BUS TIE', 'off', true, { abn: 'ELEC BUS TIE OFF', when: () => S.elec.ac });
   gpb(p, 'acess', 1180, 730, '', 'off', true, { bot: 'ALTN', tip: 'AC ESS FEED' });
   gpb(p, 'galley', 1320, 730, 'GALLEY', 'off', true, {});
@@ -3236,8 +3282,11 @@ function buildPedestal(p) {
   ebtn('emercanc', cols[0], 40, 'EMER\nCANC', () => false, () => { S.warn.silenced = true; S.warn.ack = [...(S.warn.cautions || [])]; }, 'EMER CANC: cancel the current warning or caution');
   ['ENG', 'BLEED', 'PRESS', 'ELEC', 'HYD', 'FUEL'].forEach((pg, i) => pageBtn(pg, cols[i + 1], 40));
   pbHot(p, 'toconfig', cols[0] - 24, 135, 'T.O CONFIG', () => null, () => ({ t: 'TEST', c: ANN.white, on: S.time - (S.toTestT ?? -99) < 1 }), () => {
-    Audio2.click(); S.toTestT = S.time; const ok = S.flapLever >= 1 && S.flapLever <= 3 && S.flapPos >= 0.95 && S.spoiler < 0.05;
-    if (ok) { S.toConfigOK = true; toast('T.O CONFIG NORMAL'); } else { S.toConfigOK = false; Audio2.chime(); toast('CONFIG: flaps not in take-off configuration'); } }, 'T.O CONFIG: test the take-off configuration');
+    Audio2.click(); S.toTestT = S.time; S.toConfigTested = true;
+    const faults = takeoffConfigFaults();
+    if (!faults.length) toast('T.O CONFIG NORMAL');
+    else { Audio2.chime(); toast('CONFIG: ' + faults.join(', '), 5000); }
+  }, 'T.O CONFIG: test flaps, spoilers, autobrake, rudder trim and gear');
   ['APU', 'COND', 'DOOR', 'WHEEL', 'F/CTL'].forEach((pg, i) => pageBtn(pg, cols[i + 1], 135));
   ebtn('sd_all', cols[6], 135, 'ALL', () => false, () => { const i = SD_PAGES.indexOf(S.sdPage); S.sdPage = SD_PAGES[(i + 1) % SD_PAGES.length]; }, 'ALL: step through every system page');
   ebtn('clr_l', cols[0], 240, 'CLR', () => S.warn.caution, () => { S.warn.ack = [...(S.warn.cautions || [])]; S.sdPage = null; }, 'CLR: clear the ECAM message');
@@ -3588,7 +3637,7 @@ const Tut = (() => {
   ST({ ph: 'Pushback and start', title: 'Start engine 2', text: "We start number 2 first. Set ENG 2 MASTER to ON. Watch the upper screen: N2 climbs, fuel and ignition come on at 16 percent, then EGT rises. Engine 2 will be stable in about 40 seconds.", hl: 'eng2', done: () => S.eng[1].run, items: [['ENG 2 MASTER ON', () => S.eng[1].master], ['ENG 2 stable', () => S.eng[1].run]], doit: () => S.eng[1].master = true });
   ST({ ph: 'Pushback and start', title: 'Start engine 1', text: "Engine 2 is stable. Now ENG 1 MASTER to ON.", hl: 'eng1', done: () => S.eng[0].run, items: [['ENG 1 MASTER ON', () => S.eng[0].master], ['ENG 1 stable', () => S.eng[0].run]], doit: () => S.eng[0].master = true });
   ST({ ph: 'Pushback and start', title: 'After start', text: "Both engines are running. Wait for the tug to finish, then set the parking brake. Turn ENG MODE back to NORM, and switch off APU BLEED and then the APU MASTER SW. The engines supply power and air now.", hl: () => S.pushback ? 'engmode' : !S.parkBrake ? 'parkbrk' : S.engMode !== 1 ? 'engmode' : S.apu.bleed ? 'apu_bleed' : 'apu_master', done: () => !S.pushback && S.parkBrake && S.engMode === 1 && !S.apu.bleed && !S.apu.master, items: [['Pushback complete', () => !S.pushback], ['PARK BRK set', () => S.parkBrake], ['ENG MODE NORM', () => S.engMode === 1], ['APU BLEED off', () => !S.apu.bleed], ['APU MASTER off', () => !S.apu.master]], doit: () => { if (!S.pushback) S.parkBrake = true; S.engMode = 1; S.apu.bleed = false; S.apu.master = false; } });
-  ST({ ph: 'Pushback and start', title: 'Take-off config test', text: "Press T.O CONFIG on the ECAM control panel, at the front of the pedestal. It checks flaps, spoilers, brakes and trim. Then look at the take-off memo on the upper screen: every line should be green.", hl: 'toconfig', done: () => S.toConfigOK && S.cabinReady, doit: () => { S.toConfigOK = true; S.cabinReady = true; }, enter: () => { setTimeout(() => { S.cabinReady = true; Audio2.ding(); showATC('Purser', 'Captain, cabin is secure and ready for departure.'); }, 9000); } });
+  ST({ ph: 'Pushback and start', title: 'Take-off config test', text: "Press T.O CONFIG on the ECAM control panel, at the front of the pedestal. It checks flaps, armed spoilers, autobrake MAX, rudder trim and landing gear. Correct any fault it reports, then test again. Check the take-off memo on the upper screen too.", hl: 'toconfig', done: () => takeoffConfigNormal() && S.cabinReady, doit: () => { S.flapLever = S.flapPos = 1; S.sbArmed = true; S.sbLever = S.spoiler = 0; S.autobrake = 3; S.rudTrim = 0; S.gearLever = S.gearPos = 1; S.toConfigTested = true; S.cabinReady = true; }, enter: () => { setTimeout(() => { S.cabinReady = true; Audio2.ding(); showATC('Purser', 'Captain, cabin is secure and ready for departure.'); }, 9000); } });
   // ===== TAXI =====
   ST({ ph: 'Taxi', title: 'Taxi to 27R', freq: 121905, who: 'Heathrow Ground', atc: ['Albion 324, taxi holding point A1, runway 27 right, via Alpha. Follow the greens.', 'Holding point A1, 27 right, via Alpha, Albion 324.'], text: "Set the NOSE light to TAXI and release the parking brake. Add a touch of thrust to get rolling, then back to idle. Steer with the tiller: comma and full stop keys, or the left and right arrows. Follow the green centreline lights to the holding point and keep the speed below 20 knots. Use B to brake.", hl: () => S.lt.nose < 1 ? 'nose' : S.parkBrake ? 'parkbrk' : null, done: () => near(HOLD_27R.x, HOLD_27R.z, 45) && S.gs < 5, items: [['NOSE light TAXI', () => S.lt.nose >= 1], ['PARK BRK off', () => !S.parkBrake], ['At holding point A1', () => near(HOLD_27R.x, HOLD_27R.z, 45)]], doit: () => { autoTaxi(); }, skipDo: () => { S.lt.nose = Math.max(S.lt.nose, 1); S.parkBrake = false; } });
   ST({ ph: 'Before take-off', title: 'Line up', freq: 118505, who: 'Heathrow Tower', atc: ['Albion 324, runway 27 right, line up and wait.', 'Line up and wait 27 right, Albion 324.'], text: "We're on Tower now. Lights for take-off: STROBE on, LAND lights on, NOSE light to T.O. Set the TCAS selector on the ATC panel to TA/RA so the transponder is fully on. Then taxi onto the runway and line up on the centreline, heading 270, close to the threshold markings.", hl: () => S.lt.strobe < 2 ? 'strobe' : !S.lt.land ? 'land' : S.lt.nose < 2 ? 'nose' : S.xpdr.tcas < 2 ? 'tcas' : null, done: () => S.lt.strobe === 2 && S.lt.land && S.lt.nose === 2 && S.xpdr.tcas === 2 && near(1560, -850, 70) && hdgNear(270, 6) && S.gs < 8, items: [['STROBE on', () => S.lt.strobe === 2], ['LAND lights on', () => S.lt.land], ['NOSE light T.O', () => S.lt.nose === 2], ['TCAS TA/RA', () => S.xpdr.tcas === 2], ['Lined up 27R', () => near(1560, -850, 70) && hdgNear(270, 6)]], doit: () => { S.lt.strobe = 2; S.lt.land = true; S.lt.nose = 2; S.xpdr.tcas = 2; S.xpdr.mode = 1; placeAt(1560, -850, 270); S.parkBrake = false; }, enter: () => setTimeout(() => { Audio2.pa('Cabin crew, seats for take-off.'); showATC('Captain (PA)', 'Cabin crew, seats for take-off.'); }, 6000) });
@@ -3608,7 +3657,7 @@ const Tut = (() => {
   ST({ ph: 'Descent', title: 'Approach briefing', text: "Briefing: ILS approach runway 26 right, course 266, frequency 110.10. Decision height 200 feet. Flaps full, autobrake medium. If we go around, it's TOGA thrust and climb to 5000 feet. Press Continue when you're happy.", manual: true });
   ST({ ph: 'Descent', title: 'Descend to 4000 feet', freq: 125825, who: 'De Gaulle Approach', atc: ['Albion 324, descend altitude 4000 feet, QNH 1015.', 'Descend 4000 feet, QNH 1015, Albion 324.'], text: "Scroll the ALT knob to 4000 and click to push it. Then set the Paris QNH: right-click the BARO knob to pull it out of Std, and scroll to 1015. Below 10,000 feet, landing lights back on.", hl: () => S.fcu.alt !== 4000 ? 'fcu_alt' : S.baro.std || S.baro.qnh !== 1015 ? 'baro' : 'land', done: () => S.fcu.alt === 4000 && !S.baro.std && S.baro.qnh === 1015 && S.lt.land, items: [['ALT 4000 pushed', () => S.fcu.alt === 4000], ['QNH 1015', () => !S.baro.std && S.baro.qnh === 1015], ['LAND lights on', () => S.lt.land]], doit: () => { S.fcu.alt = 4000; S.ap.vert = 'DES'; S.baro.std = false; S.baro.qnh = 1015; S.lt.land = true; }, wait: () => indicatedAlt() < 12500 });
   // ===== APPROACH =====
-  ST({ ph: 'Approach', title: 'Arm the approach', freq: 125825, who: 'De Gaulle Approach', atc: ['Albion 324, cleared ILS approach runway 26 right.', 'Cleared ILS 26 right, Albion 324.'], text: "We're cleared for the ILS. Press LS on your EFIS panel to show the ILS scales, then press APPR on the FCU. LOC and G/S appear in blue: armed. Engage AP2 as well for a dual autopilot approach.", hl: () => !S.efisLS ? 'efis_ls' : S.ap.vertArm !== 'G/S' && !['G/S*', 'G/S', 'LAND'].includes(S.ap.vert) ? 'fcu_appr' : 'fcu_ap2', done: () => S.efisLS && (S.ap.vertArm === 'G/S' || ['G/S*', 'G/S', 'LAND', 'FLARE'].includes(S.ap.vert)), items: [['LS on', () => !!S.efisLS], ['APPR armed', () => S.ap.vertArm === 'G/S' || ['G/S*', 'G/S', 'LAND'].includes(S.ap.vert)]], doit: () => { S.efisLS = true; S.ap.vertArm = 'G/S'; if (!S.ap.lat.startsWith('LOC')) S.ap.latArm = 'LOC'; }, wait: () => distToGo() < 30 || S.loc.dist < 22 * NM });
+  ST({ ph: 'Approach', title: 'Arm the approach', freq: 125825, who: 'De Gaulle Approach', atc: ['Albion 324, cleared ILS approach runway 26 right.', 'Cleared ILS 26 right, Albion 324.'], text: "We're cleared for the ILS. Press LS on your EFIS panel to show the ILS scales, then press APPR on the FCU. LOC and G/S appear in blue: armed. Engage AP2 as well for a dual autopilot approach.", hl: () => !S.efisLS ? 'efis_ls' : S.ap.vertArm !== 'G/S' && !['G/S*', 'G/S', 'LAND'].includes(S.ap.vert) ? 'fcu_appr' : 'fcu_ap2', done: () => S.efisLS && (S.ap.vertArm === 'G/S' || ['G/S*', 'G/S', 'LAND', 'FLARE'].includes(S.ap.vert)) && S.fcu.ap1 && S.fcu.ap2, items: [['LS on', () => !!S.efisLS], ['APPR armed', () => S.ap.vertArm === 'G/S' || ['G/S*', 'G/S', 'LAND', 'FLARE'].includes(S.ap.vert)], ['AP1 and AP2 engaged', () => S.fcu.ap1 && S.fcu.ap2]], doit: () => { S.efisLS = true; S.ap.vertArm = 'G/S'; if (!S.ap.lat.startsWith('LOC')) S.ap.latArm = 'LOC'; S.fcu.ap1 = S.fcu.ap2 = true; }, wait: () => distToGo() < 30 || S.loc.dist < 22 * NM });
   ST({ ph: 'Approach', title: 'Flaps 1', text: "Speed is reducing towards green dot. Flaps 1, press F.", hl: 'flaps', done: () => S.flapLever >= 1, doit: () => S.flapLever = 1, wait: () => S.ias < 222 });
   ST({ ph: 'Approach', title: 'Flaps 2', text: "Below 200 knots, flaps 2.", hl: 'flaps', done: () => S.flapLever >= 2, doit: () => S.flapLever = 2, wait: () => S.ias < 205 || S.ap.lat.startsWith('LOC') });
   ST({ ph: 'Approach', title: 'Gear down', text: "Localiser alive. Gear down, press G. Hear the gear coming down and the extra wind noise.", hl: 'gear', done: () => S.gearLever === 1, doit: () => setGear(1), wait: () => S.ap.lat.startsWith('LOC') || S.ap.vert.startsWith('G/S') || S.ra < 3000 });
@@ -3728,6 +3777,26 @@ let renderer, wScene, wCam, sky, clouds, ground, model, shadowBlob, taxiLights, 
 const VIEW = { mode: 'cockpit', yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
+let menuWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
+function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
+function openMenu() {
+  if (!$('menu').hidden) return;
+  closeControlDrawer(); menuWasPaused = paused; if (started) paused = true;
+  $('menuResumeRow').hidden = !started; $('menu').hidden = false; menuBackgroundInert(true);
+  (started ? $('btnResume') : $('menu').querySelector('[data-scn]')).focus();
+}
+function resumeMenu() { if (!started) return; $('menu').hidden = true; menuBackgroundInert(false); paused = menuWasPaused; $('btnMenu').focus(); }
+function openDialog(id) {
+  closeControlDrawer(); dialogPreviousFocus = document.activeElement; $(id).hidden = false;
+  for (const child of document.body.children) if (child !== $(id)) child.inert = true;
+  $(id).querySelector('button').focus();
+}
+function closeDialog(id) {
+  $(id).hidden = true; for (const child of document.body.children) child.inert = false;
+  if (!$('menu').hidden) menuBackgroundInert(true);
+  if (dialogPreviousFocus && dialogPreviousFocus.isConnected) dialogPreviousFocus.focus(); dialogPreviousFocus = null;
+}
+function activeDialog() { return ['help', 'voices', 'debrief'].find(id => !$(id).hidden); }
 
 function toast(msg, ms = 2600) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(() => t.hidden = true, ms); }
 function showATC(who, msg, freq) { const a = $('radio'); a.querySelector('.who').textContent = who + (freq ? ' · ' + (freq / 1000).toFixed(3) : ''); a.querySelector('.msg').textContent = msg; a.hidden = false; a.classList.remove('flash'); void a.offsetWidth; a.classList.add('flash'); clearTimeout(a._h); a._h = setTimeout(() => a.hidden = true, Math.max(6000, msg.length * 90)); }
@@ -3776,8 +3845,8 @@ async function boot() {
   prog('Ready', 1); await nextFrame();
   onResize(); window.addEventListener('resize', onResize);
   setupInput(); setupUI();
-  $('loading').hidden = true; $('menu').hidden = false;
-  scenario('cold'); requestAnimationFrame(loop);
+  $('loading').hidden = true;
+  scenario('cold'); openMenu(); requestAnimationFrame(loop);
 }
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
@@ -3793,7 +3862,7 @@ function scenario(name, tutorialFrom, quiet) {
   else {
     // a prepared aircraft
     S.elec.bat1 = S.elec.bat2 = true; S.adirs = [1, 1, 1]; S.adirsT = [1, 1, 1]; S.aligned = true; engRun(S.eng[0]); engRun(S.eng[1]); S.elec.ac = true;
-    S.lt.nav = true; S.lt.beacon = true; S.lt.belts = true; fmsComplete(); S.cabinReady = true; S.toConfigOK = true; S.doorsClosed = true;
+    S.lt.nav = true; S.lt.beacon = true; S.lt.belts = true; fmsComplete(); S.cabinReady = true; S.toConfigTested = true; S.doorsClosed = true;
     S.dcOnT = -999; S.xpdr.code = '4521'; S.xpdr.mode = 1; S.xpdr.tcas = 2; S.rmp.act = 118505; S.rmp.stby = 121905;
     S.baro.qnh = 1018; S.fcu.alt = 6000;
     Object.values(DU).forEach(d => d.boot = 5);
@@ -3822,7 +3891,7 @@ function prepAircraft() {
   S.elec.bat1 = S.elec.bat2 = true; S.adirs = [1, 1, 1]; S.adirsT = [1, 1, 1]; S.aligned = S.navAligned = true; S.dcOnT = -999;
   S.eng.forEach(e => { if (!e.run) engRun(e); }); S.elec.ac = true; S.engMode = 1;
   S.apu.master = false; S.apu.start = false; S.apu.avail = false; S.apu.N = 0; S.apu.bleed = false;
-  fmsComplete(); S.doorsClosed = true; S.cabinReady = true; S.toConfigOK = true; S.pushback = null; _autoTaxi = false;
+  fmsComplete(); S.doorsClosed = true; S.cabinReady = true; S.toConfigTested = true; S.pushback = null; _autoTaxi = false;
   S.lt.nav = S.lt.beacon = S.lt.belts = true; S.xpdr.code = '4521'; S.xpdr.entry = ''; S.baro.qnh = S.baro.qnh || 1018;
   Object.values(DU).forEach(d => d.boot = 5); timeComp = 1; accum = 0;
 }
@@ -3894,7 +3963,15 @@ let drag = null;
 function setupInput() {
   const cv = $('gl');
   window.addEventListener('keydown', e => {
-    if (e.target.tagName === 'INPUT') return; const k = e.key; KEYS[k.toLowerCase()] = true; KEYS[e.code] = true;
+    if (e.key === 'Escape') {
+      if (activeDialog()) { closeDialog(activeDialog()); e.preventDefault(); return; }
+      if (!$('menu').hidden && started) { resumeMenu(); e.preventDefault(); return; }
+      if (!$('controlDrawer').hidden) { closeControlDrawer(); e.preventDefault(); return; }
+    }
+    if (!$('menu').hidden || activeDialog()) return;
+    if (e.key === 'F2' && started) { $('controlDrawer').hidden ? openControlDrawer() : closeControlDrawer(); e.preventDefault(); return; }
+    if (e.target.closest('#controlDrawer') || e.target.tagName === 'INPUT') return;
+    const k = e.key; KEYS[k.toLowerCase()] = true; KEYS[e.code] = true;
     if (!started) return;
     if (CK.overPanel && CK.overPanel.name === 'mcdu' && VIEW.mode === 'cockpit' && !e.ctrlKey && !e.metaKey) {
       const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
@@ -3986,7 +4063,7 @@ function keyAction(e) {
     case lk === 'c': cycleView(); return true;
     case lk === 'p': paused = !paused; toast(paused ? 'Paused' : 'Resumed', 1000); return true;
     case lk === 't': timeComp = S.onGround ? 1 : timeComp >= 8 ? 1 : timeComp * 2; toast('Time ×' + timeComp, 1200); return true;
-    case lk === 'h': $('help').hidden = !$('help').hidden; return true;
+    case lk === 'h': openDialog('help'); return true;
     case k === 'Enter': if (Tut.active) { Tut.cont(); } return true;
     case k === 'PageUp' || k === '=' || k === '+': S.tl = S.tl.map(t => clamp(t < 0 ? 0 : t + 0.05, -1, 1)); return true;
     case k === 'PageDown' || k === '-': S.tl = S.tl.map(t => t <= 0 ? (S.onGround ? clamp(t - 0.15, -1, 0) : 0) : clamp(t - 0.05, 0, 1)); return true;
@@ -4093,12 +4170,58 @@ function render(dt) {
 }
 
 // ---------------- UI ----------------
+function controlLabel(h) { return typeof h.label === 'function' ? h.label() : h.label || h.id.replaceAll('_', ' '); }
+function openControlDrawer(id) {
+  if (!started || !$('menu').hidden || activeDialog()) return;
+  if ($('controlDrawer').hidden) { controlPreviousFocus = document.activeElement; controlPreviousFov = VIEW.fov; controlCaptainWasMin = $('captain').classList.contains('min'); $('captain').classList.add('min'); $('controlDrawer').hidden = false; }
+  if (id) { const h = hotById(id); if (h && (h.click || h.wheel)) { $('controlSearch').value = id; selectControl(h); } }
+  renderControlList(); $('controlSearch').focus();
+}
+function closeControlDrawer() {
+  if ($('controlDrawer').hidden) return;
+  $('controlDrawer').hidden = true; controlSelectedId = null; VIEW.fov = controlPreviousFov ?? VIEW.fov;
+  if (!controlCaptainWasMin) $('captain').classList.remove('min');
+  controlPreviousFov = null;
+  if (controlPreviousFocus && controlPreviousFocus.isConnected && !controlPreviousFocus.inert) controlPreviousFocus.focus();
+  controlPreviousFocus = null;
+}
+function selectControl(h) {
+  controlSelectedId = h.id; lookAtHot(h.id);
+  $('controlName').textContent = h.id.replaceAll('_', ' ').toUpperCase();
+  updateControlState(); renderControlList();
+}
+function updateControlState() {
+  const h = controlSelectedId && hotById(controlSelectedId);
+  let state = h ? controlLabel(h) : 'Search and select a cockpit control.';
+  if (h && h.get) { const v = h.get(); if (Array.isArray(v) && typeof v[0] === 'boolean') state += ` · Current setting: ${v[0] ? 'ON' : 'OFF'}`; }
+  $('controlState').textContent = state;
+  document.querySelectorAll('[data-control-action]').forEach(b => { const a = b.dataset.controlAction; b.disabled = !h || (a === 'press' || a === 'pull' ? !h.click : !h.wheel); });
+}
+function renderControlList() {
+  const q = $('controlSearch').value.trim().toLowerCase(); const list = $('controlList'); list.replaceChildren();
+  const matches = CK.hots.filter(h => (h.click || h.wheel) && (!q || (h.id + ' ' + controlLabel(h)).toLowerCase().includes(q)));
+  matches.slice(0, 40).forEach(h => { const b = document.createElement('button'); b.className = 'btn'; b.type = 'button'; b.textContent = h.id.replaceAll('_', ' ').toUpperCase(); b.setAttribute('aria-label', controlLabel(h)); if (h.id === controlSelectedId) b.setAttribute('aria-current', 'true'); b.onclick = () => selectControl(h); list.appendChild(b); });
+  if (!matches.length) { const p = document.createElement('p'); p.textContent = 'No matching control. Try a shorter name.'; list.appendChild(p); }
+  else if (matches.length > 40) { const p = document.createElement('p'); p.textContent = `${matches.length} matches. Refine the search to see more.`; list.appendChild(p); }
+}
+function operateControl(action) {
+  const h = controlSelectedId && hotById(controlSelectedId); if (!h) return;
+  if (action === 'increase' || action === 'decrease') { if (h.wheel) h.wheel(action === 'increase' ? 1 : -1); }
+  else if (h.click) h.click({ u: 0.5, v: action === 'pull' ? 0.25 : 0.75, right: action === 'pull', shift: false });
+  h.panel.sig = ''; updateScreens(); updateControlState();
+}
 function setupUI() {
-  document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; $('menu').hidden = true; VIEW.mode = 'cockpit'; }));
-  $('btnMenu').onclick = () => { $('menu').hidden = false; };
-  $('btnHelp').onclick = () => { $('help').hidden = !$('help').hidden; };
-  $('help').onclick = (e) => { if (e.target.id === 'help' || e.target.classList.contains('close')) $('help').hidden = true; };
+  document.querySelectorAll('[data-scn]').forEach(b => b.addEventListener('click', () => { Audio2.init(); scenario(b.dataset.scn); started = true; paused = false; timeComp = 1; $('menu').hidden = true; menuBackgroundInert(false); VIEW.mode = 'cockpit'; }));
+  $('btnMenu').onclick = openMenu; $('btnResume').onclick = resumeMenu;
+  $('btnHelp').onclick = () => openDialog('help');
+  $('help').onclick = (e) => { if (e.target.id === 'help' || e.target.classList.contains('close')) closeDialog('help'); };
   $('btnView').onclick = () => cycleView();
+  $('btnCockpit').onclick = () => $('controlDrawer').hidden ? openControlDrawer() : closeControlDrawer();
+  $('controlClose').onclick = closeControlDrawer;
+  $('controlCurrent').onclick = () => { const id = Tut.hlOf(Tut.cur()); if (id) { $('controlSearch').value = id; const h = hotById(id); if (h) selectControl(h); } };
+  $('controlSearch').oninput = renderControlList;
+  document.querySelectorAll('[data-control-action]').forEach(b => b.onclick = () => operateControl(b.dataset.controlAction));
+  updateControlState();
   const fillVoices = () => {
     const list = Audio2.voiceList(); const cur = Audio2.voices; const pref = Audio2.vpref;
     for (const [id, kind] of [['vCapt', 'capt'], ['vAtc', 'atc'], ['vGpws', 'gpws']]) {
@@ -4110,27 +4233,27 @@ function setupUI() {
     $('vRate').value = pref.rate || 1; $('vRateV').textContent = (+$('vRate').value).toFixed(2) + '×';
   };
   Audio2.onVoices = () => { if (!$('voices').hidden) fillVoices(); };
-  $('btnSound').onclick = () => { Audio2.init(); Audio2.pickVoices(); fillVoices(); $('vMute').value = Audio2.muteVoice ? 'off' : 'on'; $('voices').hidden = false; };
-  $('voicesClose').onclick = () => { $('voices').hidden = true; };
-  $('voices').onclick = (e) => { if (e.target.id === 'voices') $('voices').hidden = true; };
+  $('btnSound').onclick = () => { Audio2.init(); Audio2.pickVoices(); fillVoices(); $('vMute').value = Audio2.muteVoice ? 'off' : 'on'; openDialog('voices'); };
+  $('voicesClose').onclick = () => closeDialog('voices');
+  $('voices').onclick = (e) => { if (e.target.id === 'voices') closeDialog('voices'); };
   $('vRate').oninput = () => { Audio2.vpref.rate = +$('vRate').value; $('vRateV').textContent = (+$('vRate').value).toFixed(2) + '×'; Audio2.setVoice('rate', +$('vRate').value); };
   $('vMute').onchange = () => { Audio2.muteVoice = $('vMute').value === 'off'; if (Audio2.muteVoice && window.speechSynthesis) speechSynthesis.cancel(); };
   document.querySelectorAll('[data-test]').forEach(b => b.onclick = () => { const k = b.dataset.test; speechSynthesis && speechSynthesis.cancel(); Audio2.say(k === 'capt' ? "Good afternoon. I'm Captain Hughes, and I'll be flying with you to Paris today." : k === 'atc' ? 'Albion 324, Heathrow Ground, push and start approved, face east.' : 'Five hundred. Minimum. Retard.', k); });
   $('tContinue').onclick = () => Tut.cont();
-  $('tShow').onclick = () => lookAtHot(Tut.hlOf(Tut.cur()));
+  $('tShow').onclick = () => { const id = Tut.hlOf(Tut.cur()); if (id) { if (hotById(id)) openControlDrawer(id); else lookAtHot(id); } };
   $('tDo').onclick = () => Tut.doit();
   $('tRepeat').onclick = () => Tut.repeat();
   $('tNext').onclick = () => Tut.next(); $('tPrev').onclick = () => Tut.prev();
   $('tMin').onclick = () => $('captain').classList.toggle('min');
-  $('debriefClose').onclick = () => { $('debrief').hidden = true; };
-  $('debriefMenu').onclick = () => { $('debrief').hidden = true; $('menu').hidden = false; };
+  $('debriefClose').onclick = () => closeDialog('debrief');
+  $('debriefMenu').onclick = () => { closeDialog('debrief'); openMenu(); };
   Tut.onUI = renderTutUI;
-  document.querySelectorAll('.look').forEach(b => b.onclick = () => { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.lookTo = null; VIEW.tyaw = y; VIEW.tpitch = p; });
+  document.querySelectorAll('.look').forEach(b => b.onclick = () => { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.lookTo = null; VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.textContent === 'Forward' ? 62 : 46; });
 }
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
-  VIEW.lookTo = { yaw, pitch }; VIEW.fov = clamp(VIEW.fov, 40, 62);
+  VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }
 function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
@@ -4182,8 +4305,10 @@ function showDebrief(crash) {
   rows.push(['Fuel used', Math.round(7800 - S.fuel) + ' kg', 'ok']);
   rows.push(['Flight time', fmtTime(S.time), 'ok']);
   $('debriefRows').innerHTML = rows.map(([a, b, c]) => `<tr><th>${a}</th><td class="${c}">${b}</td></tr>`).join('');
-  d.hidden = false;
+  openDialog('debrief');
 }
 window.addEventListener('load', () => { boot().catch(err => { $('loadmsg').textContent = 'Could not start: ' + err.message; console.error(err); }); });
 
 </script>
+</body>
+</html>

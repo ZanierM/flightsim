@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>A320 Heathrow to Paris</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=B612:ital,wght@0,400;0,700;1,400&family=B612+Mono:wght@400;700&display=swap">
@@ -10,6 +15,7 @@
   color-scheme: dark;
 }
 [hidden] { display: none !important; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
 html, body { height: 100%; margin: 0; }
 body { background: var(--bg); color: var(--fg); font-family: var(--ui); overflow: hidden; -webkit-font-smoothing: antialiased; }
 #gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: grab; touch-action: none; }
@@ -82,6 +88,19 @@ button { font-family: var(--ui); }
 #radio.flash { animation: rf .5s; } @keyframes rf { from { border-color: var(--green); } }
 
 #tip { position: fixed; z-index: 30; pointer-events: none; background: rgba(4,8,10,.94); border: 1px solid var(--line); color: var(--fg); font-size: 12.5px; padding: 6px 9px; width: max-content; max-width: min(320px, calc(100vw - 16px)); line-height: 1.4; }
+#controlDrawer { position: fixed; z-index: 32; top: calc(52px + env(safe-area-inset-top, 0px)); left: max(12px, env(safe-area-inset-left, 0px)); width: min(370px, calc(100vw - 24px)); max-height: calc(100vh - 70px); overflow-y: auto; background: #111a20; border: 1px solid #667a84; padding: 16px; box-sizing: border-box; }
+#controlDrawer h2 { font-size: 17px; margin: 0; }
+#controlDrawer .drawerHead { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+#controlDrawer p { color: var(--dim); font-size: 13px; line-height: 1.45; margin: 10px 0; }
+#controlSearch { box-sizing: border-box; width: 100%; padding: 10px; background: #071014; color: var(--fg); border: 1px solid #788f9b; font: 14px var(--ui); }
+#controlList { display: grid; gap: 4px; max-height: 170px; overflow-y: auto; margin: 8px 0 12px; }
+#controlList button { text-align: left; white-space: normal; }
+#controlList button[aria-current="true"] { border-color: var(--cyan); color: var(--cyan); }
+#controlName { font-size: 15px; font-weight: 700; margin: 0 0 6px; }
+#controlState { min-height: 2.8em; }
+#controlActions { display: flex; flex-wrap: wrap; gap: 6px; }
+#controlActions .btn { min-height: 38px; }
+#controlActions .btn:disabled { opacity: .4; cursor: default; }
 #toast { position: fixed; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); right: max(16px, env(safe-area-inset-right, 0px)); background: rgba(4,8,10,.92); border-left: 3px solid var(--amber); padding: 8px 14px; font-family: var(--mono); font-size: 13px; z-index: 25; max-width: calc(100vw - 32px); }
 #xhud { position: fixed; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 16px; font-family: var(--mono); font-size: 13px; color: var(--dim); background: rgba(4,8,10,.75); padding: 6px 14px; z-index: 18; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px); }
 #xhud b { color: var(--green); font-weight: 400; }
@@ -91,8 +110,8 @@ button { font-family: var(--ui); }
 .modal .card { background: var(--panel-solid); border: 1px solid var(--line); padding: 22px; width: min(720px, 100%); }
 .modal h2 { margin: 0 0 12px; font-size: 20px; }
 .keys { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 4px 24px; font-size: 13px; }
-.keys div { display: flex; justify-content: space-between; gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
-.keys kbd { font-family: var(--mono); color: var(--cyan); font-size: 12px; white-space: nowrap; }
+.keys div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 12px; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,.05); }
+.keys kbd { font-family: var(--mono); color: var(--cyan); font-size: 12px; white-space: normal; overflow-wrap: anywhere; text-align: right; }
 .keys h3 { grid-column: 1 / -1; font-size: 11px; color: var(--green); font-family: var(--mono); letter-spacing: .1em; margin: 12px 0 2px; text-transform: uppercase; }
 #debrief table { width: 100%; border-collapse: collapse; font-size: 14px; font-variant-numeric: tabular-nums; }
 #debrief th { text-align: left; font-weight: 400; color: var(--dim); padding: 7px 0; border-bottom: 1px solid var(--line); }
@@ -106,17 +125,21 @@ button { font-family: var(--ui); }
 #vRateV { font-family: var(--mono); font-size: 13px; color: var(--cyan); min-width: 3em; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
 @media (max-width: 600px) { #looks { display: none; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
+</head>
+<body>
 <canvas id="gl"></canvas>
 <div id="loading"><div class="box"><div class="t">ALB324 · EGLL → LFPG</div><div class="bar"><div id="loadbar"></div></div><div id="loadmsg">Starting up</div></div></div>
 
-<div id="menu" hidden>
+<div id="menu" role="dialog" aria-modal="true" aria-labelledby="menuHeading" hidden>
   <div class="card">
     <div class="flight">ALBION 324 · AIRBUS A320 · G-ALBN</div>
-    <h1>London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
+    <h1 id="menuHeading">London Heathrow <span class="arrow">→</span> Paris Charles de Gaulle</h1>
     <p class="sub">A full line flight with a training captain beside you. Start the aircraft from cold and dark, run the checks, push back, taxi, take off from 27R, cross the Channel on autopilot and fly the ILS into 26R.</p>
     <div class="route"><span class="ap">EGLL 27R</span><span>(1500)</span><span>EPM</span><span>DET</span><span>DVR</span><span>ABB</span><span>BVS</span><span>MOPAR</span><span>CF26R</span><span class="ap">LFPG 26R</span></div>
+    <div class="row" id="menuResumeRow" hidden><button class="btn primary" id="btnResume">Resume flight</button></div>
     <div class="scns">
       <button class="scn main" data-scn="cold"><span class="tag">FULL TUTORIAL · ABOUT 60 MIN</span><b>Cold and dark at the stand</b><small>Every check from batteries on to engines off in Paris. The captain explains each switch.</small></button>
       <button class="scn" data-scn="runway"><span class="tag">FROM TAKE-OFF</span><b>Lined up on 27R</b><small>Engines running, checks done, cleared for take-off.</small></button>
@@ -124,7 +147,7 @@ button { font-family: var(--ui); }
       <button class="scn" data-scn="approach"><span class="tag">FROM APPROACH</span><b>17 miles from 26R</b><small>4000 ft east of Charles de Gaulle, ready for the ILS.</small></button>
       <button class="scn" data-scn="free"><span class="tag">NO CAPTAIN</span><b>Free flight</b><small>Lined up on 27R. You're on your own.</small></button>
     </div>
-    <p class="note">Best with headphones and a keyboard. Press H at any time for the controls. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
+    <p class="note">Best with headphones and a keyboard. Press H for the controls or F2 for a searchable, keyboard-operable cockpit control list. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
   </div>
 </div>
 
@@ -135,7 +158,19 @@ button { font-family: var(--ui); }
   <button class="btn look" data-look="-22,58">Overhead</button>
   <button class="btn look" data-look="70,-5">Left window</button>
 </div>
-<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+<div id="top"><span id="hudTc"></span><span id="hudPause" hidden>PAUSED</span><button class="btn" id="btnView">View (C)</button><button class="btn" id="btnCockpit">Cockpit controls (F2)</button><button class="btn" id="btnSound">Voices</button><button class="btn" id="btnHelp">Controls (H)</button><button class="btn" id="btnMenu">Menu</button></div>
+
+<aside id="controlDrawer" aria-labelledby="controlHeading" hidden>
+  <div class="drawerHead"><h2 id="controlHeading">Cockpit controls</h2><button class="btn" id="controlClose">Close</button></div>
+  <p>Search a switch, knob or button. Select it to see its state, focus the camera and operate it with the keyboard.</p>
+  <button class="btn" id="controlCurrent">Find captain’s next control</button>
+  <label for="controlSearch" class="sr-only">Search cockpit controls</label>
+  <input id="controlSearch" type="search" placeholder="Search, e.g. battery or altitude" autocomplete="off">
+  <div id="controlList" aria-label="Matching cockpit controls"></div>
+  <div id="controlName" aria-live="polite">Select a control</div>
+  <p id="controlState" aria-live="polite"></p>
+  <div id="controlActions"><button class="btn primary" data-control-action="press">Press / toggle</button><button class="btn" data-control-action="pull">Pull / alternate</button><button class="btn" data-control-action="decrease">Decrease</button><button class="btn" data-control-action="increase">Increase</button></div>
+</aside>
 
 <div id="captain" hidden>
   <div class="head"><div class="av">CH</div><div class="who"><b>Capt. Hughes</b>Training captain</div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><button id="tMin" title="Collapse">▾</button></div>
@@ -160,9 +195,9 @@ button { font-family: var(--ui); }
 <div id="toast" hidden></div>
 <div id="xhud" hidden></div>
 
-<div id="help" class="modal" hidden>
+<div id="help" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpHeading" hidden>
   <div class="card">
-    <h2>Controls</h2>
+    <h2 id="helpHeading">Controls</h2>
     <div class="keys">
       <h3>Flying</h3>
       <div>Pitch / roll (sidestick)<kbd>↑ ↓ ← →  (W / S pitch)</kbd></div>
@@ -197,9 +232,9 @@ button { font-family: var(--ui); }
     <div class="row"><button class="btn primary close">Close</button></div>
   </div>
 </div>
-<div id="voices" class="modal" hidden>
+<div id="voices" class="modal" role="dialog" aria-modal="true" aria-labelledby="voicesHeading" hidden>
   <div class="card">
-    <h2>Voices</h2>
+    <h2 id="voicesHeading">Voices</h2>
     <p class="vnote">These are the voices built into your browser and computer. Look for names with <b>Natural</b>, <b>Premium</b>, <b>Enhanced</b> or <b>Google</b>: they sound far more human. On a Mac you can download better ones in System Settings → Accessibility → Spoken Content → System voice → Manage Voices (try "Daniel (Premium)" or "Jamie (Premium)"), then reload this page.</p>
     <div class="vrow"><label for="vCapt">Captain</label><select id="vCapt"></select><button class="btn" data-test="capt">Test</button></div>
     <div class="vrow"><label for="vAtc">ATC and cabin</label><select id="vAtc"></select><button class="btn" data-test="atc">Test</button></div>
@@ -209,9 +244,9 @@ button { font-family: var(--ui); }
     <div class="row"><button class="btn primary" id="voicesClose">Done</button></div>
   </div>
 </div>
-<div id="debrief" class="modal" hidden>
+<div id="debrief" class="modal" role="dialog" aria-modal="true" aria-labelledby="debriefHeading" hidden>
   <div class="card">
-    <h2>Flight debrief · ALB324</h2>
+    <h2 id="debriefHeading">Flight debrief · ALB324</h2>
     <table><tbody id="debriefRows"></tbody></table>
     <div class="row"><button class="btn" id="debriefClose">Keep looking around</button><button class="btn primary" id="debriefMenu">Fly again</button></div>
   </div>
