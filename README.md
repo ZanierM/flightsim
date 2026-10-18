@@ -20,6 +20,8 @@ To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `m
 
 Press **H** in the simulator for the full list. Press **F2** to search cockpit controls, read their current settings, focus the camera on them, and operate them with keyboard buttons. Opening **Menu** pauses the flight; choose **Resume flight** to continue.
 
+Choose **Full panel** in the view buttons to see both pilots' PFD/ND pairs, the upper and lower ECAM, and the standby instrument together. **Instruments** gives a closer captain-side view for reading and using the controls. The full-panel camera adjusts its field of view to fit the display arrangement when the window size changes.
+
 | Control | Action |
 | --- | --- |
 | ↑ ↓ ← → | Sidestick (W / S also pitch) |

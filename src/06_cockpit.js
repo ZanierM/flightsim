@@ -370,7 +370,7 @@ function buildCockpit() {
   const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(0.8, 0.8); liningM.map = wt; liningM.color.setHex(0xb8c4cc); liningM.needsUpdate = true;
   // ---------------- main instrument panel ----------------
   const mp = new Panel('main', 2048, 426, 2.5, 0.52);
-  mp.mesh.position.set(0.52, -0.53, -0.86); mp.mesh.rotation.x = -0.18; add(mp.mesh, false);
+  mp.mesh.position.set(0.52, -0.60, -0.86); mp.mesh.rotation.x = -0.18; add(mp.mesh, false);
   buildMainPanel(mp);
   const duSize = 0.175;
   const glareC = mkCanvas(64, 64); const glg = glareC.getContext('2d'); const glr = glg.createLinearGradient(0, 0, 64, 64); glr.addColorStop(0, 'rgba(255,255,255,.10)'); glr.addColorStop(.45, 'rgba(255,255,255,.02)'); glr.addColorStop(1, 'rgba(255,255,255,0)'); glg.fillStyle = glr; glg.fillRect(0, 0, 64, 64);
@@ -405,9 +405,16 @@ function buildCockpit() {
   const mcdu2 = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.30), mcdu.mat); mcdu2.position.set(0.70, -0.82, -0.69); mcdu2.rotation.x = -1.2; add(mcdu2, false);
   const ms2 = ms.clone(); ms2.position.copy(mcdu2.localToWorld(new THREE.Vector3(0, 0.083, 0.002))); scene.add(ms2);
   // side consoles + sidesticks
-  const con = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 1.2), shellM); con.position.set(-0.62, -0.88, -0.1); add(con);
+  const consoleM = new THREE.MeshStandardMaterial({ color: 0x38424a, roughness: .92 });
+  const consoleTopM = new THREE.MeshStandardMaterial({ color: 0x56616a, roughness: .86 });
+  const armrestM = new THREE.MeshStandardMaterial({ color: 0x22282c, roughness: .98 });
+  const con = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 1.2), consoleM); con.position.set(-0.62, -0.88, -0.1); add(con);
   const con2 = con.clone(); con2.position.x = 1.66; add(con2);
-  for (const x of [-0.62, 1.66]) { const ct = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 1.2), new THREE.MeshStandardMaterial({ color: 0x4e5961, roughness: .85 })); ct.rotation.x = -Math.PI / 2; ct.position.set(x, -0.699, -0.1); add(ct, false); }
+  for (const x of [-0.62, 1.66]) {
+    const ct = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 1.2), consoleTopM); ct.rotation.x = -Math.PI / 2; ct.position.set(x, -0.699, -0.1); add(ct, false);
+    const rest = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.035, 0.32), armrestM); rest.position.set(x, -0.67, 0.29); add(rest);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.98), darkM); edge.position.set(x < 0 ? x + 0.164 : x - 0.164, -0.688, -0.12); add(edge);
+  }
   const mkStick = (x) => {
     const ss = new THREE.Group(); ss.position.set(x, -0.70, -0.30);
     ss.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.03, 16), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1 })));

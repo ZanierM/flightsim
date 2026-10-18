@@ -62,6 +62,7 @@ button { font-family: var(--ui); }
 
 /* captain panel */
 #captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(400px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+@media (min-width: 601px) and (max-width: 1100px) { #looks { top: calc(52px + env(safe-area-inset-top, 0px)); } #captain { top: calc(92px + env(safe-area-inset-top, 0px)); } }
 #captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px 8px; border-bottom: 1px solid var(--line); }
 #captain .av { width: 34px; height: 34px; border-radius: 50%; background: #1d2a33; border: 1px solid var(--cyan); display: grid; place-items: center; font-weight: 700; color: var(--cyan); font-size: 13px; flex: none; }
 #captain .who { font-size: 12px; color: var(--dim); line-height: 1.2; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
@@ -129,7 +130,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #looks { display: none; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); } #tText { max-height: 22vh; } #radio { left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -159,6 +160,7 @@ button { font-family: var(--ui); }
 
 <div id="looks">
   <button class="btn look" data-look="0,-10">Forward</button>
+  <button class="btn look" data-view="full-panel">Full panel</button>
   <button class="btn look" data-look="-8,-34">Instruments</button>
   <button class="btn look" data-look="-18,-60">Pedestal</button>
   <button class="btn look" data-look="-22,58">Overhead</button>
@@ -2875,7 +2877,7 @@ function buildCockpit() {
   const wt = new THREE.CanvasTexture(wc); wt.wrapS = wt.wrapT = THREE.RepeatWrapping; wt.repeat.set(0.8, 0.8); liningM.map = wt; liningM.color.setHex(0xb8c4cc); liningM.needsUpdate = true;
   // ---------------- main instrument panel ----------------
   const mp = new Panel('main', 2048, 426, 2.5, 0.52);
-  mp.mesh.position.set(0.52, -0.53, -0.86); mp.mesh.rotation.x = -0.18; add(mp.mesh, false);
+  mp.mesh.position.set(0.52, -0.60, -0.86); mp.mesh.rotation.x = -0.18; add(mp.mesh, false);
   buildMainPanel(mp);
   const duSize = 0.175;
   const glareC = mkCanvas(64, 64); const glg = glareC.getContext('2d'); const glr = glg.createLinearGradient(0, 0, 64, 64); glr.addColorStop(0, 'rgba(255,255,255,.10)'); glr.addColorStop(.45, 'rgba(255,255,255,.02)'); glr.addColorStop(1, 'rgba(255,255,255,0)'); glg.fillStyle = glr; glg.fillRect(0, 0, 64, 64);
@@ -2910,9 +2912,16 @@ function buildCockpit() {
   const mcdu2 = new THREE.Mesh(new THREE.PlaneGeometry(0.2, 0.30), mcdu.mat); mcdu2.position.set(0.70, -0.82, -0.69); mcdu2.rotation.x = -1.2; add(mcdu2, false);
   const ms2 = ms.clone(); ms2.position.copy(mcdu2.localToWorld(new THREE.Vector3(0, 0.083, 0.002))); scene.add(ms2);
   // side consoles + sidesticks
-  const con = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 1.2), shellM); con.position.set(-0.62, -0.88, -0.1); add(con);
+  const consoleM = new THREE.MeshStandardMaterial({ color: 0x38424a, roughness: .92 });
+  const consoleTopM = new THREE.MeshStandardMaterial({ color: 0x56616a, roughness: .86 });
+  const armrestM = new THREE.MeshStandardMaterial({ color: 0x22282c, roughness: .98 });
+  const con = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.36, 1.2), consoleM); con.position.set(-0.62, -0.88, -0.1); add(con);
   const con2 = con.clone(); con2.position.x = 1.66; add(con2);
-  for (const x of [-0.62, 1.66]) { const ct = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 1.2), new THREE.MeshStandardMaterial({ color: 0x4e5961, roughness: .85 })); ct.rotation.x = -Math.PI / 2; ct.position.set(x, -0.699, -0.1); add(ct, false); }
+  for (const x of [-0.62, 1.66]) {
+    const ct = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 1.2), consoleTopM); ct.rotation.x = -Math.PI / 2; ct.position.set(x, -0.699, -0.1); add(ct, false);
+    const rest = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.035, 0.32), armrestM); rest.position.set(x, -0.67, 0.29); add(rest);
+    const edge = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.012, 0.98), darkM); edge.position.set(x < 0 ? x + 0.164 : x - 0.164, -0.688, -0.12); add(edge);
+  }
   const mkStick = (x) => {
     const ss = new THREE.Group(); ss.position.set(x, -0.70, -0.30);
     ss.add(new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.045, 0.03, 16), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 1 })));
@@ -3908,7 +3917,8 @@ function applyGraphicsQuality(value) {
   }
   updateGraphicsPanel();
 }
-const VIEW = { mode: 'cockpit', yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
+const VIEW = { mode: 'cockpit', overview: false, yaw: 0, pitch: -10, tyaw: 0, tpitch: -10, fov: 62, oyaw: 200, opitch: 12, odist: 70, lookTo: null };
+function fullPanelFov() { return clamp(2 * Math.atan(1.45 / (1.43 * window.innerWidth / window.innerHeight)) * R2D, 50, 94); }
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
 let menuWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
@@ -3986,6 +3996,7 @@ async function boot() {
 }
 function onResize() {
   const w = window.innerWidth, h = window.innerHeight; renderer.setSize(w, h, false);
+  if (VIEW.overview) VIEW.fov = fullPanelFov();
   wCam.aspect = w / h; wCam.updateProjectionMatrix(); if (CK.cam) { CK.cam.aspect = w / h; CK.cam.updateProjectionMatrix(); }
   updateGraphicsPanel();
 }
@@ -4020,7 +4031,7 @@ function scenario(name, tutorialFrom, quiet) {
   Tut.captainOn = name !== 'free';
   const startIdx = { cold: 0, runway: Tut.find('Cleared for take-off'), cruise: Tut.find('Cruise'), approach: Tut.find('Arm the approach') }[name];
   if (name === 'free') Tut.stop(); else Tut.start(tutorialFrom ?? startIdx ?? 0);
-  VIEW.yaw = VIEW.tyaw = 0; VIEW.pitch = VIEW.tpitch = -10;
+  VIEW.overview = false; VIEW.fov = 62; VIEW.yaw = VIEW.tyaw = 0; VIEW.pitch = VIEW.tpitch = -10;
   renderTutUI();
 }
 // ---------- put the aircraft where a tutorial step expects it (used when skipping) ----------
@@ -4274,9 +4285,10 @@ function render(dt) {
   const inCockpit = VIEW.mode === 'cockpit';
   model.visible = !inCockpit; shadowBlob.visible = !inCockpit;
   if (inCockpit) {
-    const eye = new THREE.Vector3(AC.eyeSide, AC.eyeUp + td, AC.eyeFwd).applyQuaternion(S.q).add(S.pos);
+    const offset = VIEW.overview ? new THREE.Vector3(.52, .02, .57) : new THREE.Vector3();
+    const eye = new THREE.Vector3(AC.eyeSide + offset.x, AC.eyeUp + td + offset.y, AC.eyeFwd + offset.z).applyQuaternion(S.q).add(S.pos);
     wCam.position.copy(eye); wCam.quaternion.copy(S.q).multiply(_hq); wCam.fov = VIEW.fov; wCam.near = 0.5;
-    CK.cam.position.set(0, td, 0); CK.cam.quaternion.copy(_hq); CK.cam.fov = VIEW.fov; CK.cam.updateProjectionMatrix();
+    CK.cam.position.set(offset.x, td + offset.y, offset.z); CK.cam.quaternion.copy(_hq); CK.cam.fov = VIEW.fov; CK.cam.updateProjectionMatrix();
   } else {
     model.position.copy(S.pos); model.quaternion.copy(S.q); setModelState(model, S, S.time);
     const tgt = S.pos.clone().add(new THREE.Vector3(0, 3.5, 0));
@@ -4391,10 +4403,15 @@ function setupUI() {
   $('debriefClose').onclick = () => closeDialog('debrief');
   $('debriefMenu').onclick = () => { closeDialog('debrief'); openMenu(); };
   Tut.onUI = renderTutUI;
-  document.querySelectorAll('.look').forEach(b => b.onclick = () => { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.lookTo = null; VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.textContent === 'Forward' ? 62 : 46; });
+  document.querySelectorAll('.look').forEach(b => b.onclick = () => {
+    VIEW.lookTo = null; VIEW.mode = 'cockpit'; VIEW.overview = b.dataset.view === 'full-panel';
+    if (VIEW.overview) { VIEW.tyaw = 0; VIEW.tpitch = -18; VIEW.fov = fullPanelFov(); }
+    else { const [y, p] = b.dataset.look.split(',').map(Number); VIEW.tyaw = y; VIEW.tpitch = p; VIEW.fov = b.dataset.look === '0,-10' ? 62 : 46; }
+  });
 }
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
+  VIEW.overview = false;
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
   VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
 }
