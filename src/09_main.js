@@ -56,7 +56,7 @@ function pedestalFov() {
 }
 const KEYS = {}; let paused = false, timeComp = 1, started = false, lastT = 0, accum = 0, frameN = 0;
 const $ = (id) => document.getElementById(id);
-let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlPreviousFov = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
+let menuWasPaused = false, briefingWasPaused = false, controlSelectedId = null, controlPreviousFocus = null, controlCaptainWasMin = false, dialogPreviousFocus = null;
 let captainManualSize = null, captainRenderedStep = null;
 let captainDockRight = (() => { try { return localStorage.getItem('flightsim.captainDock') === 'right'; } catch (e) { return false; } })();
 function menuBackgroundInert(value) { ['gl', 'looks', 'top', 'captain', 'radio', 'xhud', 'controlDrawer'].forEach(id => $(id).inert = value); }
@@ -542,15 +542,14 @@ function render(dt) {
 function controlLabel(h) { return typeof h.label === 'function' ? h.label() : h.label || h.id.replaceAll('_', ' '); }
 function openControlDrawer(id) {
   if (!started || !$('menu').hidden || activeDialog()) return;
-  if ($('controlDrawer').hidden) { controlPreviousFocus = document.activeElement; controlPreviousFov = VIEW.fov; controlCaptainWasMin = $('captain').classList.contains('min'); $('captain').classList.add('min'); $('controlDrawer').hidden = false; }
+  if ($('controlDrawer').hidden) { controlPreviousFocus = document.activeElement; controlCaptainWasMin = $('captain').classList.contains('min'); $('captain').classList.add('min'); $('controlDrawer').hidden = false; }
   if (id) { const h = hotById(id); if (h && (h.click || h.wheel)) { $('controlSearch').value = id; selectControl(h); } }
   renderControlList(); $('controlSearch').focus();
 }
 function closeControlDrawer() {
   if ($('controlDrawer').hidden) return;
-  $('controlDrawer').hidden = true; controlSelectedId = null; VIEW.fov = controlPreviousFov ?? VIEW.fov;
+  $('controlDrawer').hidden = true; controlSelectedId = null;
   if (!controlCaptainWasMin) $('captain').classList.remove('min');
-  controlPreviousFov = null;
   if (controlPreviousFocus && controlPreviousFocus.isConnected && !controlPreviousFocus.inert) controlPreviousFocus.focus();
   controlPreviousFocus = null;
 }
@@ -640,10 +639,23 @@ function setupUI() {
 }
 function lookAtHot(id) {
   if (!id) return; if (VIEW.mode !== 'cockpit') VIEW.mode = 'cockpit';
-  VIEW.overview = false; VIEW.preset = null; VIEW.offset = null;
-  if (id.startsWith('mcdu_')) {
+  VIEW.overview = false; VIEW.preset = null; VIEW.offset = null; VIEW.lookTo = null;
+  const h = hotById(id), panel = h && h.panel && h.panel.name;
+  if (panel === 'mcdu' || id.startsWith('mcdu_')) {
     VIEW.lookTo = null; VIEW.preset = 'mcdu'; VIEW.offset = new THREE.Vector3(.52, -.34, -.05);
     VIEW.tyaw = 0; VIEW.tpitch = -37; VIEW.fov = 43; syncCaptainPanel(); return;
+  }
+  if (panel === 'main' || panel === 'fcu') {
+    VIEW.preset = 'instruments'; VIEW.offset = new THREE.Vector3(.52, 0, .57);
+    VIEW.tyaw = 0; VIEW.tpitch = -27; VIEW.fov = fullPanelFov(); syncCaptainPanel(); return;
+  }
+  if (panel === 'pedestal') {
+    VIEW.preset = 'pedestal'; VIEW.offset = new THREE.Vector3(.52, .04, 1.06);
+    VIEW.tyaw = 0; VIEW.tpitch = -40; VIEW.fov = pedestalFov(); syncCaptainPanel(); return;
+  }
+  if (panel === 'overhead') {
+    VIEW.preset = 'overhead'; VIEW.offset = new THREE.Vector3(.52, 0, .47);
+    VIEW.tyaw = 0; VIEW.tpitch = 50; VIEW.fov = 76; syncCaptainPanel(); return;
   }
   const p = hotWorldPos(id); if (!p) return; const yaw = Math.atan2(-p.x, -p.z) * R2D; const pitch = Math.atan2(p.y, Math.hypot(p.x, p.z)) * R2D;
   VIEW.lookTo = { yaw, pitch }; VIEW.fov = 30;
