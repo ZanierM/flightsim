@@ -42,7 +42,7 @@ async function boot() {
   const sc = mkCanvas(128, 128); const sg = sc.getContext('2d'); const gr = sg.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, 'rgba(0,0,0,.55)'); gr.addColorStop(1, 'rgba(0,0,0,0)'); sg.fillStyle = gr; sg.fillRect(0, 0, 128, 128);
   shadowBlob = new THREE.Mesh(new THREE.PlaneGeometry(36, 40), new THREE.MeshBasicMaterial({ map: new THREE.CanvasTexture(sc), transparent: true, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -4 })); shadowBlob.rotation.x = -Math.PI / 2; wScene.add(shadowBlob);
   // taxiway centreline green lights
-  const tl = []; for (let i = 0; i < TAXI_LHR.length - 1; i++) { const [a, b] = [TAXI_LHR[i], TAXI_LHR[i + 1]]; const L = dist2(a[0], a[1], b[0], b[1]); for (let d = 0; d < L; d += 12) { const x = lerp(a[0], b[0], d / L), z = lerp(a[1], b[1], d / L); tl.push(x, LHR.elev + 0.4, z); } }
+  const tl = []; for (let i = 0; i < TAXI_LHR.length - 1; i++) { const [a, b] = [TAXI_LHR[i], TAXI_LHR[i + 1]]; const L = dist2(a[0], a[1], b[0], b[1]); for (let d = 0; d < L; d += 12) { const x = lerp(a[0], b[0], d / L), z = lerp(a[1], b[1], d / L); tl.push(x, LHR.elev + PAVE + 0.3, z); } }
   const tg = new THREE.BufferGeometry(); tg.setAttribute('position', new THREE.Float32BufferAttribute(tl, 3));
   taxiLights = new THREE.Points(tg, new THREE.PointsMaterial({ map: W.lightTex, color: 0x30ff60, size: 2.4, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending })); wScene.add(taxiLights);
   prog('Wiring the flight deck', 0.88); await nextFrame();

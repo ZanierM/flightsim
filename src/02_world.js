@@ -175,7 +175,11 @@ function axisCoords(a0, a1, inner, outerExt) {
   s = inner; v = pts[pts.length - 1]; const right = []; while (v < a1 + outerExt) { s *= 1.12; v += s; right.push(v); }
   return left.concat(pts, right);
 }
-function groundH(x, z) {
+// Pavement sits clearly above the grass (a few cm is lost to the log depth buffer at distance)
+const PAVE = 0.3;
+function pavementLift(x, z) { for (const ap of AIRPORTS) if (Math.hypot((x - ap.cx) / 1.6, z - ap.cz) < ap.rz + 1000) return PAVE + 0.04; return 0; }
+function groundH(x, z) { return terrainGridH(x, z) + pavementLift(x, z); }
+function terrainGridH(x, z) {
   const xs = TER.xs, zs = TER.zs;
   let i = bsearch(xs, x), j = bsearch(zs, z);
   const tx = (x - xs[i]) / (xs[i + 1] - xs[i]), tz = (z - zs[j]) / (zs[j + 1] - zs[j]);
@@ -285,7 +289,9 @@ void main(){
   ucol = mix(ucol, vec3(.45,.43,.42), smoothstep(3000., 20000., dist) * .5);
   col = mix(col, ucol, ur * .92);
   // airport grass
-  vec3 acol = mix(vec3(.34,.42,.20), vec3(.40,.46,.24), vnoise(p * .02)) * (.92 + .16 * vnoise(p * 1.3));
+  vec3 acol = mix(vec3(.34,.42,.20), vec3(.42,.47,.25), vnoise(p * .02)) * (.92 + .16 * vnoise(p * 1.3));
+  acol *= .95 + .07 * step(.5, fract((p.x * .6 + p.y * .8) / 22.)) * (1. - smoothstep(600., 2500., dist));
+  acol = mix(acol, vec3(.52,.50,.36), smoothstep(.62, .8, vnoise(p * .004)) * .45);
   col = mix(col, acol, m.a);
   // lighting
   vec3 n = normalize(vN);
@@ -557,7 +563,7 @@ function ribbon(pts, width, y, texLen) {
     const nx = -dz, nz = dx;
     P.push(p[0] + nx * width / 2, y, p[1] + nz * width / 2, p[0] - nx * width / 2, y, p[1] - nz * width / 2);
     UV.push(0, acc / texLen, 1, acc / texLen);
-    if (i > 0) { const k = i * 2; I.push(k - 2, k - 1, k, k - 1, k + 1, k); }
+    if (i > 0) { const k = i * 2; I.push(k - 2, k, k - 1, k - 1, k, k + 1); } // counter-clockwise from above so the face points up
   }
   const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(P, 3)); g.setAttribute('uv', new THREE.Float32BufferAttribute(UV, 2)); g.setIndex(I); g.computeVertexNormals();
   return g;
@@ -576,7 +582,7 @@ function buildAirports(scene, mats) {
   const lightTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const gr = g.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.25, 'rgba(255,255,255,.8)'); gr.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = gr; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c); })();
   W.lightTex = lightTex;
   for (const ap of AIRPORTS) {
-    const y0 = ap.elev + 0.12;
+    const y0 = ap.elev + PAVE + 0.06;
     for (const r of ap.rwys) {
       const endLen = 900, w = r.w;
       const tA = rwyEndTexture(r.name, w), tB = rwyEndTexture(r.opp, w);
@@ -628,7 +634,7 @@ function buildAirports(scene, mats) {
     }
   }
   // ---- Heathrow layout ----
-  const yL = LHR.elev + 0.1;
+  const yL = LHR.elev + PAVE;
   const taxi = (pts, w = 23) => { const g = ribbon(pts, w, yL, 25); scene.add(new THREE.Mesh(g, matTaxi)); };
   taxi(TAXI_LHR.slice(0, 6).concat([[1760, -760], [1760, -830]]));
   taxi([[1760, -830], [1745, -850], [1700, -850]], 40);
@@ -641,7 +647,7 @@ function buildAirports(scene, mats) {
   const apron = (cx, cz, w, l) => scene.add(new THREE.Mesh(quadXZ(cx, cz, w, l, 0, yL - 0.03), matConc));
   apron(900, -290, 900, 110); apron(-200, 0, 1400, 500); apron(-1600, 0, 900, 600);
   const T = (t) => { const m = new THREE.MeshLambertMaterial({ map: t }); return m; };
-  const mGlass = T(facadeTexture('glass')), mOff = T(facadeTexture('office')), mRoof = new THREE.MeshLambertMaterial({ color: 0x8c8f92 });
+  const mGlass = T(facadeTexture('glass')), mOff = T(facadeTexture('office')), mHang = T(facadeTexture('hangar')), mRoof = new THREE.MeshLambertMaterial({ color: 0x8c8f92 });
   const building = (cx, cz, w, d, h, rot = 0, mat = mGlass) => {
     const g = new THREE.BoxGeometry(w, h, d); const uv = g.attributes.uv; for (let i = 0; i < uv.count; i++) uv.setXY(i, uv.getX(i) * w / 40, uv.getY(i) * h / 20);
     const m = new THREE.Mesh(g, [mat, mat, mRoof, mRoof, mat, mat]); m.position.set(cx, yL + h / 2, cz); m.rotation.y = rot; scene.add(m); return m;
@@ -671,6 +677,11 @@ function buildAirports(scene, mats) {
   for (const [x, z, r] of [[700, -262, 0.3], [1100, -258, -0.2], [1305, -265, 0.1], [860, -330, 1.57]]) { const v = new THREE.Mesh(new THREE.BoxGeometry(2.2, 2.4, 5.5), vanM); v.position.set(x, yL + 1.2, z); v.rotation.y = r; scene.add(v); }
   building(-200, 160, 1100, 120, 24); building(-1600, 250, 700, 110, 40); building(-1600, -140, 420, 60, 18);
   building(1250, 200, 260, 200, 30, 0, mOff); building(1500, 120, 200, 120, 26, 0, mOff); building(1600, 330, 160, 90, 24, 0, mOff);
+  // maintenance base and cargo area to the south and east (fills the field like the real airport)
+  apron(1350, 700, 700, 260); apron(-900, 760, 1200, 220); apron(2200, -100, 500, 600);
+  building(1300, 860, 220, 90, 28, 0, mHang); building(1560, 860, 220, 90, 28, 0, mHang); building(-1200, 880, 380, 80, 18, 0, mOff); building(-600, 880, 300, 70, 16, 0, mOff);
+  building(2300, 120, 160, 220, 22, 0, mHang); building(2300, -260, 160, 160, 18, 0, mOff);
+  taxi([[1300, 590], [1300, 700]]); taxi([[-500, 590], [-500, 760]]); taxi([[1760, -430], [1760, -100], [2050, -100]]);
   // control tower
   const tw = new THREE.Group(); tw.position.set(250, yL, -60);
   tw.add(new THREE.Mesh(new THREE.CylinderGeometry(4, 5, 75, 16), new THREE.MeshLambertMaterial({ color: 0xcfd2d3 })).translateY(37.5));
@@ -678,7 +689,7 @@ function buildAirports(scene, mats) {
   tw.add(new THREE.Mesh(new THREE.CylinderGeometry(10, 10, 1.5, 20), new THREE.MeshLambertMaterial({ color: 0xdedede })).translateY(82));
   scene.add(tw);
   // ---- CDG layout ----
-  const r0 = CDG.rwys[0]; const yC = CDG.elev + 0.1;
+  const r0 = CDG.rwys[0]; const yC = CDG.elev + PAVE;
   const dd = hdgVec(266), nn = { x: dd.z, z: -dd.x };
   const at = (along, side) => [r0.tx + dd.x * along + nn.x * side, r0.tz + dd.z * along + nn.z * side];
   const taxiC = (a) => { const g = ribbon(a, 23, yC, 25); scene.add(new THREE.Mesh(g, matTaxi)); };
