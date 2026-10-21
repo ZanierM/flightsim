@@ -74,32 +74,32 @@ button { font-family: var(--ui); }
 #looks .btn { background: var(--panel); font-size: 12px; padding: 5px 9px; }
 
 /* captain panel */
-#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(420px, calc(100vw - 24px)); background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
+#captain { position: fixed; left: max(12px, env(safe-area-inset-left, 0px)); top: calc(52px + env(safe-area-inset-top, 0px)); width: min(340px, calc(100vw - 24px)); box-sizing: border-box; background: var(--panel); backdrop-filter: blur(8px); border: 1px solid var(--line); z-index: 20; }
 #captain.dock-right { left: auto; right: max(12px, env(safe-area-inset-right, 0px)); }
 @media (min-width: 601px) and (max-width: 1100px) { #looks { top: calc(52px + env(safe-area-inset-top, 0px)); } #captain { top: calc(92px + env(safe-area-inset-top, 0px)); } }
-#captain .head { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+#captain .head { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border-bottom: 1px solid var(--line); }
 #captain .who { flex: 1; min-width: 0; font-size: 12px; color: var(--dim); line-height: 1.25; } #captain .who b { color: var(--fg); font-size: 13px; display: block; }
 #tCompactTitle, #tCompactAction { display: none; }
 #captain.min .who b, #captain.min .who .role { display: none; }
 #captain.min #tCompactTitle { display: block; color: var(--cyan); font: 11px var(--mono); text-transform: uppercase; }
 #captain.min #tCompactAction { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; max-height: 2.6em; color: var(--fg); font-size: 12px; line-height: 1.3; margin-top: 3px; }
-#captain .ph { text-align: right; font-family: var(--mono); font-size: 11px; color: var(--cyan); letter-spacing: .04em; text-transform: uppercase; flex: none; }
-#captain .ph span { display: block; color: var(--dim); }
+#captain .ph { display: flex; justify-content: space-between; gap: 8px; font-family: var(--mono); font-size: 10px; color: var(--cyan); letter-spacing: .04em; text-transform: uppercase; }
+#captain .ph span:first-child { color: var(--dim); }
 #captain .head-actions { display: flex; gap: 4px; flex: none; }
-#captain .head-actions button { background: none; border: 1px solid var(--line); color: var(--fg); cursor: pointer; font: 11px var(--ui); padding: 8px; min-height: 40px; }
+#captain .head-actions button { background: none; border: 1px solid var(--line); color: var(--fg); cursor: pointer; font: 11px var(--ui); padding: 7px; min-height: 36px; }
 #captain .head-actions button:hover { border-color: var(--cyan); }
 #captain .prog { height: 2px; background: #1a2329; } #tProg { height: 100%; background: var(--cyan); width: 100%; transform: scaleX(0); transform-origin: left; transition: transform .4s; }
-#captain .body { padding: 14px; display: grid; gap: 10px; max-height: min(72vh, 630px); overflow-y: auto; }
-#tTitle { font-size: 18px; line-height: 1.25; font-weight: 700; margin: 0; }
-#tAction { margin: 0; font-size: 14px; line-height: 1.45; color: var(--fg); }
-#tItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 5px; font-family: var(--mono); font-size: 12.5px; max-height: 22vh; overflow-y: auto; }
+#captain .body { padding: 10px 12px 12px; display: grid; gap: 8px; max-height: min(46vh, 410px); overflow-y: auto; }
+#tTitle { font-size: 16px; line-height: 1.25; font-weight: 700; margin: 0; }
+#tAction { margin: 0; font-size: 13px; line-height: 1.4; color: var(--fg); }
+#tItems { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; font-family: var(--mono); font-size: 12px; max-height: 18vh; overflow-y: auto; }
 #tItems li { color: var(--cyan); padding-left: 18px; position: relative; }
 #tItems li::before { content: ""; position: absolute; left: 2px; top: 4px; width: 9px; height: 9px; border: 1.5px solid var(--cyan); }
 #tItems li.ok { color: var(--green); } #tItems li.ok::before { border-color: var(--green); background: var(--green); }
 #captain .acts { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 #captain .acts .btn { min-height: 36px; font-size: 12px; }
-#captain .step-nav { border-top: 1px solid var(--line); padding-top: 10px; }
-#tDetails { border-top: 1px solid var(--line); padding-top: 9px; font-size: 13px; }
+#captain .step-nav { border-top: 1px solid var(--line); padding-top: 8px; }
+#tDetails { border-top: 1px solid var(--line); padding-top: 7px; font-size: 13px; }
 #tDetails summary { color: var(--cyan); cursor: pointer; width: fit-content; }
 #tText { margin: 10px 0; font-size: 13px; line-height: 1.55; color: #d3dde3; }
 #captain.min .body { display: none; }
@@ -154,7 +154,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: calc(100vw - 24px); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .body { max-height: min(56vh, 460px); } #captain.min .ph, #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: min(340px, calc(100vw - 24px)); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .body { max-height: min(44vh, 380px); } #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -207,9 +207,10 @@ button { font-family: var(--ui); }
 </aside>
 
 <div id="captain" hidden>
-  <div class="head"><div class="who"><b>Capt. Hughes</b><span class="role">Training captain</span><span id="tCompactTitle"></span><span id="tCompactAction"></span></div><div class="ph"><span id="tStep"></span><span id="tPhase"></span></div><div class="head-actions"><button id="tDock" type="button">Dock right</button><button id="tMin" type="button" aria-expanded="true">Collapse</button></div></div>
+  <div class="head"><div class="who"><b>Capt. Hughes</b><span class="role">Training captain</span><span id="tCompactTitle"></span><span id="tCompactAction"></span></div><div class="head-actions"><button id="tDock" type="button">Dock right</button><button id="tMin" type="button" aria-expanded="true">Collapse</button></div></div>
   <div class="prog"><div id="tProg"></div></div>
   <div class="body">
+    <div class="ph"><span id="tPhase"></span><span id="tStep"></span></div>
     <h2 id="tTitle"></h2>
     <p id="tAction"></p>
     <ul id="tItems" aria-label="Step checklist"></ul>
@@ -405,6 +406,12 @@ const FORESTS = [
 function makeRwy(name, opp, tx, tz, hdg, len, w) {
   const d = hdgVec(hdg);
   return { name, opp, tx, tz, hdg, len, w, ex: tx + d.x * len, ez: tz + d.z * len, dx: d.x, dz: d.z };
+}
+function runwayTouchdown(td, r) {
+  if (!td) return false;
+  const along = (td.x - r.tx) * r.dx + (td.z - r.tz) * r.dz;
+  const across = (td.x - r.tx) * -r.dz + (td.z - r.tz) * r.dx;
+  return along >= 0 && along <= r.len && Math.abs(across) <= r.w / 2;
 }
 const LHR = { icao: 'EGLL', name: 'London Heathrow', elev: 25, qnh: 1018,
   rwys: [makeRwy('27R', '09L', 1600, -850, 270, 3900, 50), makeRwy('27L', '09R', 1450, 590, 270, 3660, 50)] };
@@ -1560,7 +1567,7 @@ function newState() {
     // derived
     ias: 0, tas: 0, gs: 0, mach: 0, alt: 0, ra: 0, vs: 0, alpha: 0, gamma: 0, trk: 0, iasTrend: 0, nz: 1,
     loc: { dev: 0, valid: false, dist: 0, xte: 0 }, gs_: { dev: 0, valid: false, herr: 0 },
-    tailStrike: false, touchdown: null, crashed: false, hardLanding: false, toConfigTested: false,
+    tailStrike: false, touchdown: null, crashed: false, runwayMissed: false, hardLanding: false, toConfigTested: false,
     time: 0, airborneT: 0, warn: { master: false, caution: false, msgs: [] }, wind: new THREE.Vector3(), windDir: 250, windKt: 8,
     stats: { maxBank: 0, overspeed: 0, maxG: 1, tdFpm: 0, tdDist: 0, tdCl: 0, flown: 0 },
     pushback: null,
@@ -1757,6 +1764,7 @@ function stepFlight(dt) {
       if (S.airborneT > 3) {
         S.touchdown = { fpm: vsFpm, x: S.pos.x, z: S.pos.z, t: S.time, ias: S.ias, pitch: S.theta * R2D };
         S.stats.tdFpm = vsFpm;
+        if (S.fms.phase === 'APPROACH' && !runwayTouchdown(S.touchdown, activeRoute.arrRwy)) S.runwayMissed = true;
         if (vsFpm < -600) S.hardLanding = true;
         if (vsFpm < -1400 || Math.abs(S.phi) > 12 * D2R || S.theta < -3 * D2R) S.crashed = true;
         if (S.gearPos < 0.9) S.crashed = true;
@@ -1916,7 +1924,7 @@ function fmsPhase() {
   if (f.phase === 'CLIMB' && altFt > (f.crz || CRZ_FL) * 100 - 150 && altFt > S.fcu.alt - 200) f.phase = 'CRUISE';
   if ((f.phase === 'CLIMB' || f.phase === 'CRUISE') && S.fcu.alt < altFt - 2000 && (S.ap.vert === 'DES' || S.ap.vert === 'OP DES' || S.ap.vert === 'V/S') && S.loc.dist < 160 * NM) f.phase = 'DESCENT';
   if ((f.phase === 'DESCENT' || f.phase === 'CRUISE') && (S.flapLever >= 1 || (distToGo() < 30 && altFt < 12000))) f.phase = 'APPROACH';
-  if (f.phase === 'APPROACH' && S.onGround && S.gs < 30 && S.airborneT === 0 && S.touchdown) f.phase = 'DONE';
+  if (f.phase === 'APPROACH' && S.onGround && S.gs < 30 && S.airborneT === 0 && runwayTouchdown(S.touchdown, activeRoute.arrRwy) && !S.crashed) f.phase = 'DONE';
 }
 
 // ---------- autopilot / flight director ----------
@@ -3974,7 +3982,7 @@ const Tut = (() => {
   ST({ ph: 'Approach', title: 'Flaps 2', text: "Below 200 knots, flaps 2.", hl: 'flaps', done: () => S.flapLever >= 2, doit: () => S.flapLever = 2, wait: () => S.ias < 205 || S.ap.lat.startsWith('LOC') });
   ST({ ph: 'Approach', title: 'Gear down', text: "Localiser alive. Gear down, press G. Hear the gear coming down and the extra wind noise.", hl: 'gear', done: () => S.gearLever === 1, doit: () => setGear(1), wait: () => S.ap.lat.startsWith('LOC') || S.ap.vert.startsWith('G/S') || S.ra < 3000 });
   ST({ ph: 'Approach', title: 'Flaps 3 and FULL', text: "Flaps 3, then flaps FULL as the speed allows. Check the ground spoilers are armed and set AUTO BRAKE MED.", hl: () => S.flapLever < 4 ? 'flaps' : !S.sbArmed ? 'spoilers' : 'ab_MED', done: () => S.flapLever === 4 && S.sbArmed && S.autobrake === 2, items: [['FLAPS FULL', () => S.flapLever === 4], ['GND SPLRS armed', () => S.sbArmed], ['AUTO BRK MED', () => S.autobrake === 2]], doit: () => { S.flapLever = 4; S.sbArmed = true; S.autobrake = 2; }, enter: () => afterCurrentStep(4000, () => { Audio2.pa('Cabin crew, seats for landing.'); showATC('Captain (PA)', 'Cabin crew, seats for landing.'); }) });
-  ST({ ph: 'Landing', title: 'Cleared to land', freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 324, Charles de Gaulle Tower, wind 250 degrees 8 knots, runway 26 right, cleared to land.', 'Cleared to land 26 right, Albion 324.'], text: "Landing memo all green. Stabilised. Your choice now: keep both autopilots in for an automatic landing, or press Q at 'minimum' and fly it yourself. To hand-fly, keep the flight path vector on the runway, and at 30 feet pull gently to flare and reduce the thrust to idle when you hear 'retard'.", done: () => S.onGround && S.touchdown, quiet: false, wait: () => S.gs_.valid && S.ap.vert.startsWith('G/S') || S.ra < 1500 });
+  ST({ ph: 'Landing', title: 'Cleared to land', freq: 119250, who: 'De Gaulle Tower', atc: ['Albion 324, Charles de Gaulle Tower, wind 250 degrees 8 knots, runway 26 right, cleared to land.', 'Cleared to land 26 right, Albion 324.'], text: "Landing memo all green. Stabilised. Your choice now: keep both autopilots in for an automatic landing, or press Q at 'minimum' and fly it yourself. To hand-fly, keep the flight path vector on the runway, and at 30 feet pull gently to flare and reduce the thrust to idle when you hear 'retard'.", done: () => S.onGround && runwayTouchdown(S.touchdown, activeRoute.arrRwy) && !S.crashed, quiet: false, wait: () => S.gs_.valid && S.ap.vert.startsWith('G/S') || S.ra < 1500 });
   ST({ ph: 'Landing', title: 'Reverse thrust', text: "Touchdown! Thrust levers to idle and then reverse: hold Page Down or press R. Keep straight with the rudder.", hl: 'thrust', done: () => S.rev.some(r => r > 0.8) || S.gs < 50, doit: () => S.tl = [-1, -1] });
   ST({ ph: 'Landing', title: 'Slow down', text: "Seventy knots. Reverse idle, thrust levers back to idle with Page Up or I. Brake to walking pace with B.", hl: 'thrust', done: () => S.gs < 20 && S.tl.every(t => t >= -0.01), doit: () => S.tl = [0, 0], wait: () => S.gs < 75 });
   // ===== AFTER LANDING =====
@@ -4588,9 +4596,12 @@ function loop(t) {
     readControls(dt);
     const H = 1 / 120; const tc = S.onGround ? 1 : timeComp; accum += dt * tc; let n = 0;
     while (accum >= H && n < 120 * 2) { stepAll(H); accum -= H; n++; }
-    if (S.crashed && !S._crashShown) { S._crashShown = true; setTimeout(() => showDebrief(true), 1500); }
+    if ((S.crashed || S.runwayMissed) && !S._crashShown) {
+      S._crashShown = true; const failedFlight = S;
+      setTimeout(() => { if (S === failedFlight) showDebrief(true); }, 1500);
+    }
   }
-  Tut.update(dt);
+  if (started && !paused) Tut.update(dt);
   render(dt);
   if (started) Audio2.update(dt, VIEW.mode);
   if (frameN % 6 === 0) updateHUD();
@@ -4848,7 +4859,7 @@ function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
   if (!Tut.active || !st) { box.hidden = true; return; }
   box.hidden = false;
-  if (captainRenderedStep !== st) { $('tDetails').open = st.title === 'Welcome aboard' || st.title === 'Approach briefing'; captainRenderedStep = st; }
+  if (captainRenderedStep !== st) { $('tDetails').open = false; captainRenderedStep = st; }
   syncCaptainPanel();
   $('tPhase').textContent = st.ph; $('tStep').textContent = `${Tut.idx + 1} / ${Tut.steps.length}`;
   $('tTitle').textContent = st._waiting ? 'Stand by…' : st.title;
@@ -4887,7 +4898,7 @@ function showDebrief(crash) {
   const d = $('debrief'); const td = S.touchdown; const r = activeRoute.arrRwy;
   $('debriefHeading').textContent = `Flight debrief · ${activeRoute.flightNumber}`;
   let rows = [];
-  if (crash) rows.push(['Outcome', 'The aircraft was damaged on landing', 'bad']);
+  if (crash) rows.push(['Outcome', S.runwayMissed ? 'Touchdown outside the landing runway' : 'The aircraft was damaged on landing', 'bad']);
   if (td) {
     const along = (td.x - r.tx) * r.dx + (td.z - r.tz) * r.dz; const cl = Math.abs((td.x - r.tx) * -r.dz + (td.z - r.tz) * r.dx);
     rows.push(['Touchdown rate', Math.round(td.fpm) + ' ft/min', td.fpm > -240 ? 'good' : td.fpm > -600 ? 'ok' : 'bad']);
