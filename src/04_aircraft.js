@@ -33,7 +33,7 @@ function newState() {
     // derived
     ias: 0, tas: 0, gs: 0, mach: 0, alt: 0, ra: 0, vs: 0, alpha: 0, gamma: 0, trk: 0, iasTrend: 0, nz: 1,
     loc: { dev: 0, valid: false, dist: 0, xte: 0 }, gs_: { dev: 0, valid: false, herr: 0 },
-    tailStrike: false, touchdown: null, crashed: false, hardLanding: false, toConfigTested: false,
+    tailStrike: false, touchdown: null, crashed: false, runwayMissed: false, hardLanding: false, toConfigTested: false,
     time: 0, airborneT: 0, warn: { master: false, caution: false, msgs: [] }, wind: new THREE.Vector3(), windDir: 250, windKt: 8,
     stats: { maxBank: 0, overspeed: 0, maxG: 1, tdFpm: 0, tdDist: 0, tdCl: 0, flown: 0 },
     pushback: null,
@@ -230,6 +230,7 @@ function stepFlight(dt) {
       if (S.airborneT > 3) {
         S.touchdown = { fpm: vsFpm, x: S.pos.x, z: S.pos.z, t: S.time, ias: S.ias, pitch: S.theta * R2D };
         S.stats.tdFpm = vsFpm;
+        if (S.fms.phase === 'APPROACH' && !runwayTouchdown(S.touchdown, activeRoute.arrRwy)) S.runwayMissed = true;
         if (vsFpm < -600) S.hardLanding = true;
         if (vsFpm < -1400 || Math.abs(S.phi) > 12 * D2R || S.theta < -3 * D2R) S.crashed = true;
         if (S.gearPos < 0.9) S.crashed = true;
@@ -389,7 +390,7 @@ function fmsPhase() {
   if (f.phase === 'CLIMB' && altFt > (f.crz || CRZ_FL) * 100 - 150 && altFt > S.fcu.alt - 200) f.phase = 'CRUISE';
   if ((f.phase === 'CLIMB' || f.phase === 'CRUISE') && S.fcu.alt < altFt - 2000 && (S.ap.vert === 'DES' || S.ap.vert === 'OP DES' || S.ap.vert === 'V/S') && S.loc.dist < 160 * NM) f.phase = 'DESCENT';
   if ((f.phase === 'DESCENT' || f.phase === 'CRUISE') && (S.flapLever >= 1 || (distToGo() < 30 && altFt < 12000))) f.phase = 'APPROACH';
-  if (f.phase === 'APPROACH' && S.onGround && S.gs < 30 && S.airborneT === 0 && S.touchdown) f.phase = 'DONE';
+  if (f.phase === 'APPROACH' && S.onGround && S.gs < 30 && S.airborneT === 0 && runwayTouchdown(S.touchdown, activeRoute.arrRwy) && !S.crashed) f.phase = 'DONE';
 }
 
 // ---------- autopilot / flight director ----------

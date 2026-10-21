@@ -46,6 +46,12 @@ function makeRwy(name, opp, tx, tz, hdg, len, w) {
   const d = hdgVec(hdg);
   return { name, opp, tx, tz, hdg, len, w, ex: tx + d.x * len, ez: tz + d.z * len, dx: d.x, dz: d.z };
 }
+function runwayTouchdown(td, r) {
+  if (!td) return false;
+  const along = (td.x - r.tx) * r.dx + (td.z - r.tz) * r.dz;
+  const across = (td.x - r.tx) * -r.dz + (td.z - r.tz) * r.dx;
+  return along >= 0 && along <= r.len && Math.abs(across) <= r.w / 2;
+}
 const LHR = { icao: 'EGLL', name: 'London Heathrow', elev: 25, qnh: 1018,
   rwys: [makeRwy('27R', '09L', 1600, -850, 270, 3900, 50), makeRwy('27L', '09R', 1450, 590, 270, 3660, 50)] };
 const _cdgT = ll(49.0256, 2.5600);

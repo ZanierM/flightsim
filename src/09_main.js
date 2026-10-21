@@ -470,9 +470,12 @@ function loop(t) {
     readControls(dt);
     const H = 1 / 120; const tc = S.onGround ? 1 : timeComp; accum += dt * tc; let n = 0;
     while (accum >= H && n < 120 * 2) { stepAll(H); accum -= H; n++; }
-    if (S.crashed && !S._crashShown) { S._crashShown = true; setTimeout(() => showDebrief(true), 1500); }
+    if ((S.crashed || S.runwayMissed) && !S._crashShown) {
+      S._crashShown = true; const failedFlight = S;
+      setTimeout(() => { if (S === failedFlight) showDebrief(true); }, 1500);
+    }
   }
-  Tut.update(dt);
+  if (started && !paused) Tut.update(dt);
   render(dt);
   if (started) Audio2.update(dt, VIEW.mode);
   if (frameN % 6 === 0) updateHUD();
@@ -730,7 +733,7 @@ function renderTutUI() {
   const box = $('captain'); const st = Tut.cur();
   if (!Tut.active || !st) { box.hidden = true; return; }
   box.hidden = false;
-  if (captainRenderedStep !== st) { $('tDetails').open = st.title === 'Welcome aboard' || st.title === 'Approach briefing'; captainRenderedStep = st; }
+  if (captainRenderedStep !== st) { $('tDetails').open = false; captainRenderedStep = st; }
   syncCaptainPanel();
   $('tPhase').textContent = st.ph; $('tStep').textContent = `${Tut.idx + 1} / ${Tut.steps.length}`;
   $('tTitle').textContent = st._waiting ? 'Stand by…' : st.title;
@@ -769,7 +772,7 @@ function showDebrief(crash) {
   const d = $('debrief'); const td = S.touchdown; const r = activeRoute.arrRwy;
   $('debriefHeading').textContent = `Flight debrief · ${activeRoute.flightNumber}`;
   let rows = [];
-  if (crash) rows.push(['Outcome', 'The aircraft was damaged on landing', 'bad']);
+  if (crash) rows.push(['Outcome', S.runwayMissed ? 'Touchdown outside the landing runway' : 'The aircraft was damaged on landing', 'bad']);
   if (td) {
     const along = (td.x - r.tx) * r.dx + (td.z - r.tz) * r.dz; const cl = Math.abs((td.x - r.tx) * -r.dz + (td.z - r.tz) * r.dx);
     rows.push(['Touchdown rate', Math.round(td.fpm) + ' ft/min', td.fpm > -240 ? 'good' : td.fpm > -600 ? 'ok' : 'bad']);
