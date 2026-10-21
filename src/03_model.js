@@ -76,6 +76,30 @@ function wingGeom(side, rootLE, rootChord, tipLE, tipChord, rootY, tipY, span, t
   if (side < 0) secs.forEach(s => s.reverse());
   return loft(secs);
 }
+function fanBladeGeom() {
+  const p = [], ix = [], count = 20;
+  for (let i = 0; i < count; i++) {
+    const a = i * 2 * Math.PI / count, k = p.length / 3;
+    for (const [r, sweep, z] of [[0.25, 0, 0.015], [0.84, 0.14, -0.025], [0.85, 0.29, 0.02], [0.27, 0.17, 0.04]]) {
+      p.push(Math.cos(a + sweep) * r, Math.sin(a + sweep) * r, z);
+    }
+    ix.push(k, k + 1, k + 2, k, k + 2, k + 3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setIndex(ix); g.computeVertexNormals(); return g;
+}
+function wingSkinLines(side) {
+  const p = [];
+  const at = (span, chord) => {
+    const ch = lerp(6.4, 1.55, span), le = lerp(-3.6, 4.0, span);
+    const yt = 5 * .14 * (.2969 * Math.sqrt(chord) - .126 * chord - .3516 * chord ** 2 + .2843 * chord ** 3 - .1036 * chord ** 4);
+    return [side * (1.6 + 15.4 * span), lerp(1.85, 3.25, span) + (yt + .02 * Math.sin(chord * Math.PI)) * ch * lerp(1, .75, span) + .018, le + chord * ch];
+  };
+  const line = (a, b) => p.push(...at(...a), ...at(...b));
+  for (const chord of [.12, .76]) for (let i = 1; i < 15; i++) line([i / 16, chord], [(i + 1) / 16, chord]);
+  for (const span of [.28, .54, .79]) for (let i = 1; i < 7; i++) line([span, .12 + i * .08], [span, .12 + (i + 1) * .08]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x59636b, transparent: true, opacity: .58, depthWrite: false }));
+}
 function buildA320(opts = {}) {
   const grp = new THREE.Group();
   const white = new THREE.MeshStandardMaterial({ color: 0xe4e8eb, roughness: 0.58, metalness: 0.06 });
@@ -84,6 +108,8 @@ function buildA320(opts = {}) {
   const navy = new THREE.MeshStandardMaterial({ color: 0x1d2f5a, roughness: 0.4, metalness: 0.1 });
   const metal = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.3, metalness: 0.8 });
   const tyre = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+  const fanBlades = fanBladeGeom();
+  const fanMat = new THREE.MeshStandardMaterial({ color: 0x717981, metalness: 0.68, roughness: 0.42, side: THREE.DoubleSide });
   // fuselage: lathe with uniform v
   const prof = []; const NS = 90; for (let i = 0; i <= NS; i++) { const t = i / NS * 37.6; prof.push(new THREE.Vector2(Math.max(fusR(t), 0.02), t)); }
   const fg = new THREE.LatheGeometry(prof, 48); fg.rotateX(Math.PI / 2);
@@ -99,8 +125,9 @@ function buildA320(opts = {}) {
   const wm = grey;
   for (const s of [1, -1]) {
     const w = new THREE.Mesh(wingGeom(s, -3.6, 6.4, 4.0, 1.55, 1.85, 3.25, 15.4, 0.14), wm); grp.add(w);
+    grp.add(wingSkinLines(s));
     // sharklet
-    const sk = new THREE.Mesh(wingGeom(1, 4.05, 1.5, 5.5, 0.6, 0, 0, 2.4, 0.09, 0), wm);
+    const sk = new THREE.Mesh(wingGeom(1, 4.05, 1.5, 5.5, 0.6, 0, 0, 2.4, 0.09, 0), navy);
     sk.rotation.z = Math.PI / 2 - s * 0.12; sk.position.set(s * 17.0, 3.25, 0); grp.add(sk);
     // flaps (trailing edge, inboard + outboard), hinge at TE
     const flap = new THREE.Mesh(new THREE.BoxGeometry(9.5, 0.12, 1.4), grey); const fp = new THREE.Group();
@@ -111,13 +138,16 @@ function buildA320(opts = {}) {
     const nac = []; const NL = 22; for (let i = 0; i <= NL; i++) { const t = i / NL * 4.4; let r = 1.08; if (t < 0.3) r = 0.98 + 0.1 * Math.sin(t / 0.3 * Math.PI / 2); if (t > 3.0) r = 1.08 - (t - 3.0) / 1.4 * 0.38; nac.push(new THREE.Vector2(r, t)); }
     const ng = new THREE.LatheGeometry(nac, 36); ng.rotateX(Math.PI / 2); const nm = new THREE.Mesh(ng, white); eng.add(nm);
     const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.93, 0.93, 0.6, 30, 1, true), dark); inner.rotation.x = Math.PI / 2; inner.position.z = 0.35; eng.add(inner);
-    const fan = new THREE.Mesh(new THREE.CircleGeometry(0.92, 30), new THREE.MeshStandardMaterial({ color: 0x3a3f45, metalness: 0.7, roughness: 0.35, side: THREE.DoubleSide })); fan.position.z = 0.55; eng.add(fan);
+    const fan = new THREE.Group(); fan.position.z = 0.55;
+    fan.add(new THREE.Mesh(new THREE.CircleGeometry(0.91, 36), new THREE.MeshStandardMaterial({ color: 0x222a2f, roughness: 0.72, side: THREE.DoubleSide })));
+    fan.add(new THREE.Mesh(fanBlades, fanMat)); eng.add(fan);
     const spin = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.6, 18), metal); spin.rotation.x = -Math.PI / 2; spin.position.z = 0.35; eng.add(spin);
     const ex = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.0, 18), metal); ex.rotation.x = Math.PI / 2; ex.position.z = 4.85; eng.add(ex);
     const ring = new THREE.Mesh(new THREE.TorusGeometry(1.03, 0.07, 8, 36), metal); ring.position.z = 0.02; eng.add(ring);
+    const seam = new THREE.Mesh(new THREE.TorusGeometry(1.085, 0.012, 5, 40), grey); seam.position.z = 2.65; eng.add(seam);
     const py = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 3.6), white); py.position.set(0, 1.1, 2.6); eng.add(py);
     grp.add(eng);
-    (grp.userData.fans = grp.userData.fans || []).push(fan);
+    (grp.userData.fans = grp.userData.fans || []).push({ rotor: fan, engine: s === -1 ? 0 : 1 });
   }
   // wing-body fairing
   const fair = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), grey); fair.scale.set(2.25, 1.1, 7.5); fair.position.set(0, 2.0, -0.6); grp.add(fair);
@@ -157,7 +187,8 @@ function setModelState(m, st, t) {
   ud.mains.forEach((g, i) => { const s = i === 0 ? 1 : -1; g.rotation.z = s * (1 - gd) * 1.5; g.position.y = (1 - gd) * 1.2; });
   ud.noseGear.rotation.x = -(1 - gd) * 1.5; ud.noseGear.position.y = (1 - gd) * 0.8;
   ud.flaps.forEach(f => f.rotation.x = st.flapAngle * D2R * 0.8);
-  ud.fans.forEach(f => f.rotation.z += (st.eng ? 0 : 0));
+  const fanDt = Math.max(0, Math.min(0.1, t - (ud.lastFanT ?? t))); ud.lastFanT = t;
+  ud.fans.forEach(f => { f.rotor.rotation.z += fanDt * (st.eng?.[f.engine]?.N1 || 0) * 0.22; });
   const L = ud.lights; if (!L) return;
   L.nav.forEach(s => s.visible = st.lt.nav);
   const strobeOn = st.lt.strobe === 2 || (st.lt.strobe === 1 && !st.onGround); const sf = (t % 1.1) < 0.06 || ((t % 1.1) > 0.16 && (t % 1.1) < 0.2);

@@ -273,9 +273,9 @@ void main(){
   col = mix(col, vec3(.13,.19,.08), hedge * .85 * (1. - smoothstep(4000., 15000., dist)));
   // At flight altitude the individual field parcels merge into a broader landscape.
   // This also keeps the regular field grid from reading like a checkerboard.
-  float aerialBlend = smoothstep(3500., 16000., dist);
+  float aerialBlend = smoothstep(1800., 10000., dist);
   vec3 aerialCol = mix(vec3(.23,.30,.15), vec3(.34,.36,.20), vnoise(p * .00008));
-  col = mix(col, aerialCol, aerialBlend * .62);
+  col = mix(col, aerialCol, aerialBlend * .82);
   // fine grain
   float g = vnoise(p * .35) * .5 + vnoise(p * 2.1) * .5; col *= .9 + .2 * g * (1. - smoothstep(300., 2500., dist));
   // forest
