@@ -756,9 +756,9 @@ void main(){
   col = mix(col, vec3(.13,.19,.08), hedge * .85 * (1. - smoothstep(4000., 15000., dist)));
   // At flight altitude the individual field parcels merge into a broader landscape.
   // This also keeps the regular field grid from reading like a checkerboard.
-  float aerialBlend = smoothstep(3500., 16000., dist);
+  float aerialBlend = smoothstep(1800., 10000., dist);
   vec3 aerialCol = mix(vec3(.23,.30,.15), vec3(.34,.36,.20), vnoise(p * .00008));
-  col = mix(col, aerialCol, aerialBlend * .62);
+  col = mix(col, aerialCol, aerialBlend * .82);
   // fine grain
   float g = vnoise(p * .35) * .5 + vnoise(p * 2.1) * .5; col *= .9 + .2 * g * (1. - smoothstep(300., 2500., dist));
   // forest
@@ -1394,10 +1394,22 @@ function liveryTexture(name) {
     for (const t of [5.6, 31.6]) { g.strokeRect(px(t) - 13, yb(side) - 34, 26, 62); }
     for (const t of [15.3, 16.5]) g.strokeRect(px(t) - 8, yb(side) - 14, 16, 28);
   }
-  // cockpit windows (dark band around nose, top-front)
-  g.fillStyle = '#121619';
-  const cw = (u0, u1, t0, t1) => { g.beginPath(); g.moveTo(px(t0), yb(u0)); g.lineTo(px(t1), yb(u0)); g.lineTo(px(t1) - 3, yb(u1)); g.lineTo(px(t0) + 6, yb(u1)); g.closePath(); g.fill(); };
-  cw(0.40, 0.47, 2.45, 3.25); cw(0.53, 0.60, 2.45, 3.25); cw(0.35, 0.40, 3.3, 3.9); cw(0.60, 0.65, 3.3, 3.9); cw(0.33, 0.36, 4.0, 4.4); cw(0.64, 0.67, 4.0, 4.4);
+  // Five joined, swept A320-style panes. Their frames share edges, rather than
+  // looking like separate black rectangles stuck onto the radome.
+  const pane = (points) => {
+    g.beginPath(); points.forEach(([t, u], i) => i ? g.lineTo(px(t), yb(u)) : g.moveTo(px(t), yb(u)));
+    g.closePath();
+    const glass = g.createLinearGradient(0, yb(.26), 0, yb(.74));
+    glass.addColorStop(0, '#294453'); glass.addColorStop(.5, '#17252e'); glass.addColorStop(1, '#294453');
+    g.fillStyle = glass; g.fill();
+    g.lineWidth = 3; g.strokeStyle = '#d0d6d8'; g.stroke();
+  };
+  pane([[2.65,.485],[3.15,.405],[4.15,.420],[3.65,.485]]);
+  pane([[2.65,.515],[3.65,.515],[4.15,.580],[3.15,.595]]);
+  pane([[3.15,.405],[3.95,.325],[4.90,.345],[4.15,.420]]);
+  pane([[3.15,.595],[4.15,.580],[4.90,.655],[3.95,.675]]);
+  pane([[3.95,.325],[4.55,.282],[5.25,.295],[4.90,.345]]);
+  pane([[3.95,.675],[4.90,.655],[5.25,.705],[4.55,.718]]);
   // radome slightly greyer
   g.fillStyle = 'rgba(160,165,170,.35)'; g.fillRect(0, 0, px(1.6), Hh);
   // titles
@@ -1434,6 +1446,30 @@ function wingGeom(side, rootLE, rootChord, tipLE, tipChord, rootY, tipY, span, t
   if (side < 0) secs.forEach(s => s.reverse());
   return loft(secs);
 }
+function fanBladeGeom() {
+  const p = [], ix = [], count = 20;
+  for (let i = 0; i < count; i++) {
+    const a = i * 2 * Math.PI / count, k = p.length / 3;
+    for (const [r, sweep, z] of [[0.25, 0, 0.015], [0.84, 0.14, -0.025], [0.85, 0.29, 0.02], [0.27, 0.17, 0.04]]) {
+      p.push(Math.cos(a + sweep) * r, Math.sin(a + sweep) * r, z);
+    }
+    ix.push(k, k + 1, k + 2, k, k + 2, k + 3);
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3)); g.setIndex(ix); g.computeVertexNormals(); return g;
+}
+function wingSkinLines(side) {
+  const p = [];
+  const at = (span, chord) => {
+    const ch = lerp(6.4, 1.55, span), le = lerp(-3.6, 4.0, span);
+    const yt = 5 * .14 * (.2969 * Math.sqrt(chord) - .126 * chord - .3516 * chord ** 2 + .2843 * chord ** 3 - .1036 * chord ** 4);
+    return [side * (1.6 + 15.4 * span), lerp(1.85, 3.25, span) + (yt + .02 * Math.sin(chord * Math.PI)) * ch * lerp(1, .75, span) + .018, le + chord * ch];
+  };
+  const line = (a, b) => p.push(...at(...a), ...at(...b));
+  for (const chord of [.12, .76]) for (let i = 1; i < 15; i++) line([i / 16, chord], [(i + 1) / 16, chord]);
+  for (const span of [.28, .54, .79]) for (let i = 1; i < 7; i++) line([span, .12 + i * .08], [span, .12 + (i + 1) * .08]);
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+  return new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x59636b, transparent: true, opacity: .58, depthWrite: false }));
+}
 function buildA320(opts = {}) {
   const grp = new THREE.Group();
   const white = new THREE.MeshStandardMaterial({ color: 0xe4e8eb, roughness: 0.58, metalness: 0.06 });
@@ -1442,6 +1478,10 @@ function buildA320(opts = {}) {
   const navy = new THREE.MeshStandardMaterial({ color: 0x1d2f5a, roughness: 0.4, metalness: 0.1 });
   const metal = new THREE.MeshStandardMaterial({ color: 0x9aa0a6, roughness: 0.3, metalness: 0.8 });
   const tyre = new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.9 });
+  const intakeMat = new THREE.MeshStandardMaterial({ color: 0x4c555c, roughness: 0.46, metalness: 0.52, side: THREE.DoubleSide });
+  const inletLipMat = new THREE.MeshStandardMaterial({ color: 0xb7bec2, roughness: 0.28, metalness: 0.7 });
+  const fanBlades = fanBladeGeom();
+  const fanMat = new THREE.MeshStandardMaterial({ color: 0x929da5, metalness: 0.42, roughness: 0.46, side: THREE.DoubleSide });
   // fuselage: lathe with uniform v
   const prof = []; const NS = 90; for (let i = 0; i <= NS; i++) { const t = i / NS * 37.6; prof.push(new THREE.Vector2(Math.max(fusR(t), 0.02), t)); }
   const fg = new THREE.LatheGeometry(prof, 48); fg.rotateX(Math.PI / 2);
@@ -1457,25 +1497,52 @@ function buildA320(opts = {}) {
   const wm = grey;
   for (const s of [1, -1]) {
     const w = new THREE.Mesh(wingGeom(s, -3.6, 6.4, 4.0, 1.55, 1.85, 3.25, 15.4, 0.14), wm); grp.add(w);
+    grp.add(wingSkinLines(s));
     // sharklet
-    const sk = new THREE.Mesh(wingGeom(1, 4.05, 1.5, 5.5, 0.6, 0, 0, 2.4, 0.09, 0), wm);
+    const sk = new THREE.Mesh(wingGeom(1, 4.05, 1.5, 5.5, 0.6, 0, 0, 2.4, 0.09, 0), navy);
     sk.rotation.z = Math.PI / 2 - s * 0.12; sk.position.set(s * 17.0, 3.25, 0); grp.add(sk);
     // flaps (trailing edge, inboard + outboard), hinge at TE
     const flap = new THREE.Mesh(new THREE.BoxGeometry(9.5, 0.12, 1.4), grey); const fp = new THREE.Group();
     fp.position.set(s * 6.6, 2.2, 2.35); fp.rotation.y = s * 0.2; flap.position.set(0, 0, 0.7); fp.add(flap); grp.add(fp);
     (grp.userData.flaps = grp.userData.flaps || []).push(fp);
     // engine
-    const eng = new THREE.Group(); eng.position.set(s * 5.75, 1.85, -6.6);
-    const nac = []; const NL = 22; for (let i = 0; i <= NL; i++) { const t = i / NL * 4.4; let r = 1.08; if (t < 0.3) r = 0.98 + 0.1 * Math.sin(t / 0.3 * Math.PI / 2); if (t > 3.0) r = 1.08 - (t - 3.0) / 1.4 * 0.38; nac.push(new THREE.Vector2(r, t)); }
-    const ng = new THREE.LatheGeometry(nac, 36); ng.rotateX(Math.PI / 2); const nm = new THREE.Mesh(ng, white); eng.add(nm);
-    const inner = new THREE.Mesh(new THREE.CylinderGeometry(0.93, 0.93, 0.6, 30, 1, true), dark); inner.rotation.x = Math.PI / 2; inner.position.z = 0.35; eng.add(inner);
-    const fan = new THREE.Mesh(new THREE.CircleGeometry(0.92, 30), new THREE.MeshStandardMaterial({ color: 0x3a3f45, metalness: 0.7, roughness: 0.35, side: THREE.DoubleSide })); fan.position.z = 0.55; eng.add(fan);
-    const spin = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.6, 18), metal); spin.rotation.x = -Math.PI / 2; spin.position.z = 0.35; eng.add(spin);
-    const ex = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.0, 18), metal); ex.rotation.x = Math.PI / 2; ex.position.z = 4.85; eng.add(ex);
-    const ring = new THREE.Mesh(new THREE.TorusGeometry(1.03, 0.07, 8, 36), metal); ring.position.z = 0.02; eng.add(ring);
-    const py = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.9, 3.6), white); py.position.set(0, 1.1, 2.6); eng.add(py);
+    const eng = new THREE.Group(); eng.position.set(s * 5.75, 1.50, -6.6);
+    // CFM-style underwing nacelle: rounded intake, deep fan well, tapered core
+    // and an open exhaust. The fan sits behind the lip instead of filling it.
+    const nac = []; const NL = 32;
+    for (let i = 0; i <= NL; i++) {
+      const t = i / NL * 4.55;
+      let r = t < .22 ? 1.04 + .09 * Math.sin(t / .22 * Math.PI / 2) : 1.13;
+      if (t > 1.15) r = 1.13 - .1 * (t - 1.15) / 1.95;
+      if (t > 3.1) r = 1.03 - .29 * (t - 3.1) / 1.45;
+      nac.push(new THREE.Vector2(r, t));
+    }
+    const ng = new THREE.LatheGeometry(nac, 48); ng.rotateX(Math.PI / 2); eng.add(new THREE.Mesh(ng, white));
+    const inlet = new THREE.Mesh(new THREE.CylinderGeometry(.98, .92, .9, 48, 1, true), intakeMat);
+    inlet.rotation.x = Math.PI / 2; inlet.position.z = .47; eng.add(inlet);
+    const lip = new THREE.Mesh(new THREE.TorusGeometry(1.035, .085, 10, 48), inletLipMat);
+    lip.position.z = .015; eng.add(lip);
+    const fan = new THREE.Group(); fan.position.z = .92;
+    fan.add(new THREE.Mesh(new THREE.CircleGeometry(.91, 48), new THREE.MeshStandardMaterial({ color: 0x151b20, roughness: 0.9, side: THREE.DoubleSide })));
+    fan.add(new THREE.Mesh(fanBlades, fanMat)); eng.add(fan);
+    const spin = new THREE.Mesh(new THREE.ConeGeometry(.22, .52, 24), metal);
+    spin.rotation.x = -Math.PI / 2; spin.position.z = .72; eng.add(spin);
+    const nozzle = new THREE.Mesh(new THREE.CylinderGeometry(.55, .6, .55, 36, 1, true), intakeMat);
+    nozzle.rotation.x = Math.PI / 2; nozzle.position.z = 4.72; eng.add(nozzle);
+    const exhaustDark = new THREE.Mesh(new THREE.CircleGeometry(.53, 36), dark);
+    exhaustDark.position.z = 4.99; eng.add(exhaustDark);
+    const exhaustLip = new THREE.Mesh(new THREE.TorusGeometry(.59, .035, 8, 36), metal);
+    exhaustLip.position.z = 4.99; eng.add(exhaustLip);
+    const seam = new THREE.Mesh(new THREE.TorusGeometry(1.08, .01, 5, 48), grey);
+    seam.position.z = 2.75; eng.add(seam);
+    // Sloped pylon, narrow at the engine and blended into the wing above.
+    const pylon = loft([
+      [[-.15,.8,.85],[.15,.8,.85],[.15,.8,3.65],[-.15,.8,3.65]],
+      [[-.23,1.28,.25],[.23,1.28,.25],[.23,1.28,3.95],[-.23,1.28,3.95]],
+    ]);
+    eng.add(new THREE.Mesh(pylon, white));
     grp.add(eng);
-    (grp.userData.fans = grp.userData.fans || []).push(fan);
+    (grp.userData.fans = grp.userData.fans || []).push({ rotor: fan, engine: s === -1 ? 0 : 1 });
   }
   // wing-body fairing
   const fair = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 12), grey); fair.scale.set(2.25, 1.1, 7.5); fair.position.set(0, 2.0, -0.6); grp.add(fair);
@@ -1484,10 +1551,17 @@ function buildA320(opts = {}) {
   // vertical fin (built as wing on its side)
   const fin = new THREE.Mesh(wingGeom(1, 13.2, 6.6, 18.4, 2.6, 0, 0, 6.4, 0.1, 0), navy);
   fin.rotation.z = Math.PI / 2; fin.position.set(0, 5.1, 0); grp.add(fin);
-  // fin logo (simple stylised lion-stripe: a white chevron) as a decal plane each side
-  const logoC = document.createElement('canvas'); logoC.width = logoC.height = 128; const lg = logoC.getContext('2d'); lg.fillStyle = '#fff'; lg.beginPath(); lg.moveTo(20, 110); lg.lineTo(64, 18); lg.lineTo(108, 110); lg.lineTo(86, 110); lg.lineTo(64, 62); lg.lineTo(42, 110); lg.fill(); lg.fillStyle = '#b3242c'; lg.fillRect(40, 92, 48, 8);
+  // The tail mark fits entirely inside the fin and follows its tapered outline.
+  const logoC = document.createElement('canvas'); logoC.width = logoC.height = 256;
+  const lg = logoC.getContext('2d'); lg.fillStyle = '#fff';
+  lg.beginPath(); lg.moveTo(40, 215); lg.lineTo(128, 34); lg.lineTo(216, 215);
+  lg.lineTo(176, 215); lg.lineTo(128, 112); lg.lineTo(80, 215); lg.fill();
+  lg.fillStyle = '#b3242c'; lg.fillRect(78, 184, 100, 14);
   const logoT = new THREE.CanvasTexture(logoC);
-  for (const s of [1, -1]) { const p = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 2.6), new THREE.MeshBasicMaterial({ map: logoT, transparent: true })); p.position.set(s * 0.27, 8.7, 16.6); p.rotation.y = s * Math.PI / 2; grp.add(p); }
+  for (const s of [1, -1]) {
+    const p = new THREE.Mesh(new THREE.PlaneGeometry(2.35, 2.35), new THREE.MeshBasicMaterial({ map: logoT, transparent: true, side: THREE.DoubleSide, depthWrite: false }));
+    p.position.set(s * .29, 8.35, 18.25); p.rotation.y = s * Math.PI / 2; grp.add(p);
+  }
   // APU exhaust
   // gear
   const gearG = new THREE.Group(); grp.add(gearG); grp.userData.gear = gearG;
@@ -1497,12 +1571,33 @@ function buildA320(opts = {}) {
   const ngr = new THREE.Group(); ngr.add(strut(0, -12.6, 1.8, 0.1)); wheel(-0.22, -12.6, 0.38, 0.26).forEach(o => ngr.add(o)); wheel(0.22, -12.6, 0.38, 0.26).forEach(o => ngr.add(o)); gearG.add(ngr); grp.userData.noseGear = ngr;
   // lights
   const lightMat = (c) => new THREE.SpriteMaterial({ map: W.lightTex, color: c, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending });
+  const lensMat = (c) => new THREE.MeshStandardMaterial({ color: c, emissive: c, emissiveIntensity: .22, roughness: .3, metalness: .1 });
+  const lens = (parent, c, x, y, z, r) => {
+    const mount = new THREE.Mesh(new THREE.SphereGeometry(r * 1.35, 12, 8), dark);
+    mount.position.set(x, y, z); parent.add(mount);
+    const bulb = new THREE.Mesh(new THREE.SphereGeometry(r, 12, 8), lensMat(c));
+    bulb.position.set(x, y + r * .18, z - r * .3); parent.add(bulb);
+  };
   const L = {};
   const addL = (key, c, x, y, z, s) => { const sp = new THREE.Sprite(lightMat(c)); sp.position.set(x, y, z); sp.scale.set(s, s, s); grp.add(sp); (L[key] = L[key] || []).push(sp); sp.visible = false; };
-  addL('nav', 0xff2020, -17.0, 3.3, 0.6, 0.9); addL('nav', 0x20ff40, 17.0, 3.3, 0.6, 0.9); addL('nav', 0xffffff, 0, 4.9, 20.3, 0.8);
-  addL('strobe', 0xffffff, -17.1, 3.3, 0.9, 2.6); addL('strobe', 0xffffff, 17.1, 3.3, 0.9, 2.6); addL('strobe', 0xffffff, 0, 4.9, 20.4, 2.2);
+  for (const s of [-1, 1]) {
+    const color = s < 0 ? 0xff3030 : 0x35ed65;
+    lens(grp, color, s * 17.03, 3.29, 4.25, .12);
+    addL('nav', color, s * 17.05, 3.32, 4.22, .72);
+    addL('strobe', 0xffffff, s * 17.06, 3.35, 4.42, 1.55);
+    // Flush landing-light glass at the wing leading edge, not ahead of it.
+    const landing = new THREE.Mesh(new THREE.SphereGeometry(.18, 12, 8), lensMat(0xfff5d7));
+    landing.scale.set(1.4, .38, .45); landing.position.set(s * 5.0, 2.15, -1.92); grp.add(landing);
+    addL('land', 0xfff8e0, s * 5.0, 2.15, -1.97, 1.35);
+  }
+  lens(grp, 0xffffff, 0, 4.72, 20.25, .1);
+  addL('nav', 0xffffff, 0, 4.75, 20.32, .65);
+  addL('strobe', 0xffffff, 0, 4.75, 20.34, 1.3);
+  lens(grp, 0xdd2525, 0, FUS_Y + FUS_R + .045, 0, .13);
+  lens(grp, 0xdd2525, 0, FUS_Y - FUS_R - .04, 2, .13);
   addL('beacon', 0xff1010, 0, FUS_Y + FUS_R + 0.15, 0, 1.6); addL('beacon', 0xff1010, 0, FUS_Y - FUS_R - 0.05, 2, 1.6);
-  addL('land', 0xfff8e0, -5.0, 2.0, -2.5, 2.2); addL('land', 0xfff8e0, 5.0, 2.0, -2.5, 2.2); addL('taxi', 0xfff8e0, 0, 1.6, -12.6, 1.5);
+  lens(ngr, 0xfff5d7, 0, 1.55, -12.65, .14);
+  addL('taxi', 0xfff8e0, 0, 1.58, -12.7, 1.15);
   grp.userData.lights = L;
   grp.traverse(o => { if (o.isMesh) { o.castShadow = false; } });
   return grp;
@@ -1515,7 +1610,8 @@ function setModelState(m, st, t) {
   ud.mains.forEach((g, i) => { const s = i === 0 ? 1 : -1; g.rotation.z = s * (1 - gd) * 1.5; g.position.y = (1 - gd) * 1.2; });
   ud.noseGear.rotation.x = -(1 - gd) * 1.5; ud.noseGear.position.y = (1 - gd) * 0.8;
   ud.flaps.forEach(f => f.rotation.x = st.flapAngle * D2R * 0.8);
-  ud.fans.forEach(f => f.rotation.z += (st.eng ? 0 : 0));
+  const fanDt = Math.max(0, Math.min(0.1, t - (ud.lastFanT ?? t))); ud.lastFanT = t;
+  ud.fans.forEach(f => { f.rotor.rotation.z += fanDt * (st.eng?.[f.engine]?.N1 || 0) * 0.22; });
   const L = ud.lights; if (!L) return;
   L.nav.forEach(s => s.visible = st.lt.nav);
   const strobeOn = st.lt.strobe === 2 || (st.lt.strobe === 1 && !st.onGround); const sf = (t % 1.1) < 0.06 || ((t % 1.1) > 0.16 && (t % 1.1) < 0.2);
