@@ -140,6 +140,17 @@ function buildA320(opts = {}) {
   for (const s of [1, -1]) {
     const w = new THREE.Mesh(wingGeom(s, -3.6, 6.4, 4.0, 1.55, 1.85, 3.25, 15.4, 0.14), wm); grp.add(w);
     grp.add(wingSkinLines(s));
+    // The four trailing-edge flap tracks sit below the wing skin. Their
+    // streamlined fairings are especially visible in the exterior side view.
+    for (const [spanX, y, z, len] of [[4.2, 1.72, 2.45, 1.16], [7.4, 1.97, 2.78, 1.3], [10.5, 2.24, 3.15, 1.25], [13.2, 2.52, 3.60, 1.02]]) {
+      const track = new THREE.Mesh(new THREE.SphereGeometry(1, 16, 10), grey);
+      track.scale.set(.16, .13, len * .5);
+      track.position.set(s * spanX, y, z);
+      grp.add(track);
+      const rail = new THREE.Mesh(new THREE.BoxGeometry(.07, .26, len * .55), dark);
+      rail.position.set(s * spanX, y + .16, z - len * .12);
+      grp.add(rail);
+    }
     // sharklet
     const sk = new THREE.Mesh(wingGeom(1, 4.05, 1.5, 5.5, 0.6, 0, 0, 2.4, 0.09, 0), navy);
     sk.rotation.z = Math.PI / 2 - s * 0.12; sk.position.set(s * 17.0, 3.25, 0); grp.add(sk);

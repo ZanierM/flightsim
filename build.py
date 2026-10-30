@@ -4,6 +4,7 @@ Usage: python3 build.py
 """
 import glob
 import pathlib
+import shutil
 
 root = pathlib.Path(__file__).parent
 js = '\n'.join((root / f).read_text() for f in sorted(glob.glob(str(root / 'src' / '0*.js'))))
@@ -17,4 +18,9 @@ html = (shell
 (root / 'docs' / 'index.html').write_text(html)
 for d in (root, root / 'docs'):
     (d / '.nojekyll').write_text('')
+    target_assets = d / 'assets'
+    target_assets.mkdir(exist_ok=True)
+    for asset in (root / 'assets').glob('*'):
+        if asset.is_file() and asset.parent != target_assets:
+            shutil.copy2(asset, target_assets / asset.name)
 print(f'index.html and docs/index.html written ({len(html):,} bytes)')

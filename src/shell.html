@@ -105,11 +105,11 @@ button { font-family: var(--ui); }
 #captain.min .body { display: none; }
 
 /* radio */
-#radio { position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); left: calc(50% + 120px); transform: translateX(-50%); width: min(520px, calc(100vw - 460px)); background: rgba(6, 12, 9, .9); border: 1px solid rgba(61,242,61,.35); padding: 10px 14px; z-index: 19; pointer-events: none; display: flex; gap: 12px; align-items: baseline; }
-.captain-right #radio { left: calc(50% - 120px); }
-@media (min-width: 601px) and (max-width: 1100px) { #radio { top: calc(90px + env(safe-area-inset-top, 0px)); } }
-#radio .who { font-family: var(--mono); color: var(--green); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; flex: none; }
-#radio .msg { font-family: var(--mono); font-size: 13.5px; line-height: 1.45; }
+#radio { position: fixed; top: calc(54px + env(safe-area-inset-top, 0px)); right: max(12px, env(safe-area-inset-right, 0px)); width: min(380px, calc(100vw - 24px)); box-sizing: border-box; background: rgba(6, 12, 9, .9); border: 1px solid rgba(61,242,61,.35); padding: 8px 11px; z-index: 19; pointer-events: none; }
+.captain-right #radio { left: max(12px, env(safe-area-inset-left, 0px)); right: auto; }
+@media (min-width: 601px) and (max-width: 1100px) { #radio { top: calc(90px + env(safe-area-inset-top, 0px)); width: min(360px, calc(100vw - 380px)); } }
+#radio .who { display: block; font-family: var(--mono); color: var(--green); font-size: 10px; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 3px; }
+#radio .msg { display: block; font-family: var(--mono); font-size: 12px; line-height: 1.32; }
 #radio.flash { animation: rf .5s; } @keyframes rf { from { border-color: var(--green); } }
 
 #tip { position: fixed; z-index: 30; pointer-events: none; background: rgba(4,8,10,.94); border: 1px solid var(--line); color: var(--fg); font-size: 12.5px; padding: 6px 9px; width: max-content; max-width: min(320px, calc(100vw - 16px)); line-height: 1.4; }
@@ -154,7 +154,7 @@ button { font-family: var(--ui); }
 #graphicsDescription { color: var(--fg); min-height: 2.7em; }
 #graphicsStats { color: var(--cyan); font: 12px/1.6 var(--mono); overflow-wrap: anywhere; border-top: 1px solid var(--line); padding-top: 12px; }
 @media (max-width: 600px) { .vrow { grid-template-columns: 1fr; } }
-@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: min(340px, calc(100vw - 24px)); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .body { max-height: min(44vh, 380px); } #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 50%; width: calc(100vw - 32px); } }
+@media (max-width: 600px) { #top { max-width: calc(100vw - 24px); } #looks { top: calc(100px + env(safe-area-inset-top, 0px)); right: 12px; overflow-x: auto; flex-wrap: nowrap; } #looks .btn { white-space: nowrap; } #captain, #captain.dock-right { width: min(340px, calc(100vw - 24px)); top: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); left: 12px; right: auto; } #captain .body { max-height: min(44vh, 380px); } #tDock { display: none; } #radio, .captain-right #radio { top: calc(142px + env(safe-area-inset-top, 0px)); left: 16px; right: auto; width: calc(100vw - 32px); } }
 @media (max-width: 600px) { #controlDrawer { top: 48px; max-height: calc(100vh - 60px); } .keys { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { #radio.flash { animation: none; } #loadbar, #tProg { transition: none; } }
 </style>
@@ -179,7 +179,7 @@ button { font-family: var(--ui); }
       <button class="scn" data-scn="approach"><span class="tag">FROM APPROACH</span><b>17 miles from 26R</b><small>4000 ft east of Charles de Gaulle, ready for the ILS.</small></button>
       <button class="scn" data-scn="free"><span class="tag">NO CAPTAIN</span><b>Free flight</b><small>Lined up on 27R. You're on your own.</small></button>
     </div>
-    <p class="note">Best with headphones and a keyboard. Press H for the controls or F2 for a searchable, keyboard-operable cockpit control list. Scenery is generated from real coastlines, rivers and runway layouts; it is not satellite imagery.</p>
+    <p class="note">Best with headphones and a keyboard. Press H for the controls or F2 for a searchable, keyboard-operable cockpit control list. Coastlines and runways use real layouts; countryside detail is illustrative.</p>
     <button class="btn" id="menuGraphics">Graphics settings</button>
   </div>
 </div>
