@@ -634,7 +634,7 @@ function setupUI() {
   document.querySelectorAll('.look').forEach(b => b.onclick = () => {
     VIEW.lookTo = null; VIEW.mode = 'cockpit'; VIEW.overview = b.dataset.view === 'full-panel';
     const preset = b.dataset.view; VIEW.preset = preset || null;
-    if (VIEW.overview) { VIEW.offset = null; VIEW.tyaw = 0; VIEW.tpitch = -18; VIEW.fov = fullPanelFov(); }
+    if (VIEW.overview) { VIEW.offset = null; VIEW.tyaw = 0; VIEW.tpitch = -25; VIEW.fov = fullPanelFov(); }
     else if (preset === 'instruments') { VIEW.offset = new THREE.Vector3(.52, 0, .57); VIEW.tyaw = 0; VIEW.tpitch = -27; VIEW.fov = fullPanelFov(); }
     else if (preset === 'pedestal') { VIEW.offset = new THREE.Vector3(.52, .04, 1.06); VIEW.tyaw = 0; VIEW.tpitch = -40; VIEW.fov = pedestalFov(); }
     else if (preset === 'overhead') { VIEW.offset = new THREE.Vector3(.52, 0, .47); VIEW.tyaw = 0; VIEW.tpitch = 50; VIEW.fov = 76; }
@@ -750,6 +750,7 @@ function renderTutUI() {
   const pct = Tut.idx / (Tut.steps.length - 1); $('tProg').style.transform = `scaleX(${pct})`;
 }
 function waitingText(st) {
+  if (st.title === 'Rotate') return `Accelerating along the runway. Hold the centreline and wait for the ${S.fms.vr}-knot rotate call.`;
   if (st.title === 'Autopilot') return 'Climbing away. Keep the wings level and follow the flight director bars. We\'ll engage the autopilot above 300 feet.';
   if (st.title === 'Thrust reduction') return 'Keep climbing. At 1500 feet we\'ll reduce to climb thrust.';
   if (st.title === 'Flaps up') return 'Accelerating. Watch the speed tape for the green S.';
