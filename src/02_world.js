@@ -14,7 +14,7 @@ function buildMask() {
   // Sea everywhere, then land
   g.fillStyle = '#ff0000'; g.fillRect(0, 0, MASK_N, MASK_N);
   g.fillStyle = '#000000';
-  for (const poly of [COAST_ENGLAND, COAST_FRANCE]) {
+  for (const poly of LAND_POLYGONS) {
     g.beginPath();
     poly.forEach((p, i) => { const [x, y] = mpxLL(p[0], p[1]); i ? g.lineTo(x, y) : g.moveTo(x, y); });
     g.closePath(); g.fill();
@@ -213,10 +213,14 @@ float curveDrop(vec3 wp){ vec2 d = wp.xz - uCam.xz; return dot(d,d) / 12742000.;
 `;
 
 function groundMaterial(maskTex) {
+  const fallbackFields = new THREE.DataTexture(new Uint8Array([95, 111, 73, 255]), 1, 1);
+  fallbackFields.needsUpdate = true;
   const U = {
     uMask: { value: maskTex }, uB: { value: new THREE.Vector4(WORLD.X0, WORLD.Z0, 1 / (WORLD.X1 - WORLD.X0), 1 / (WORLD.Z1 - WORLD.Z0)) },
     uSunDir: { value: W.sunDir }, uSunCol: { value: new THREE.Color(1.0, 0.96, 0.88) }, uHaze: { value: W.hazeCol }, uCam: { value: new THREE.Vector3() },
-    uVis: { value: 40000 }, uSky: { value: W.skyCol }, uTime: { value: 0 }
+    uVis: { value: 40000 }, uSky: { value: W.skyCol }, uTime: { value: 0 },
+    uFields: { value: fallbackFields },
+    uFieldsReady: { value: 0 }
   };
   return new THREE.ShaderMaterial({
     uniforms: U,
@@ -232,16 +236,19 @@ void main(){ vec4 w = modelMatrix * vec4(position,1.); vW = w.xyz; vN = normal;
     fragmentShader: `#include <common>
 #include <logdepthbuf_pars_fragment>
 ${GLSL_COMMON}
-uniform sampler2D uMask; uniform vec4 uB; uniform vec3 uSky; uniform float uTime;
+uniform sampler2D uMask; uniform sampler2D uFields; uniform vec4 uB; uniform vec3 uSky; uniform float uTime; uniform float uFieldsReady;
 varying vec3 vW; varying vec3 vN;
 vec3 fieldCol(vec2 p, float france, out float edge){
-  vec2 q = p + 260. * vec2(vnoise(p*0.0012), vnoise(p*0.0012+7.)) ;
-  float ang = (hash12(floor(q/4000.)) - .5) * 1.2;
-  mat2 R = mat2(cos(ang), -sin(ang), sin(ang), cos(ang));
-  vec2 r = R * q; vec2 sz = mix(vec2(260.,190.), vec2(520.,340.), france);
-  vec2 c = floor(r / sz); vec2 f = fract(r / sz);
-  float h = hash12(mod(c, 997.));
-  float h2 = hash12(mod(c+31., 997.));
+  // Farm parcels follow long, gently varying rows rather than a perfect grid.
+  // The phase terms alter widths without rotating coordinates around world zero.
+  vec2 q = p + 40. * vec2(vnoise(p*.0007), vnoise(p*.0007+7.));
+  vec2 scale = mix(vec2(310.,220.), vec2(460.,295.), france);
+  vec2 r = q / scale;
+  r.x += .31*sin(q.x/1250.) + .11*sin(q.y/1700. + q.x/3000.);
+  r.y += .26*sin(q.y/1050.) + .09*sin(q.x/1450.);
+  vec2 cell = floor(r), f = fract(r);
+  float h = hash12(mod(cell, 997.));
+  float h2 = hash12(mod(cell+31., 997.));
   vec3 col;
   if (h < .30) col = mix(vec3(.24,.34,.13), vec3(.30,.40,.16), h2);       // pasture
   else if (h < .50) col = mix(vec3(.38,.42,.20), vec3(.44,.46,.24), h2);  // grass ley
@@ -251,9 +258,10 @@ vec3 fieldCol(vec2 p, float france, out float edge){
   else col = mix(vec3(.58,.56,.30), vec3(.66,.62,.42), h2);
   if (france < .5 && h < .55) col *= vec3(.92,1.05,.9);
   col = mix(col, col * vec3(1.08,1.02,.92), france);
-  vec2 e = min(f, 1.-f) * sz; edge = min(e.x, e.y);
+  vec2 e = min(f, 1.-f) * scale; edge = min(e.x, e.y);
   // ploughed / crop rows
-  float rows = sin(r.x * (h > .6 ? 1.2 : .6)) * .5 + .5; col *= 1. - .05 * rows * step(.5, h);
+  float rows = sin((q.x + q.y*.16) * (h > .6 ? 1.2 : .6)) * .5 + .5;
+  col *= 1. - .045 * rows * step(.5, h);
   return col;
 }
 void main(){
@@ -264,18 +272,22 @@ void main(){
   float dist = length(vW - uCam);
   float france = smoothstep(150000., 200000., p.y + p.x * .25);
   float edge; vec3 col = fieldCol(p, france, edge);
+  // A photographic countryside tile supplies real crop and hedgerow detail.
+  // The procedural parcel colours remain as a fallback while it loads.
+  vec3 fields = texture2D(uFields, p / 12000.).rgb;
+  col = mix(col, fields, uFieldsReady * .9);
   // regional variation so the patchwork isn't uniform from altitude
   float reg = vnoise(p * .00012) * .6 + vnoise(p * .0005) * .4;
   col *= mix(vec3(.88,.95,.84), vec3(1.12,1.05,.9), reg);
-  col = mix(col, vec3(dot(col, vec3(.33))), .12);
+  col = mix(col, vec3(dot(col, vec3(.33))), .06);
   float fw = max(fwidth(p.x), 0.05);
   float hedge = 1. - smoothstep(3., 3. + fw * 1.5, edge);
-  col = mix(col, vec3(.13,.19,.08), hedge * .85 * (1. - smoothstep(4000., 15000., dist)));
+  col = mix(col, vec3(.13,.19,.08), hedge * .52 * (1. - uFieldsReady) * (1. - smoothstep(2500., 8500., dist)));
   // At flight altitude the individual field parcels merge into a broader landscape.
   // This also keeps the regular field grid from reading like a checkerboard.
   float aerialBlend = smoothstep(1800., 10000., dist);
   vec3 aerialCol = mix(vec3(.23,.30,.15), vec3(.34,.36,.20), vnoise(p * .00008));
-  col = mix(col, aerialCol, aerialBlend * .82);
+  col = mix(col, aerialCol, aerialBlend * .82 * (1. - uFieldsReady));
   // fine grain
   float g = vnoise(p * .35) * .5 + vnoise(p * 2.1) * .5; col *= .9 + .2 * g * (1. - smoothstep(300., 2500., dist));
   // forest
@@ -312,13 +324,13 @@ void main(){
   float wa = smoothstep(.35, .65, m.r);
   if (wa > 0.) {
     vec3 vd = normalize(vW - uCam);
-    vec2 wp = p * .03 + vec2(uTime * .05, uTime * .03);
-    vec3 wn = normalize(vec3((vnoise(wp) - .5) * .35 + (vnoise(wp * 4.3) - .5) * .18, 1., (vnoise(wp + 5.) - .5) * .35 + (vnoise(wp * 4.1 + 2.) - .5) * .18));
-    wn = normalize(mix(wn, vec3(0,1,0), smoothstep(2000., 40000., dist)));
+    vec2 wp = p * .015 + vec2(uTime * .03, uTime * .02);
+    vec3 wn = normalize(vec3((vnoise(wp) - .5) * .13 + (vnoise(wp * 3.1) - .5) * .04, 1., (vnoise(wp + 5.) - .5) * .13 + (vnoise(wp * 3.1 + 2.) - .5) * .04));
+    wn = normalize(mix(wn, vec3(0,1,0), smoothstep(1800., 12000., dist)));
     float fres = .02 + .98 * pow(1. - max(dot(-vd, wn), 0.), 5.);
     vec3 refl = reflect(vd, wn);
     // Keep the sun path bright without turning a large area of the Channel pure white.
-    float spec = pow(max(dot(refl, uSunDir), 0.), 220.) * 1.45 + pow(max(dot(refl, uSunDir), 0.), 18.) * .14;
+    float spec = pow(max(dot(refl, uSunDir), 0.), 100.) * .55 + pow(max(dot(refl, uSunDir), 0.), 16.) * .09;
     vec3 deep = mix(vec3(.05,.13,.17), vec3(.08,.17,.18), france);
     vec3 sky = mix(uHaze, uSky * 1.4, .4);
     vec3 wc = mix(deep * (.6 + .5 * dif), sky, fres) + uSunCol * spec;
@@ -350,6 +362,13 @@ function buildTerrain(scene, maskTex) {
   const geo = new THREE.BufferGeometry(); geo.setAttribute('position', new THREE.BufferAttribute(pos, 3)); geo.setAttribute('normal', new THREE.BufferAttribute(nor, 3)); geo.setIndex(new THREE.BufferAttribute(idx, 1));
   geo.boundingSphere = new THREE.Sphere(new THREE.Vector3(100000, 0, 130000), 2e6);
   const mat = groundMaterial(maskTex);
+  const fields = new THREE.TextureLoader();
+  fields.load('assets/european-farmland.jpg', tex => {
+    tex.wrapS = tex.wrapT = THREE.MirroredRepeatWrapping;
+    tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
+    mat.uniforms.uFields.value = tex;
+    mat.uniforms.uFieldsReady.value = 1;
+  });
   const mesh = new THREE.Mesh(geo, mat); mesh.frustumCulled = false; scene.add(mesh);
   return mesh;
 }
@@ -416,25 +435,28 @@ function buildClouds(scene) {
   const r = mulberry(4242);
   const puffs = [];
   const addCluster = (cx, cz, base, scale) => {
-    const n = 5 + (r() * 9 | 0); const w = (400 + r() * 900) * scale;
+    const n = 6 + (r() * 11 | 0); const w = (400 + r() * 900) * scale;
     for (let i = 0; i < n; i++) {
       const a = r() * 6.283, d = Math.sqrt(r()) * w; const s = (250 + r() * 420) * scale;
       const hh = r() * w * 0.45 * (1 - d / w * 0.6);
       puffs.push([cx + Math.cos(a) * d, base + s * 0.35 + hh, cz + Math.sin(a) * d * 0.8, s, cx, base, cz, w]);
     }
   };
-  // Scattered cumulus over the route, with clear sight lines on final approach.
-  for (let i = 0; i < 520; i++) {
+  // Uneven cloud streets at two heights keep the horizon from becoming a row
+  // of identical puffs, while leaving the runway approaches mostly clear.
+  for (let i = 0; i < 310; i++) {
     const x = WORLD.X0 + r() * (WORLD.X1 - WORLD.X0), z = WORLD.Z0 + r() * (WORLD.Z1 - WORLD.Z0);
     const dl = Math.hypot(x - 0, z - 0), dc = Math.hypot(x - CDG.rwys[0].tx, z - CDG.rwys[0].tz);
-    if (dl < 5000 || dc < 5000) continue;
+    if (dl < 14000 || dc < 14000) continue;
     const sea = waterLoAt(x, z) > 0.5;
     if (sea && r() < 0.6) continue;
-    addCluster(x, z, 1150 + r() * 350, 0.8 + r() * 0.7);
+    const upper = r() > .67;
+    addCluster(x, z, upper ? 3500 + r() * 1200 : 1700 + r() * 900,
+      upper ? .8 + r() * .75 : .65 + r() * .7);
   }
   for (const ap of AIRPORTS) for (let i = 0; i < 18; i++) {
-    const a = r() * Math.PI * 2, d = 8500 + r() * 19000;
-    addCluster(ap.cx + Math.cos(a) * d, ap.cz + Math.sin(a) * d, 1250 + r() * 550, .7 + r() * .6);
+    const a = r() * Math.PI * 2, d = 18000 + r() * 17000;
+    addCluster(ap.cx + Math.cos(a) * d, ap.cz + Math.sin(a) * d, 1800 + r() * 1200, .6 + r() * .75);
   }
   const N = puffs.length;
   const base = new THREE.PlaneGeometry(1, 1);
@@ -460,7 +482,7 @@ void main(){
   vRel = rel;
   vShade = clamp((aP.y - aC.y) / (aC.w * .5), 0., 1.);
   float d = length(aP.xyz - uCam);
-  vFade = smoothstep(aP.w * .6, aP.w * 2.2, d);
+  vFade = smoothstep(aP.w * .6, aP.w * 2.2, d) * (1. - smoothstep(28000., 62000., d));
   gl_Position = projectionMatrix * mv;
   #include <logdepthbuf_vertex>
 }`,
@@ -479,7 +501,7 @@ void main(){
   l += pow(lightSide, 4.) * .12;
   vec3 col = mix(uSky * .48 + vec3(.31,.33,.35), uSunCol, l * .78) * l;
   col = aerial(col, vW);
-  gl_FragColor = vec4(col, a * .92);
+  gl_FragColor = vec4(col, a * .78);
 }`,
     transparent: true, depthWrite: false
   });

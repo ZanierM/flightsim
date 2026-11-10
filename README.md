@@ -6,7 +6,7 @@ A browser flight simulator with two guided Airbus A320 sectors: London Heathrow 
 
 Choose a route on the start menu, then select the full tutorial or a take-off, cruise, or approach starting point. The briefing and captain checklists follow the selected direction.
 
-Open `index.html` in a modern desktop browser (Chrome, Edge, Safari or Firefox) with WebGL. Headphones and a keyboard are recommended. Three.js loads from cdnjs, so you need an internet connection.
+Open `index.html` in a modern desktop browser (Chrome, Edge, Safari or Firefox) with WebGL. Headphones and a keyboard are recommended. Three.js loads from cdnjs, so you need an internet connection. The terrain texture also needs to be served from `assets/`; use `python3 -m http.server` for a local preview.
 
 To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `main`**, with either `/ (root)` or `/docs`. Both folders hold the same built `index.html`, and `.nojekyll` tells Pages to serve the files as they are.
 
@@ -17,7 +17,7 @@ To host it on GitHub Pages: **Settings → Pages → Deploy from a branch → `m
 - **Flight model and automation**: fly-by-wire normal law with protections, autothrust, autopilot modes (SRS, CLB, DES, ALT, V/S, HDG, NAV, LOC, G/S), managed speeds and an automatic landing.
 - **Captain tutorial**: 48 step-locked lessons with voice, checklists and ATC. "Show me" turns your view to the control, "Do it for me" carries out the step, and skipping moves the aircraft to where that step happens.
 - **Flight briefing**: available before departure and from the top bar in flight. It lists the simulated departure and arrival runways, QNH, climb clearance, V speeds, company route, cruise level, fuel and ILS details. Opening it in flight pauses the aircraft while you read.
-- **World**: scenery generated from real coastlines, rivers, towns and runway layouts for both airports, with airport grass variation, runway shoulders, nearby tree belts and scattered clouds. It is not satellite imagery.
+- **World**: route-area coastlines from public-domain Natural Earth land polygons, plus approximate rivers, towns and airport layouts. An original aerial-style countryside texture, airport grass, tree belts and clouds fill the scene. The countryside texture is illustrative and does not depict the actual ground below the route.
 
 ## Controls
 
@@ -60,7 +60,8 @@ Open **Graphics** from the start menu or the top bar. **Balanced** keeps full sc
 | File | Contents |
 | --- | --- |
 | `00_util.js` | Maths, geodesy, noise, ISA atmosphere |
-| `01_data.js` | Coastlines, rivers, towns, airports, runways, and both flight plans |
+| `01_data.js` | Approximate rivers, towns, airports, runways, and both flight plans |
+| `01b_coast.js` | Clipped Natural Earth land polygons for the Channel route |
 | `02_world.js` | Terrain, sky, clouds, airports, buildings |
 | `03_model.js` | Exterior A320 model |
 | `04_aircraft.js` | Flight model, systems, autopilot, warnings |
@@ -71,7 +72,7 @@ Open **Graphics** from the start menu or the top bar. **Balanced** keeps full sc
 | `09_main.js` | Renderer, input, scenarios, UI |
 | `shell.html` | Page markup and styles |
 
-After editing anything in `src/`, run `python3 build.py`. It rewrites both `index.html` and `docs/index.html`.
+After editing anything in `src/` or `assets/`, run `python3 build.py`. It rewrites both `index.html` and `docs/index.html` and copies assets into `docs/assets/`. The countryside image was generated for this project; no purchased model is included. Land polygons use [Natural Earth 1:10m land data](https://www.naturalearthdata.com/downloads/10m-physical-vectors/10m-land/), which is [public domain](https://www.naturalearthdata.com/about/terms-of-use/).
 
 Run `node tests/smoke.cjs`, `node tests/landing-lights.cjs`, `node tests/distance-to-go.cjs`, and `node tests/routes.cjs` for the cockpit checks, final-approach distance, and both route configurations.
 
